@@ -1,0 +1,339 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String
+  logo_url           String?
+  subscription_tier  String?
+  management_fee_pct Decimal?  @db.Decimal
+  created_at         DateTime  @default(now()) @db.Timestamptz
+
+  users              User[]
+  owners             Owner[]
+  properties         Property[]
+  units              Unit[]
+  tenants            Tenant[]
+  applications       Application[]
+  tenancies          Tenancy[]
+  payments           Payment[]
+  receipts           Receipt[]
+  trust_transactions TrustTransaction[]
+  maintenance_requests MaintenanceRequest[]
+  communications     Communication[]
+  owner_statements   OwnerStatement[]
+  message_templates  MessageTemplate[]
+  agent_invites      AgentInvite[]
+
+  @@map("accounts")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  account_id    String    @db.Uuid
+  email         String    @unique
+  password_hash String
+  role          String
+  full_name     String?
+  phone         String?
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamptz
+
+  account       Account   @relation(fields: [account_id], references: [id])
+  refresh_tokens RefreshToken[]
+  applications_reviewed Application[] @relation("ReviewedBy")
+  payments_recorded    Payment[]      @relation("RecordedBy")
+  maintenance_logged   MaintenanceRequest[] @relation("LoggedBy")
+  communications_sent  Communication[] @relation("SentBy")
+  statements_approved  OwnerStatement[] @relation("ApprovedBy")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  token_hash  String
+  expires_at  DateTime  @db.Timestamptz
+  revoked     Boolean   @default(false)
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  user        User      @relation(fields: [user_id], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model Owner {
+  id           String    @id @default(uuid()) @db.Uuid
+  account_id   String    @db.Uuid
+  full_name    String
+  email        String?
+  phone        String?
+  bank_name    String?
+  bank_account String?
+  is_diaspora  Boolean   @default(false)
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  account      Account   @relation(fields: [account_id], references: [id])
+  properties   Property[]
+  trust_transactions TrustTransaction[]
+  statements   OwnerStatement[]
+
+  @@map("owners")
+}
+
+model Property {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  owner_id    String    @db.Uuid
+  name        String
+  address     String?
+  suburb      String?
+  city        String?
+  type        String?
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  owner       Owner     @relation(fields: [owner_id], references: [id])
+  units       Unit[]
+
+  @@map("properties")
+}
+
+model Unit {
+  id          String    @id @default(uuid()) @db.Uuid
+  property_id String    @db.Uuid
+  account_id  String    @db.Uuid
+  unit_number String
+  bedrooms    Int?
+  bathrooms   Int?
+  status      String
+  rent_amount Decimal   @db.Decimal
+  currency    String
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  property    Property  @relation(fields: [property_id], references: [id])
+  account     Account   @relation(fields: [account_id], references: [id])
+  applications Application[]
+  tenancies   Tenancy[]
+  maintenance_requests MaintenanceRequest[]
+
+  @@map("units")
+}
+
+model Tenant {
+  id                String    @id @default(uuid()) @db.Uuid
+  account_id        String    @db.Uuid
+  full_name         String
+  email             String?
+  phone             String?
+  id_number         String?
+  employer          String?
+  employment_status String?
+  monthly_income    Decimal?  @db.Decimal
+  created_at        DateTime  @default(now()) @db.Timestamptz
+
+  account           Account   @relation(fields: [account_id], references: [id])
+  tenancies         Tenancy[]
+  communications    Communication[]
+
+  @@map("tenants")
+}
+
+model Application {
+  id              String    @id @default(uuid()) @db.Uuid
+  account_id      String    @db.Uuid
+  unit_id         String    @db.Uuid
+  token           String    @unique
+  status          String
+  applicant_name  String
+  applicant_email String?
+  applicant_phone String?
+  form_data       Json
+  vetting_notes   String?
+  submitted_at    DateTime  @db.Timestamptz
+  reviewed_at     DateTime? @db.Timestamptz
+  reviewed_by     String?   @db.Uuid
+
+  account         Account   @relation(fields: [account_id], references: [id])
+  unit            Unit      @relation(fields: [unit_id], references: [id])
+  reviewer        User?     @relation("ReviewedBy", fields: [reviewed_by], references: [id])
+
+  @@map("applications")
+}
+
+model Tenancy {
+  id              String    @id @default(uuid()) @db.Uuid
+  account_id      String    @db.Uuid
+  unit_id         String    @db.Uuid
+  tenant_id       String    @db.Uuid
+  lease_start     DateTime  @db.Date
+  lease_end       DateTime? @db.Date
+  rent_amount     Decimal   @db.Decimal
+  currency        String
+  deposit_amount  Decimal?  @db.Decimal
+  rent_due_day    Int?
+  status          String
+  lease_pdf_url   String?
+  created_at      DateTime  @default(now()) @db.Timestamptz
+
+  account         Account   @relation(fields: [account_id], references: [id])
+  unit            Unit      @relation(fields: [unit_id], references: [id])
+  tenant          Tenant    @relation(fields: [tenant_id], references: [id])
+  payments        Payment[]
+  trust_transactions TrustTransaction[]
+  maintenance_requests MaintenanceRequest[]
+
+  @@map("tenancies")
+}
+
+model Payment {
+  id           String    @id @default(uuid()) @db.Uuid
+  account_id   String    @db.Uuid
+  tenancy_id   String    @db.Uuid
+  period_month Int
+  period_year  Int
+  amount_paid  Decimal   @db.Decimal
+  currency     String
+  zig_usd_rate Decimal?  @db.Decimal
+  method       String
+  reference    String?
+  status       String
+  recorded_by  String    @db.Uuid
+  payment_date DateTime  @db.Date
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  account      Account   @relation(fields: [account_id], references: [id])
+  tenancy      Tenancy   @relation(fields: [tenancy_id], references: [id])
+  recorder     User      @relation("RecordedBy", fields: [recorded_by], references: [id])
+  receipts     Receipt[]
+
+  @@map("payments")
+}
+
+model Receipt {
+  id             String    @id @default(uuid()) @db.Uuid
+  account_id     String    @db.Uuid
+  payment_id     String    @db.Uuid
+  receipt_number String
+  pdf_url        String?
+  sent_via       String[]
+  created_at     DateTime  @default(now()) @db.Timestamptz
+
+  account        Account   @relation(fields: [account_id], references: [id])
+  payment        Payment   @relation(fields: [payment_id], references: [id])
+
+  @@map("receipts")
+}
+
+model TrustTransaction {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  tenancy_id  String?   @db.Uuid
+  owner_id    String?   @db.Uuid
+  type        String
+  amount      Decimal   @db.Decimal
+  currency    String
+  description String?
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  tenancy     Tenancy?  @relation(fields: [tenancy_id], references: [id])
+  owner       Owner?    @relation(fields: [owner_id], references: [id])
+
+  @@map("trust_transactions")
+}
+
+model MaintenanceRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  unit_id     String    @db.Uuid
+  tenancy_id  String?   @db.Uuid
+  title       String
+  description String?
+  priority    String
+  status      String
+  cost        Decimal?  @db.Decimal
+  logged_by   String    @db.Uuid
+  resolved_at DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  unit        Unit      @relation(fields: [unit_id], references: [id])
+  tenancy     Tenancy?  @relation(fields: [tenancy_id], references: [id])
+  logger      User      @relation("LoggedBy", fields: [logged_by], references: [id])
+
+  @@map("maintenance_requests")
+}
+
+model Communication {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  tenant_id   String    @db.Uuid
+  channel     String
+  direction   String
+  subject     String?
+  body        String?
+  sent_by     String?   @db.Uuid
+  sent_at     DateTime  @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  tenant      Tenant    @relation(fields: [tenant_id], references: [id])
+  sender      User?     @relation("SentBy", fields: [sent_by], references: [id])
+
+  @@map("communications")
+}
+
+model OwnerStatement {
+  id            String    @id @default(uuid()) @db.Uuid
+  account_id    String    @db.Uuid
+  owner_id      String    @db.Uuid
+  period_month  Int
+  period_year   Int
+  status        String
+  pdf_url       String?
+  approved_by   String?   @db.Uuid
+  approved_at   DateTime? @db.Timestamptz
+  dispatched_at DateTime? @db.Timestamptz
+  created_at    DateTime  @default(now()) @db.Timestamptz
+
+  account       Account   @relation(fields: [account_id], references: [id])
+  owner         Owner     @relation(fields: [owner_id], references: [id])
+  approver      User?     @relation("ApprovedBy", fields: [approved_by], references: [id])
+
+  @@map("owner_statements")
+}
+
+model MessageTemplate {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  name        String
+  channel     String
+  subject     String?
+  body        String
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+
+  @@map("message_templates")
+}
+
+model AgentInvite {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  email       String
+  role        String
+  token       String    @unique
+  expires_at  DateTime  @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+
+  @@map("agent_invites")
+}

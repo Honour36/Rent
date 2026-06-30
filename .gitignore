@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+.env
+.env.local
+client/node_modules
+server/node_modules
+client/.next
+server/dist
+.vscode
+.idea
+.DS_Store
+.agents
+client.zip
