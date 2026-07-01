@@ -3,6 +3,7 @@ import { TokenPayload } from '../middleware/auth.middleware';
 import PDFDocument from 'pdfkit';
 import { Resend } from 'resend';
 import { z } from 'zod';
+import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
 
 export const SendReceiptSchema = z.object({
   channel: z.enum(['email', 'whatsapp']),
@@ -93,6 +94,32 @@ export class ReceiptsService {
 
       doc.end();
     });
+  }
+
+  /**
+   * Upload the generated receipt PDF to Supabase Storage and update the pdf_url on the receipt record.
+   * Returns the signed URL so the caller can redirect the browser directly.
+   */
+  async persistReceiptPdf(paymentId: string, user: TokenPayload): Promise<string> {
+    const receipt = await this.getReceiptByPaymentId(paymentId, user);
+    const pdfBuffer = await this.generateReceiptPdf(paymentId, user);
+    const storagePath = `receipts/${user.accountId}/${receipt.receipt_number}.pdf`;
+    await uploadFile(BUCKETS.receipts, storagePath, pdfBuffer, 'application/pdf');
+    await prisma.receipt.update({ where: { id: receipt.id }, data: { pdf_url: storagePath } });
+    return getSignedUrl(BUCKETS.receipts, storagePath);
+  }
+
+  /**
+   * Get a fresh signed URL for an already-stored receipt.
+   */
+  async getReceiptSignedUrl(paymentId: string, user: TokenPayload): Promise<string> {
+    const receipt = await this.getReceiptByPaymentId(paymentId, user);
+    // If already stored in bucket, get fresh signed URL
+    if (receipt.pdf_url && !receipt.pdf_url.startsWith('/api/')) {
+      return getSignedUrl(BUCKETS.receipts, receipt.pdf_url);
+    }
+    // Otherwise upload now and return
+    return this.persistReceiptPdf(paymentId, user);
   }
 
   async sendReceipt(paymentId: string, channel: 'email' | 'whatsapp', user: TokenPayload) {

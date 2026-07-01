@@ -7,6 +7,7 @@ const router = Router();
 router.get('/owner-statement', authenticate, (req, res) => reportsController.list(req as any, res));
 router.post('/owner-statement/generate', authenticate, (req, res) => reportsController.generate(req as any, res));
 router.get('/owner-statement/:id/pdf', authenticate, (req, res) => reportsController.pdf(req as any, res));
+router.get('/owner-statement/:id/signed-url', authenticate, (req, res) => reportsController.signedUrl(req as any, res));
 router.post('/owner-statement/:id/approve', authenticate, (req, res) => reportsController.approve(req as any, res));
 router.post('/owner-statement/:id/dispatch', authenticate, (req, res) => reportsController.dispatch(req as any, res));
 

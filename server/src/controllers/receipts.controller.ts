@@ -24,8 +24,20 @@ export class ReceiptsController {
       const pdfBuffer = await receiptsService.generateReceiptPdf(paymentId, user);
 
       res.setHeader('Content-Type', 'application/pdf');
-      // res.setHeader('Content-Disposition', `attachment; filename="receipt.pdf"`); // Comment out to view inline
       res.send(pdfBuffer);
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ error: error.message });
+    }
+  }
+
+  /** Returns a short-lived signed URL to the receipt PDF stored in Supabase Storage. */
+  async getReceiptSignedUrl(req: Request, res: Response) {
+    try {
+      const user = (req as any).user as TokenPayload;
+      const { paymentId } = req.params;
+      const url = await receiptsService.getReceiptSignedUrl(paymentId, user);
+      res.json({ success: true, data: { url } });
     } catch (error: any) {
       const status = error.statusCode || 500;
       res.status(status).json({ error: error.message });

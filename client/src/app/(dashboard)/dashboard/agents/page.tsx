@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Plus, MoreHorizontal, Mail } from "lucide-react";
-import { useAgents, Agent } from "@/hooks/useAgents";
+import { Plus, MoreHorizontal, UserCog, Mail } from "lucide-react";
+import { useAgents, Agent, AgentInvite } from "@/hooks/useAgents";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,13 +45,13 @@ import { redirect } from "next/navigation";
 export default function AgentsPage() {
   const { user } = useAuthStore();
   const { agents, invites, loading, inviteAgent, updateAgent } = useAgents();
-
+  
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("junior_agent");
 
-  if (user && user.role !== "admin") {
-    redirect("/dashboard/overview");
+  if (user?.role !== 'admin') {
+    redirect('/dashboard/overview');
   }
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -75,11 +75,13 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Agents</h1>
-          <p className="text-sm text-muted-foreground">Manage your team and their access levels.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
+          <p className="text-muted-foreground">
+            Manage your team and their access levels.
+          </p>
         </div>
         <Button onClick={() => setIsInviteOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -90,7 +92,9 @@ export default function AgentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Active Team Members</CardTitle>
-          <CardDescription>Agents who have completed registration.</CardDescription>
+          <CardDescription>
+            Agents who have completed registration.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -116,7 +120,7 @@ export default function AgentsPage() {
               ) : (
                 agents.map((agent) => (
                   <TableRow key={agent.id}>
-                    <TableCell className="font-medium">{agent.full_name || "N/A"}</TableCell>
+                    <TableCell className="font-medium">{agent.full_name || 'N/A'}</TableCell>
                     <TableCell>{agent.email}</TableCell>
                     <TableCell>
                       <Select
@@ -142,7 +146,7 @@ export default function AgentsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(agent.created_at), "dd MMM yyyy")}
+                      {format(new Date(agent.created_at), 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -154,7 +158,7 @@ export default function AgentsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleToggleActive(agent)}>
-                            {agent.is_active ? "Deactivate" : "Activate"}
+                            {agent.is_active ? 'Deactivate' : 'Activate'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -171,7 +175,9 @@ export default function AgentsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Pending Invites</CardTitle>
-            <CardDescription>Agents who have not yet set up their account.</CardDescription>
+            <CardDescription>
+              Agents who have not yet set up their account.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -192,12 +198,12 @@ export default function AgentsPage() {
                         {invite.email}
                       </div>
                     </TableCell>
-                    <TableCell className="capitalize">{invite.role.replace("_", " ")}</TableCell>
+                    <TableCell className="capitalize">{invite.role.replace('_', ' ')}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(invite.created_at), "dd MMM yyyy")}
+                      {format(new Date(invite.created_at), 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(invite.expires_at), "dd MMM yyyy")}
+                      {format(new Date(invite.expires_at), 'dd MMM yyyy')}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -211,14 +217,18 @@ export default function AgentsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Invite Agent</DialogTitle>
-            <DialogDescription>Send an email invitation to join your team.</DialogDescription>
+            <DialogDescription>
+              Send an email invitation to join your team.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInvite}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="agent-email" className="text-right">Email</Label>
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
                 <Input
-                  id="agent-email"
+                  id="email"
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
@@ -227,9 +237,11 @@ export default function AgentsPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="agent-role" className="text-right">Role</Label>
+                <Label htmlFor="role" className="text-right">
+                  Role
+                </Label>
                 <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger id="agent-role" className="col-span-3">
+                  <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>

@@ -1,7 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-import { queuePayment, getQueuedPayments, deleteQueuedPayment } from './offline-queue';
-
 export type ApiResponse<T> = { success: true; data: T } | { success: false; error: string; code?: string };
 
 interface FetchOptions extends RequestInit {
@@ -24,50 +22,29 @@ export async function apiClient<T>(
   endpoint: string,
   { data, headers: customHeaders, ...customConfig }: FetchOptions = {},
 ): Promise<ApiResponse<T>> {
+  // Resolve the actual outgoing body: prefer explicit `data`, but fall back to
+  // a raw `body` passed in customConfig (some callers JSON.stringify themselves).
+  const rawBody = customConfig.body;
+  const hasBody = data !== undefined || rawBody !== undefined;
+  const resolvedBody = data !== undefined ? JSON.stringify(data) : rawBody;
+  const resolvedMethod = customConfig.method ?? (hasBody ? "POST" : "GET");
+
   const config: RequestInit = {
-    method: data ? "POST" : "GET",
     credentials: "include",
-    body: data ? JSON.stringify(data) : undefined,
+    ...customConfig,
+    method: resolvedMethod,
+    body: resolvedMethod === "GET" ? undefined : resolvedBody,
     headers: {
-      "Content-Type": data ? "application/json" : "",
+      ...(resolvedMethod !== "GET" && hasBody ? { "Content-Type": "application/json" } : {}),
       ...(customHeaders as Record<string, string>),
     },
-    ...customConfig,
   };
-
-  if (config.method === "GET") {
-    delete config.body;
-    delete (config.headers as Record<string, string>)["Content-Type"];
-  }
-
-  // Handle Offline Queueing for Payments
-  if (endpoint === '/payments' && config.method === 'POST') {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      console.log('App is offline. Queuing payment...');
-      await queuePayment(data);
-      return { 
-        success: false, 
-        error: "Offline — payment queued",
-        code: "OFFLINE_QUEUED"
-      };
-    }
-  }
 
   let response;
   try {
     response = await fetch(`${API_URL}${endpoint}`, config);
   } catch (err: any) {
     if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
-      // Network error occurred
-      if (endpoint === '/payments' && config.method === 'POST') {
-        console.log('Fetch failed (offline). Queuing payment...');
-        await queuePayment(data);
-        return { 
-          success: false, 
-          error: "Offline — payment queued",
-          code: "OFFLINE_QUEUED"
-        };
-      }
       return { success: false, error: "Network error. Please check your connection." };
     }
     throw err;
@@ -124,35 +101,4 @@ export async function apiClient<T>(
   } catch (error) {
     return { success: false, error: "Invalid JSON response from server" };
   }
-}
-
-// Background sync function
-export const syncOfflineQueue = async () => {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-  
-  const queued = await getQueuedPayments();
-  if (queued.length === 0) return;
-
-  console.log(`Syncing ${queued.length} offline payments...`);
-  
-  for (const item of queued) {
-    try {
-      const res = await apiClient('/payments', { data: item.payload });
-      if (res.success || res.code !== 'OFFLINE_QUEUED') {
-        if (item.id) {
-          await deleteQueuedPayment(item.id);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to sync queued payment:', err);
-    }
-  }
-};
-
-// Auto-sync when coming back online
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    console.log('Back online. Triggering sync...');
-    syncOfflineQueue();
-  });
 }

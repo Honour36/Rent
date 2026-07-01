@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import { Building2 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
@@ -15,10 +14,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
-import { rootUser } from "@/data/users";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
-
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { SidebarSupportCard } from "./sidebar-support-card";
@@ -31,9 +29,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       isSynced: s.isSynced,
     })),
   );
+  const currentUser = useCurrentUser();
 
   const variant = isSynced ? sidebarVariant : props.variant;
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
+
+  const navUser = currentUser
+    ? { name: currentUser.name, email: currentUser.email, avatar: currentUser.avatar }
+    : { name: "Agent", email: "", avatar: "" };
 
   return (
     <Sidebar {...props} variant={variant} collapsible={collapsible}>
@@ -54,7 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarSupportCard />
-        <NavUser user={rootUser} />
+        <NavUser user={navUser} />
       </SidebarFooter>
     </Sidebar>
   );

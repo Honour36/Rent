@@ -101,8 +101,17 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "reports",
         title: "Reports",
-        url: "/dashboard/reports",
         icon: ChartBar,
+        subItems: [
+          { id: "reports-hub", title: "All Reports", url: "/dashboard/reports" },
+          { id: "reports-owner-statement", title: "Owner Statements", url: "/dashboard/reports/owner-statement" },
+          { id: "reports-arrears", title: "Arrears", url: "/dashboard/reports/arrears" },
+          { id: "reports-vacancy", title: "Vacancy", url: "/dashboard/reports/vacancy" },
+          { id: "reports-lease-expiry", title: "Lease Expiry", url: "/dashboard/reports/lease-expiry" },
+          { id: "reports-collection-rate", title: "Collection Rate", url: "/dashboard/reports/collection-rate" },
+          { id: "reports-maintenance", title: "Maintenance", url: "/dashboard/reports/maintenance" },
+          { id: "reports-trust-ledger", title: "Trust Ledger", url: "/dashboard/reports/trust-ledger" },
+        ],
       },
     ],
   },

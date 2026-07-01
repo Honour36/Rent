@@ -3,6 +3,7 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import PDFDocument from 'pdfkit';
 import { Resend } from 'resend';
+import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
 
 export const GenerateStatementSchema = z.object({
   ownerId: z.string().uuid(),
@@ -339,6 +340,11 @@ export class ReportsService {
 
     const pdfBuffer = await this.generateStatementPdf(statementId, user);
 
+    // Upload to Supabase Storage
+    const storagePath = `statements/${user.accountId}/${statement.owner_id}/${statement.period_year}-${String(statement.period_month).padStart(2, '0')}.pdf`;
+    await uploadFile(BUCKETS.statements, storagePath, pdfBuffer, 'application/pdf');
+    await prisma.ownerStatement.update({ where: { id: statementId }, data: { pdf_url: storagePath } });
+
     const monthName = new Date(statement.period_year, statement.period_month - 1).toLocaleString('default', {
       month: 'long',
     });
@@ -590,6 +596,23 @@ export class ReportsService {
       currency: t.currency,
       description: t.description,
     }));
+  }
+
+  /** Returns a short-lived signed URL for an already-dispatched statement PDF. */
+  async getStatementSignedUrl(statementId: string, user: TokenPayload): Promise<string> {
+    const statement = await prisma.ownerStatement.findFirst({
+      where: { id: statementId, account_id: user.accountId },
+    });
+    if (!statement) throw new Error('Statement not found');
+    if (!statement.pdf_url) {
+      // Generate on demand if not stored yet
+      const pdfBuffer = await this.generateStatementPdf(statementId, user);
+      const storagePath = `statements/${user.accountId}/${statement.owner_id}/${statement.period_year}-${String(statement.period_month).padStart(2, '0')}.pdf`;
+      await uploadFile(BUCKETS.statements, storagePath, pdfBuffer, 'application/pdf');
+      await prisma.ownerStatement.update({ where: { id: statementId }, data: { pdf_url: storagePath } });
+      return getSignedUrl(BUCKETS.statements, storagePath);
+    }
+    return getSignedUrl(BUCKETS.statements, statement.pdf_url);
   }
 }
 

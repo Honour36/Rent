@@ -41,9 +41,25 @@ export function useReceipts() {
     }
   }, []);
 
+  const getSignedUrl = useCallback(async (paymentId: string): Promise<string | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiClient<{ url: string }>(`/receipts/${paymentId}/signed-url`);
+      if (!response.success) throw new Error(response.error || 'Failed to get signed URL');
+      return response.data.url;
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     getReceipt,
     sendReceipt,
+    getSignedUrl,
     loading,
     error,
   };

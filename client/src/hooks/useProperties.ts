@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 
 import { apiClient } from "@/lib/api-client";
 
+export interface ActiveTenancy {
+  id: string;
+  status: string;
+  rent_amount: number;
+  currency: string;
+  lease_start: string;
+  lease_end?: string;
+  tenant: { id: string; full_name: string; email?: string; phone?: string };
+  unit: { unit_number: string; property: { name: string } };
+}
+
 export interface Unit {
   id: string;
   property_id: string;
@@ -11,7 +22,7 @@ export interface Unit {
   status: "vacant" | "occupied" | "maintenance";
   rent_amount: number;
   currency: "ZiG" | "USD";
-  tenancies?: any[];
+  tenancies?: ActiveTenancy[];
 }
 
 export interface Property {
@@ -21,6 +32,9 @@ export interface Property {
   suburb?: string;
   city?: string;
   type: string;
+  /** Backend returns `owner` (singular) from Prisma relation */
+  owner?: { id: string; full_name: string; email?: string };
+  /** Legacy alias kept for any caller using `owners` */
   owners?: { full_name: string };
   units?: Unit[];
 }

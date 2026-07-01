@@ -103,7 +103,7 @@ export default function PropertiesPage() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-foreground">{prop.owners?.full_name ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-foreground">{prop.owner?.full_name ?? "—"}</TableCell>
                         <TableCell className="text-sm text-foreground">{prop.units?.length ?? 0}</TableCell>
                         <TableCell>
                           <Badge variant={status.variant}>{status.label}</Badge>

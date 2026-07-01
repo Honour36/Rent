@@ -9,6 +9,6 @@ export const APP_CONFIG = {
   meta: {
     title: "PropManager — Zimbabwe Property Management",
     description:
-      "PropManager is a property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements — online and offline.",
+      "PropManager is a property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements — all in real time.",
   },
 };

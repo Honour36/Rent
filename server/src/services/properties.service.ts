@@ -23,9 +23,20 @@ export class PropertiesService {
   async list(user: TokenPayload) {
     const properties = await prisma.property.findMany({
       where: { account_id: user.accountId },
+      orderBy: { created_at: 'desc' },
       include: {
-        units: true,
-        owner: { select: { full_name: true } },
+        units: {
+          include: {
+            tenancies: {
+              where: { status: 'active' },
+              take: 1,
+              include: {
+                tenant: { select: { id: true, full_name: true } },
+              },
+            },
+          },
+        },
+        owner: { select: { id: true, full_name: true, email: true } },
       },
     });
     return properties;
@@ -36,9 +47,17 @@ export class PropertiesService {
       where: { id, account_id: user.accountId },
       include: {
         units: {
-          include: { tenancies: true },
+          include: {
+            tenancies: {
+              where: { status: 'active' },
+              take: 1,
+              include: {
+                tenant: { select: { id: true, full_name: true, email: true, phone: true } },
+              },
+            },
+          },
         },
-        owner: { select: { full_name: true } },
+        owner: { select: { id: true, full_name: true, email: true, phone: true } },
       },
     });
 

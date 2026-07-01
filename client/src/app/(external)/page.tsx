@@ -106,8 +106,8 @@ export default function LandingPage() {
                 <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Building2 className="size-6" />
                 </div>
-                <h3 className="mb-2 text-xl font-bold">PWA Offline Support</h3>
-                <p className="text-muted-foreground">Continue to record payments even during load shedding. Your data syncs automatically as soon as your connection is restored.</p>
+                <h3 className="mb-2 text-xl font-bold">Real-Time Sync</h3>
+                <p className="text-muted-foreground">Every agent always sees live data. Properties, payments, and tenant records update instantly across your whole team.</p>
               </div>
             </div>
           </div>

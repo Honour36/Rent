@@ -5,7 +5,7 @@ import { TokenPayload } from '../middleware/auth.middleware';
 export const UpdateAccountSchema = z.object({
   name: z.string().min(2).optional(),
   logo_url: z.string().url().optional(),
-  subscription_tier: z.string().optional(),
+  subscription_tier: z.enum(['free', 'starter', 'growth', 'professional']).optional(),
   management_fee_pct: z.number().min(0).max(100).optional(),
 });
 

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
 
 export const ActivateTenancySchema = z.object({
   depositAmount: z.number().min(0).optional(),
@@ -65,8 +66,7 @@ export class TenanciesService {
     if (tenancy.status === 'active') throw new AppError('Tenancy is already active', 400);
 
     return await prisma.$transaction(async (tx) => {
-      // 2. Generate Lease PDF (we won't upload to real storage for now, just simulate a URL)
-      // In a real app, this buffer is uploaded to Supabase Storage
+      // 2. Generate Lease PDF and upload to Supabase Storage
       const pdfBuffer = await this.generateLeasePdf({
         property: tenancy.unit.property.name,
         unit: tenancy.unit.unit_number,
@@ -77,7 +77,9 @@ export class TenanciesService {
         currency: tenancy.currency,
         rentDueDay: data.rentDueDay,
       });
-      const dummyPdfUrl = `/api/tenancies/${id}/lease.pdf`; // Fake URL
+      const storagePath = `leases/${user.accountId}/${id}.pdf`;
+      await uploadFile(BUCKETS.leases, storagePath, pdfBuffer, 'application/pdf');
+      const leasePdfUrl = storagePath;
 
       // 3. Update Tenancy to active
       const updatedTenancy = await tx.tenancy.update({
@@ -88,7 +90,7 @@ export class TenanciesService {
           deposit_amount: data.depositAmount || null,
           rent_due_day: data.rentDueDay,
           lease_start: new Date(data.leaseStartDate),
-          lease_pdf_url: dummyPdfUrl,
+          lease_pdf_url: leasePdfUrl,
         }
       });
 

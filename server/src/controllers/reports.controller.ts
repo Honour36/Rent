@@ -129,6 +129,19 @@ export class ReportsController {
       res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to get trust ledger report' });
     }
   }
+
+  async signedUrl(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const url = await reportsService.getStatementSignedUrl(id, req.user!);
+      res.json({ success: true, data: { url } });
+    } catch (err: unknown) {
+      const anyErr = err as any;
+      res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to get signed URL' });
+    }
+  }
 }
 
 export const reportsController = new ReportsController();
+
+// ---- PATCH: append signedUrl method before final export ----

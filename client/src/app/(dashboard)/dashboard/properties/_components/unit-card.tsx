@@ -47,13 +47,13 @@ export function UnitCard({ unit }: UnitCardProps) {
             <>
               <div>
                 <span className="font-medium text-foreground">Tenant:</span>{" "}
-                {/* Fallback to something if tenant name isn't joined yet, or assume it is */}
-                {activeTenancy.tenant_id ? "Tenant (ID)" : "Unknown"}
+                {activeTenancy.tenant?.full_name ?? "—"}
               </div>
               <div>
-                <span className="font-medium text-foreground">Next Due:</span>{" "}
-                {/* Fallback next due date logic for mock */}
-                1st of Next Month
+                <span className="font-medium text-foreground">Lease from:</span>{" "}
+                {activeTenancy.lease_start
+                  ? new Date(activeTenancy.lease_start).toLocaleDateString("en-ZW", { day: "2-digit", month: "short", year: "numeric" })
+                  : "—"}
               </div>
             </>
           ) : (

@@ -34,7 +34,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, CheckCircle2, Zap } from "lucide-react";
+import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
+import { Badge } from "@/components/ui/badge";
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -223,17 +225,114 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="subscription">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription</CardTitle>
-              <CardDescription>
-                View your current subscription plan.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Current Tier: <strong>{account?.subscription_tier || 'Free'}</strong></p>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Subscription Plans</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Current plan:{" "}
+                <Badge variant="outline" className="ml-1 capitalize font-semibold">
+                  {account?.subscription_tier ?? "free"}
+                </Badge>
+                {" "}— contact support to upgrade.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {SUBSCRIPTION_TIERS.map((tier) => {
+                const isCurrent = (account?.subscription_tier ?? "free") === tier.key;
+                return (
+                  <Card
+                    key={tier.key}
+                    className={[
+                      "relative flex flex-col",
+                      tier.highlighted ? "border-primary shadow-md" : "",
+                      isCurrent ? "ring-2 ring-primary" : "",
+                    ].join(" ")}
+                  >
+                    {tier.highlighted && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="px-3 py-0.5 text-xs">Most Popular</Badge>
+                      </div>
+                    )}
+                    {isCurrent && (
+                      <div className="absolute -top-3 right-3">
+                        <Badge variant="secondary" className="px-2 py-0.5 text-xs flex items-center gap-1">
+                          <Zap className="h-3 w-3" /> Active
+                        </Badge>
+                      </div>
+                    )}
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">{tier.name}</CardTitle>
+                      <div className="mt-1">
+                        <span className="text-3xl font-bold">${tier.priceUsd}</span>
+                        <span className="text-sm text-muted-foreground">/mo</span>
+                      </div>
+                      <CardDescription className="text-xs mt-1">{tier.tagline}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                      <ul className="space-y-2">
+                        {tier.features.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-sm">
+                            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter>
+                      {isCurrent ? (
+                        <Button className="w-full" variant="secondary" disabled>
+                          Current Plan
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          variant={tier.highlighted ? "default" : "outline"}
+                          onClick={() => window.open("mailto:support@propmanager.app?subject=Upgrade to " + tier.name, "_blank")}
+                        >
+                          {tier.priceUsd === 0 ? "Get Started Free" : `Upgrade to ${tier.name}`}
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Plan Limits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Resource</TableHead>
+                        {SUBSCRIPTION_TIERS.map(t => (
+                          <TableHead key={t.key} className={t.key === (account?.subscription_tier ?? "free") ? "font-bold text-primary" : ""}>
+                            {t.name}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(["properties", "units", "agents", "owners", "storageGb"] as const).map(resource => (
+                        <TableRow key={resource}>
+                          <TableCell className="font-medium capitalize">{resource === "storageGb" ? "Storage" : resource}</TableCell>
+                          {SUBSCRIPTION_TIERS.map(t => (
+                            <TableCell key={t.key}>
+                              {t.limits[resource] === -1 ? "∞" : resource === "storageGb" ? `${t.limits[resource]} GB` : t.limits[resource]}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="branding">
