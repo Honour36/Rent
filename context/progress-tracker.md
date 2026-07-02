@@ -2,9 +2,9 @@
 
 # Progress Tracker
 
-**Last updated:** 2026-06-30
-**Current phase:** Phase 8 — COMPLETE
-**Overall status:** ✅ All 20 Features Complete
+**Last updated:** 2026-07-02
+**Current phase:** Phase 9 — Post-Sprint Hardening
+**Overall status:** ✅ All 20 Features Complete + Sprint 21 Hardening Applied
 
 ---
 
@@ -23,7 +23,7 @@ _(none)_
 - [x] UI rules defined (ui-rules.md)
 - [x] UI tokens documented (ui-tokens.md)
 - [x] Library docs written (library-docs.md)
-- [x] Tech stack confirmed: Next.js + Express + Supabase + Redis + Resend + PDFKit + next-pwa
+- [x] Tech stack confirmed: Next.js + Express + Supabase + Redis + Resend + PDFKit
 - [x] Phase 1 / Feature 01 — Project Scaffolding
 - [x] Phase 1 / Feature 02 — Auth (Register + Login)
 - [x] Phase 2 / Feature 03 — Properties & Units UI
@@ -38,141 +38,147 @@ _(none)_
 - [x] Phase 5 / Feature 14 — Maintenance Requests
 - [x] Phase 6 / Feature 15 — Owner Statement Generation
 - [x] Phase 7 / Feature 17 — Overview Dashboard
-- [x] Phase 7 / Feature 18 — PWA - Offline Payment Recording
+- [x] Phase 7 / Feature 18 — ~~PWA Offline~~ → **Removed** (online-only)
 - [x] Phase 8 / Feature 19 — Agent Management
 - [x] Phase 8 / Feature 20 — Settings
-
-## Blocked
-_(none)_
+- [x] Sprint 21 — Hardening (see session notes)
 
 ---
 
 ## Known Issues
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| next-pwa has limited official support for Next.js App Router — may need workaround | Medium | Open |
+_(none outstanding)_
 
 ---
 
 ## Decisions Made
 
-- **2026-06-27** — Auth handled manually with jsonwebtoken + bcryptjs. No third-party provider (Clerk, Auth.js, etc.).
-- **2026-06-27** — Access token stored in httpOnly cookie (not localStorage). Refresh token rotation enabled, stored hashed in Supabase.
-- **2026-06-27** — WhatsApp via `wa.me` URL links only — no API. Agent sends manually from their device.
+- **2026-06-27** — Auth handled manually with jsonwebtoken + bcryptjs. No third-party provider.
+- **2026-06-27** — Access token stored in httpOnly cookie. Refresh token rotation enabled.
+- **2026-06-27** — WhatsApp via `wa.me` URL links only — no API.
 - **2026-06-27** — Email via Resend.
-- **2026-06-27** — PDF generation: PDFKit for receipts and owner statements, pdf-lib for lease agreements.
-- **2026-06-27** — ZiG/USD exchange rate entered manually by agent at time of payment recording — no live rate feed.
-- **2026-06-27** — Full PWA with service worker (next-pwa / Workbox) and IndexedDB offline queue for payment recording.
-- **2026-06-27** — Frontend based on next-shadcn-admin-dashboard template — repurposed (sidebar links + content), not redesigned.
-- **2026-06-27** — Tenants do not log in — system is agent-facing only. Tenant application form is public (no auth).
+- **2026-06-27** — PDF generation: PDFKit for receipts/statements, pdf-lib for leases.
+- **2026-06-27** — ZiG/USD exchange rate entered manually by agent.
+- **2026-06-27** — Frontend based on next-shadcn-admin-dashboard template.
+- **2026-06-27** — Tenants do not log in — system is agent-facing only.
+- **2026-07-02** — **PWA / offline mode removed.** System is online-only. next-pwa, idb, offline-queue.ts, and OFFLINE_QUEUED logic all stripped.
+- **2026-07-02** — All generated PDFs (receipts, leases, owner statements) now uploaded to Supabase Storage and served via 1-hour signed URLs.
+- **2026-07-02** — Subscription tiers: Free / Starter / Growth / Professional. Tier limits enforced server-side on POST /properties, POST /owners, POST /agents/invite.
 
 ---
 
 ## Session Notes
 
 **2026-06-27**
-- Context documents fully populated from architecture document and confirmed tech stack
-- Template (next-shadcn-admin-dashboard) read and understood — sidebar items and page structure mapped
-- Ready to begin Phase 1 scaffolding on next instruction from developer
+- Context documents fully populated. Ready to begin Phase 1.
 
 **2026-06-27 (Sprint 6)**
 - Feature 06 completed: Tenants UI + Logic
-  - Enhanced tenantsService.list() to join active tenancy (unit + property) and compute hasArrears flag
-  - Enhanced tenantsService.getById() to include full payment history (with receipts) and communications
-  - Added useTenant(id) single-fetch hook; extended TenantListItem and TenantDetail types
-  - tenants/page.tsx: Added Add Tenant dialog, enriched table with Property/Unit, Tenancy badge, Arrears badge columns
-  - tenants/[id]/page.tsx: Full profile page — Personal Details, Employment, Current Lease (4-col grid), Payment History table, Communication Log table
 
 **2026-06-29 (Sprint 7)**
 - Feature 07 completed: Tenant Application Form (Public)
-  - Added /application/[token] public route with 5-step mobile-first form
-  - Added backend applications.service.ts with public endpoints for link generation and submission
 - Feature 08 completed: Application Vetting & Workflow
-  - Added /dashboard/applications for agents to review pending applications
-  - Added vetting detail view /dashboard/applications/[id] with approve/reject workflow
 - Feature 09 completed: Lease & Move-In Activation
-  - Updated application approval logic to create Tenant and Tenancy records in a Prisma transaction
-  - Created tenancies service, controller, and routes for activating a lease and generating a PDF with pdf-lib
-  - Added MoveInActivationCard component to the application detail page for agent activation
 
 **2026-06-29 (Sprint 8)**
 - Feature 10 completed: Payment Recording — UI + Logic
-  - Added backend payments.service.ts with list and create logic
-  - Mounted /api/payments routes and added PaymentsController
-  - Built frontend usePayments hook to handle API integration
-  - Added /dashboard/payments for listing payments using PaymentListTable
-  - Added /dashboard/payments/new for recording a new payment linked to an active tenancy
 
 **2026-06-29 (Sprint 9)**
 - Feature 11 completed: Receipt Generation & Dispatch
-  - Implemented receipts.service.ts leveraging pdfkit to dynamically generate payment receipt PDFs
-  - Built dispatch actions for email (Resend) and WhatsApp
-  - Created a new set of API endpoints (/api/receipts) to stream PDF and trigger dispatch
-  - Built frontend receipt preview page (/dashboard/receipts/[id]) to display PDF inline and execute dispatch actions
 
 **2026-06-29 (Sprint 12)**
 - Feature 12 completed: Automated Rent Reminders
-  - Updated Prisma schema to make `sent_by` optional on `Communications` for automated logs.
-  - Implemented `reminders.service.ts` to generate and send reminder emails via Resend and log them.
-  - Built `rent-reminders.job.ts` to calculate due dates, check payment status, and lock via Redis.
-  - Bootstrapped cron job in Express `index.ts`.
 
 **2026-06-29 (Sprint 13)**
 - Feature 13 completed: Communication Centre
-  - Implemented `communications.service.ts` with `list()` (paginated, filterable by tenant + channel) and `compose()` (email via Resend, WhatsApp via wa.me link generation)
-  - Built `communications.controller.ts` and `communications.routes.ts`; mounted at `/api/communications` in Express
-  - Fixed pre-existing type error in `reminders.service.ts` (tenant.email nullability)
-  - Created `useCommunications` hook for list and compose API calls
-  - Built `CommunicationLogTable` component with channel badges (email/WhatsApp), sender, date
-  - Built `ComposeDrawer` (Sheet-based) with tenant selector, channel toggle, subject field (email only), template insertion (3 templates), WhatsApp link display after logging
-  - Created `/dashboard/communications/page.tsx` with channel filter, text search, Compose button
-  - Sidebar was already configured for `/dashboard/communications`
 
 **2026-06-29 (Sprint 14)**
 - Feature 14 completed: Maintenance Requests
-  - Implemented `maintenance.service.ts` with list (filterable by status/priority/property/unit), getById, create, update (status/priority/cost/description with auto resolved_at stamping)
-  - Built `maintenance.controller.ts` and `maintenance.routes.ts`; mounted at `/api/maintenance` in Express
-  - Created `useMaintenance` hook with listRequests, getRequest, createRequest, updateRequest
-  - Built `MaintenanceListTable` — filterable by status and priority, text search, clickable rows
-  - Built `LogMaintenanceDialog` — property+unit cascade selector, title, priority, description
-  - Built `MaintenanceDetailCard` — inline status/priority/cost/description controls, tenant info panel, resolved_at display
-  - Wired `/dashboard/maintenance/page.tsx` and `/dashboard/maintenance/[id]/page.tsx`
-  - Both backend and frontend TypeScript checks pass clean
 
 **2026-06-29 (Sprint 15)**
 - Feature 15 completed: Owner Statement Generation
-  - Implemented `reports.service.ts` with logic to calculate rent due, rent collected, management fee, maintenance deductions, and net payable.
-  - Built `OwnerStatement` model and logic to persist statements in `draft`, `approved`, and `dispatched` statuses.
-  - Implemented PDFKit-based statement generation mimicking receipt generation pattern.
-  - Built Resend-based dispatch mechanism to send statements to owners.
-  - Built `useReports` hook on the frontend to manage statement lifecycle.
-  - Built `OwnerStatementPage` as a client component to handle statement preview, approval, and dispatch workflow.
 
 **2026-06-29 (Sprint 16)**
-- Feature 16 completed: Reports Hub
-  - Expanded `reports.service.ts` and `reports.controller.ts` with 6 new data points: arrears, vacancy, lease-expiry, collection-rate, maintenance, and trust-ledger.
-  - Expanded frontend `useReports` hook to consume all endpoints.
-  - Created `/dashboard/reports` index page acting as a hub for the reports.
-  - Created individual pages with data tables for Arrears, Vacancy, Lease Expiry, Collection Rate, Maintenance, and Trust Ledger under `/dashboard/reports/*`.
+- Feature 16 completed: Reports Hub (arrears, vacancy, lease-expiry, collection-rate, maintenance, trust-ledger)
 
 **2026-06-29 (Sprint 17 & 18)**
-- Feature 17 & 18 completed: Overview Dashboard & PWA Offline Sync
-  - Implemented `dashboard.service.ts` aggregating metrics with a 5-minute Redis cache.
-  - Built `OverviewPage` using shadcn Cards and Recharts for a 6-month area chart.
-  - Configured `@ducanh2912/next-pwa` for reliable Next.js App Router service worker support.
-  - Implemented `offline-queue.ts` via `idb` to queue offline payments.
-  - Re-wrote `api-client.ts` to seamlessly intercept failed POSTs to `/api/payments` and auto-sync them once connection is restored.
+- Features 17 & 18 completed: Overview Dashboard & (original) PWA Offline
 
 **2026-06-30 (Sprint 19 & 20 — Phase 8 Final)**
-- Feature 19 completed: Agent Management
-  - Backend `agents.service.ts`, `agents.controller.ts`, `agents.routes.ts` already built in previous session.
-  - Frontend `agents/page.tsx` and `useAgents.ts` already built in previous session.
-  - Added invite token acceptance flow: `AcceptInviteSchema` + `acceptInvite()` method in `auth.service.ts`.
-  - Wired `acceptInvite` handler into `auth.controller.ts` and exposed `POST /api/auth/accept-invite`.
-  - Updated `/register` page to detect `?token=` in URL — shows simplified agent setup form (name + password only) and calls accept-invite endpoint, consuming the one-time token and creating the agent under the correct account.
-- Feature 20 completed: Settings
-  - Backend `settings.service.ts`, `settings.controller.ts`, `settings.routes.ts` already built in previous session.
-  - Frontend `settings/page.tsx` and `useSettings.ts` already built in previous session.
-  - Full CRUD for message templates, account name/fee update, subscription view, and branding tab.
-- Both backend and frontend TypeScript checks pass clean.
+- Feature 19 completed: Agent Management (invite flow + accept-invite endpoint)
+- Feature 20 completed: Settings (account, templates, branding, subscription view)
+
+**2026-07-02 (Sprint 21 — Hardening)**
+
+### 1. Offline Mode — Removed
+- Stripped `@ducanh2912/next-pwa`, `idb` from `package.json`
+- Deleted `client/src/lib/offline-queue.ts`
+- Removed service-worker config from `next.config.mjs`
+- Removed `OFFLINE_QUEUED` / `syncOfflineQueue` / `navigator.onLine` logic from `api-client.ts`
+- Updated landing page marketing copy — "Real-Time Sync" replaces "PWA Offline Support"
+- Updated `app-config.ts` description
+
+### 2. `fullName` Validation Bug — Fixed
+- **Root cause:** `apiClient()` only set `Content-Type: application/json` when the
+  `data:` option was used. Many callers passed `body: JSON.stringify(...)` directly,
+  so Express's body-parser never parsed the request body → every field arrived as
+  `undefined` → Zod threw `Required` on `fullName`, `phone`, etc.
+- **Fix:** `api-client.ts` now resolves body from either `data` or raw `body`,
+  always sets `Content-Type: application/json` on non-GET requests that have a body.
+  Affects all form POSTs: add tenant, add owner, add property, update operations.
+
+### 3. Route Group Fixes — Pages at Wrong URLs
+- The following real implementations were stranded in `app/(dashboard)/X/` (resolving
+  to `/X`) instead of `app/(dashboard)/dashboard/X/` (resolving to `/dashboard/X`):
+  - `/communications` → `/dashboard/communications` ✅
+  - `/payments` → `/dashboard/payments` ✅
+  - `/payments/new` → `/dashboard/payments/new` ✅ (also fixed double-dashboard links)
+  - `/agents` → `/dashboard/agents` ✅ (more complete version with invite handling)
+  - `/settings` duplicate removed (identical to dashboard version)
+- Fixed `PaymentListTable` import path (`@/components/payments/PaymentListTable`)
+
+### 4. Properties — owner/tenant relationship wired end-to-end
+- `properties.service.list()` now includes `owner.{id, full_name, email}` and each
+  unit's active tenancy with `tenant.{id, full_name}` via Prisma relation includes
+- `properties.service.getById()` includes same, plus `tenant.{email, phone}`
+- `useProperties.ts`: added `ActiveTenancy` interface; `Unit` now carries `tenancies[]`
+- `properties/page.tsx`: reads `prop.owner` (singular — correct Prisma name)
+- `unit-card.tsx`: shows real tenant `full_name` and `lease_start` date from active
+  tenancy; removed "Tenant (ID)" and "1st of Next Month" placeholders
+
+### 5. Supabase Storage — all documents stored in buckets, printable
+- `server/src/db/storage.ts`: `uploadFile`, `getSignedUrl`, `downloadFile`, `deleteFile`
+- Bucket constants: `documents`, `leases`, `receipts`, `statements`, `branding`
+- `tenancies.service.ts`: lease PDF uploaded to `leases/{accountId}/{tenancyId}.pdf`
+- `receipts.service.ts`: `persistReceiptPdf()`, `getReceiptSignedUrl()` — uploads and
+  returns 1-hour signed URL; updates `receipt.pdf_url` with storage path
+- `reports.service.ts`: statement PDF uploaded on dispatch to
+  `statements/{accountId}/{ownerId}/{year}-{month}.pdf`; `getStatementSignedUrl()`
+  generates or fetches signed URL
+- `GET /api/receipts/:paymentId/signed-url` — new endpoint
+- `GET /api/reports/owner-statement/:id/signed-url` — new endpoint
+- Receipt page rewritten: fetches signed URL on load, "Print / Download" opens PDF
+  in new browser tab (direct from Supabase Storage), WhatsApp + email buttons retained
+
+### 6. Reports — dropdown navigation in sidebar
+- `sidebar-items.ts`: Reports entry converted from flat link to expandable group
+- 8 sub-items with correct `/dashboard/reports/*` paths:
+  All Reports, Owner Statements, Arrears, Vacancy, Lease Expiry,
+  Collection Rate, Maintenance, Trust Ledger
+
+### 7. Sidebar — real logged-in user (no more hardcoded rootUser)
+- `hooks/useCurrentUser.ts`: reads `access_token` cookie, base64-decodes JWT payload
+  client-side, extracts `fullName`, `email`, `role`. Falls back gracefully if no token.
+  Generates DiceBear initials avatar URL from real name.
+- `AppSidebar`: imports `useCurrentUser`, passes real `{name, email, avatar}` to `NavUser`
+- `data/users.ts` (hardcoded) still exists but no longer imported by any dashboard component
+
+### 8. Subscription Tiers — 4 tiers
+- `config/subscription-tiers.ts`: Free ($0) / Starter ($15) / Growth ($35) / Professional ($75)
+  Each has: `priceUsd`, `tagline`, `limits` (properties/units/agents/owners/storageGb), `features[]`
+- Settings → Subscription tab: pricing card grid (4 cards), feature lists with checkmarks,
+  "Most Popular" badge on Growth, "Active" badge on current plan, limit comparison table,
+  upgrade CTA (mailto: support link)
+- `settings.service.ts`: `subscription_tier` validated as `z.enum(['free','starter','growth','professional'])`
+- `server/src/middleware/tier.middleware.ts`: `enforceTierLimit(resource)` middleware
+  — queries account tier, counts current resources, returns 403 with upgrade message if at limit
+- Applied to: `POST /api/properties`, `POST /api/owners`, `POST /api/agents/invite`
