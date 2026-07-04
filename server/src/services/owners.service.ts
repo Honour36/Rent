@@ -85,3 +85,13 @@ export class OwnersService {
 }
 
 export const ownersService = new OwnersService();
+
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.owner.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new AppError('Owner not found', 404);
+    await prisma.owner.delete({ where: { id } });
+    return { deleted: true };
+  }

@@ -5,203 +5,95 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api-client";
 import { TenantListItem } from "@/hooks/useTenants";
+import { useProperties } from "@/hooks/useProperties";
 
-interface AddTenantDialogProps {
-  onSuccess?: () => void;
-}
+interface AddTenantDialogProps { onSuccess?: () => void }
 
 export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { properties, loading: propsLoading } = useProperties();
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    idNumber: "",
-    employer: "",
-    employmentStatus: "",
-    monthlyIncome: "",
+  const [form, setForm] = useState({
+    fullName: "", email: "", phone: "", idNumber: "",
+    employer: "", employmentStatus: "", monthlyIncome: "",
+    propertyId: "",
   });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
-    try {
-      const res = await apiClient<TenantListItem>("/tenants", {
-        method: "POST",
-        body: JSON.stringify({
-          ...formData,
-          monthlyIncome: formData.monthlyIncome ? Number(formData.monthlyIncome) : undefined,
-        }),
-      });
-
-      if (res.success) {
-        setOpen(false);
-        setFormData({
-          fullName: "",
-          email: "",
-          phone: "",
-          idNumber: "",
-          employer: "",
-          employmentStatus: "",
-          monthlyIncome: "",
-        });
-        if (onSuccess) onSuccess();
-      } else {
-        setError(res.error || "Failed to create tenant");
-      }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
-    } finally {
-      setLoading(false);
+    const { propertyId, ...rest } = form;
+    const res = await apiClient<TenantListItem>("/tenants", {
+      data: { ...rest, monthlyIncome: rest.monthlyIncome ? Number(rest.monthlyIncome) : undefined },
+    });
+    if (res.success) {
+      setOpen(false);
+      setForm({ fullName: "", email: "", phone: "", idNumber: "", employer: "", employmentStatus: "", monthlyIncome: "", propertyId: "" });
+      onSuccess?.();
+    } else {
+      setError((res as any).error || "Failed to create tenant");
     }
+    setLoading(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const field = (id: string, label: string, type = "text", placeholder = "") => (
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor={id} className="text-right">{label}</Label>
+      <Input id={id} name={id} type={type} value={(form as any)[id]} onChange={handleChange}
+        placeholder={placeholder} className="col-span-3" />
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Tenant
-        </Button>
+        <Button><Plus className="mr-2 h-4 w-4" />Add Tenant</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Add Tenant</DialogTitle>
-          <DialogDescription>
-            Enter the personal details of the new tenant.
-          </DialogDescription>
+          <DialogDescription>Enter the personal details of the new tenant.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             {error && <div className="text-sm font-medium text-destructive">{error}</div>}
+            {field("fullName", "Full Name", "text", "Jane Doe")}
+            {field("email", "Email", "email", "jane@example.com")}
+            {field("phone", "Phone", "text", "+263 77 123 4567")}
+            {field("idNumber", "ID Number", "text", "63-123456A00")}
+            {field("employer", "Employer", "text", "Acme Ltd")}
+            {field("employmentStatus", "Emp. Status", "text", "Employed / Self-employed")}
+            {field("monthlyIncome", "Monthly Income", "number", "500")}
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fullName" className="text-right">
-                Full Name
-              </Label>
-              <Input
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="e.g. Jane Doe"
-                className="col-span-3"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="jane@example.com"
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="+263 77 123 4567"
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="idNumber" className="text-right">
-                ID Number
-              </Label>
-              <Input
-                id="idNumber"
-                name="idNumber"
-                value={formData.idNumber}
-                onChange={handleChange}
-                placeholder="e.g. 63-123456A00"
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="employer" className="text-right">
-                Employer
-              </Label>
-              <Input
-                id="employer"
-                name="employer"
-                value={formData.employer}
-                onChange={handleChange}
-                placeholder="e.g. Acme Ltd"
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="employmentStatus" className="text-right">
-                Emp. Status
-              </Label>
-              <Input
-                id="employmentStatus"
-                name="employmentStatus"
-                value={formData.employmentStatus}
-                onChange={handleChange}
-                placeholder="e.g. Employed / Self-employed"
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="monthlyIncome" className="text-right">
-                Monthly Income
-              </Label>
-              <Input
-                id="monthlyIncome"
-                name="monthlyIncome"
-                type="number"
-                min="0"
-                value={formData.monthlyIncome}
-                onChange={handleChange}
-                placeholder="e.g. 500"
-                className="col-span-3"
-              />
+              <Label htmlFor="propertyId" className="text-right">Property</Label>
+              <div className="col-span-3">
+                <NativeSelect id="propertyId" name="propertyId" value={form.propertyId}
+                  onChange={handleChange} className="w-full" disabled={propsLoading}>
+                  <NativeSelectOption value="">-- Currently Renting (optional) --</NativeSelectOption>
+                  {properties.map((p) => (
+                    <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Tenant"}
-            </Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save Tenant"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -12,4 +12,6 @@ router.get('/', propertiesController.list);
 router.post('/', roleAuthorize('admin', 'senior_agent'), enforceTierLimit('properties'), propertiesController.create);
 router.get('/:id', propertiesController.getById);
 
+router.patch('/:id', roleAuthorize('admin', 'senior_agent'), propertiesController.update);
+router.delete('/:id', roleAuthorize('admin', 'senior_agent'), propertiesController.delete);
 export default router;

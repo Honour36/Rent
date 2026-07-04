@@ -121,4 +121,14 @@ export class TenantsService {
   }
 }
 
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.tenant.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new AppError('Tenant not found', 404);
+    await prisma.tenant.delete({ where: { id } });
+    return { deleted: true };
+  }
+
 export const tenantsService = new TenantsService();

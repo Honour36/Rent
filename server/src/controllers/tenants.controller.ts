@@ -44,4 +44,14 @@ export const tenantsController = {
       res.status(status).json({ success: false, error: error.message || 'Failed to update tenant' });
     }
   }
+  async delete(req: AuthRequest, res: Response) {
+    try {
+      const data = await tenantsService.delete(req.params.id, req.user!);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res.status(status).json({ success: false, error: error.message || 'Failed to delete tenant' });
+    }
+  },
+
 };

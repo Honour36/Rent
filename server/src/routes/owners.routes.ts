@@ -13,4 +13,5 @@ router.post('/', roleAuthorize('admin', 'senior_agent'), enforceTierLimit('owner
 router.get('/:id', ownersController.getById);
 router.patch('/:id', roleAuthorize('admin', 'senior_agent'), ownersController.update);
 
+router.delete('/:id', roleAuthorize('admin', 'senior_agent'), ownersController.delete);
 export default router;

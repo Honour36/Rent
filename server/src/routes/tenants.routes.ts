@@ -12,4 +12,5 @@ router.post('/', roleAuthorize('admin', 'senior_agent'), tenantsController.creat
 router.get('/:id', tenantsController.getById);
 router.patch('/:id', roleAuthorize('admin', 'senior_agent'), tenantsController.update);
 
+router.delete('/:id', roleAuthorize('admin', 'senior_agent'), tenantsController.delete);
 export default router;

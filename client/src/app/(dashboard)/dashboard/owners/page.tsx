@@ -1,24 +1,41 @@
 "use client";
 
 import { useState } from "react";
-
-import Link from "next/link";
-
-import { Plus, Search, UserCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, UserCheck, Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useOwners } from "@/hooks/useOwners";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useOwners, Owner } from "@/hooks/useOwners";
+import { apiClient } from "@/lib/api-client";
 import { AddOwnerDialog } from "./_components/add-owner-dialog";
+import { EditOwnerDialog } from "./_components/edit-owner-dialog";
 
 export default function OwnersPage() {
+  const router = useRouter();
   const { owners, loading, error, refetch } = useOwners();
   const [search, setSearch] = useState("");
+  const [editOwner, setEditOwner] = useState<Owner | null>(null);
+  const [deleteOwner, setDeleteOwner] = useState<Owner | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const filteredOwners = owners.filter((o) => o.full_name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = owners.filter((o) => o.full_name.toLowerCase().includes(search.toLowerCase()));
+
+  const handleDelete = async () => {
+    if (!deleteOwner) return;
+    setDeleting(true);
+    await apiClient(`/owners/${deleteOwner.id}`, { method: "DELETE" });
+    setDeleteOwner(null);
+    setDeleting(false);
+    refetch();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,26 +50,19 @@ export default function OwnersPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Owners</CardTitle>
-          <CardDescription>View and manage all property owners in your account.</CardDescription>
+          <CardDescription>Click a row to view details. Use the icons to edit or delete.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search owners..."
-              className="max-w-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <Input placeholder="Search owners..." className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
           {loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            </div>
+            <div className="flex h-32 items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>
           ) : error ? (
             <p className="text-sm text-destructive">{error}</p>
-          ) : filteredOwners.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border">
               <UserCheck className="h-10 w-10 text-muted-foreground" />
               <div className="text-center">
@@ -70,21 +80,16 @@ export default function OwnersPage() {
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Contact</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Properties</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Bank Details</TableHead>
-                    <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">
-                      Actions
-                    </TableHead>
+                    <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOwners.map((owner) => (
-                    <TableRow key={owner.id} className="hover:bg-muted/50">
+                  {filtered.map((owner) => (
+                    <TableRow key={owner.id} className="hover:bg-muted/50 cursor-pointer"
+                      onClick={() => router.push(`/dashboard/owners/${owner.id}`)}>
                       <TableCell className="text-sm font-medium text-foreground">
                         {owner.full_name}
-                        {owner.is_diaspora && (
-                          <Badge variant="secondary" className="ml-2">
-                            Diaspora
-                          </Badge>
-                        )}
+                        {owner.is_diaspora && <Badge variant="secondary" className="ml-2">Diaspora</Badge>}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-sm">
@@ -94,18 +99,18 @@ export default function OwnersPage() {
                       </TableCell>
                       <TableCell className="text-sm text-foreground">{owner.properties?.[0]?.count ?? 0}</TableCell>
                       <TableCell>
-                        {owner.bank_name ? (
-                          <Badge variant="default">Complete</Badge>
-                        ) : (
-                          <Badge variant="outline">Missing</Badge>
-                        )}
+                        {owner.bank_name ? <Badge variant="default">Complete</Badge> : <Badge variant="outline">Missing</Badge>}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/dashboard/owners/${owner.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOwner(owner)}>
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </Link>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteOwner(owner)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -115,6 +120,28 @@ export default function OwnersPage() {
           )}
         </CardContent>
       </Card>
+
+      {editOwner && (
+        <EditOwnerDialog owner={editOwner} onOpenChange={(v) => { if (!v) setEditOwner(null); }}
+          onSuccess={() => { setEditOwner(null); refetch(); }} />
+      )}
+
+      <AlertDialog open={!!deleteOwner} onOpenChange={(v) => { if (!v) setDeleteOwner(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Owner</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteOwner?.full_name}</strong>? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

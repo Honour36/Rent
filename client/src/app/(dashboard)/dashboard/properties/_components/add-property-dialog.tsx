@@ -37,6 +37,8 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
     city: "",
     type: "residential",
     ownerId: "",
+    rentAmount: "",
+    currency: "USD",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +61,8 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
           city: "",
           type: "residential",
           ownerId: "",
+          rentAmount: "",
+          currency: "USD",
         });
         if (onSuccess) onSuccess();
       } else {
@@ -177,6 +181,30 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rentAmount" className="text-right">
+                Default Rent
+              </Label>
+              <div className="col-span-3 flex gap-2">
+                <Input
+                  id="rentAmount"
+                  name="rentAmount"
+                  type="number"
+                  min="0"
+                  value={formData.rentAmount}
+                  onChange={handleChange}
+                  placeholder="e.g. 350"
+                  className="flex-1"
+                />
+                <div className="w-24">
+                  <NativeSelect id="currency" name="currency" value={formData.currency} onChange={handleChange} className="w-full">
+                    <NativeSelectOption value="USD">USD</NativeSelectOption>
+                    <NativeSelectOption value="ZiG">ZiG</NativeSelectOption>
+                  </NativeSelect>
+                </div>
               </div>
             </div>
 
