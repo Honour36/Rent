@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSettings, Template } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores/auth.store";
-import { redirect } from "next/navigation";
+import { useSearchParams, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -38,7 +38,9 @@ import { Pencil, Trash2, Plus, CheckCircle2, Zap } from "lucide-react";
 import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
 import { Badge } from "@/components/ui/badge";
 
-export default function SettingsPage() {
+function SettingsPageInner() {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") ?? "account";
   const { user } = useAuthStore();
   const { account, templates, loading, updateAccount, createTemplate, updateTemplate, deleteTemplate } = useSettings();
   
@@ -119,11 +121,12 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="account" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="subscription">Billing</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
 
@@ -335,6 +338,32 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>Manage how you receive alerts and system messages.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {[
+                { id: "rent_due", label: "Rent due reminders", desc: "Get notified when tenant rent is due in 3 days." },
+                { id: "payment_received", label: "Payment received", desc: "Alert when a payment is recorded." },
+                { id: "maintenance_new", label: "New maintenance request", desc: "Alert when a tenant logs a request." },
+                { id: "lease_expiry", label: "Lease expiry", desc: "Notify 30 days before a lease expires." },
+                { id: "application_new", label: "New application", desc: "Alert when a prospective tenant submits an application." },
+              ].map(({ id, label, desc }) => (
+                <div key={id} className="flex items-center justify-between gap-4 border-b pb-4 last:border-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <input type="checkbox" defaultChecked className="h-4 w-4 accent-primary" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
         <TabsContent value="branding">
           <Card>
             <CardHeader>
@@ -418,4 +447,8 @@ export default function SettingsPage() {
       </Dialog>
     </div>
   );
+}
+
+export default function SettingsPage() {
+  return <Suspense fallback={null}><SettingsPageInner /></Suspense>;
 }

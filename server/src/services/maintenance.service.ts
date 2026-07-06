@@ -181,6 +181,16 @@ export class MaintenanceService {
 
     return updated;
   }
+
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.maintenanceRequest.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new Error('Maintenance request not found');
+    await prisma.maintenanceRequest.delete({ where: { id } });
+    return { deleted: true };
+  }
 }
 
 export const maintenanceService = new MaintenanceService();

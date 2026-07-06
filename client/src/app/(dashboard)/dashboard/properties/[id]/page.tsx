@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api-client";
 import { AddUnitDialog } from "../_components/add-unit-dialog";
 import { UnitCard } from "../_components/unit-card";
 import { EditPropertyDialog } from "../_components/edit-property-dialog";
+import { GenerateUnitLinkButton } from "@/components/properties/GenerateUnitLinkButton";
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -128,7 +129,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
                   <UnitCard unit={unit} />
                   <div className="flex items-center gap-2 px-1">
                     <code className="text-xs text-muted-foreground truncate flex-1">ID: {unit.id}</code>
-                    <CopyButton text={appLink} label="Copy App Link" />
+                    <GenerateUnitLinkButton unitId={unit.id} />
                   </div>
                 </div>
               );

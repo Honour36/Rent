@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Copy, Search, Pencil, Trash2, Check } from "lucide-react";
+import { Building2, Search, Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useProperties } from "@/hooks/useProperties";
 import { apiClient } from "@/lib/api-client";
 import { AddPropertyDialog } from "./_components/add-property-dialog";
 import { EditPropertyDialog } from "./_components/edit-property-dialog";
+import { GenerateUnitLinkButton } from "@/components/properties/GenerateUnitLinkButton";
 
 function getVacancyStatus(property: Property) {
   if (!property.units || property.units.length === 0)
@@ -35,25 +36,6 @@ function getAppLink(property: Property): string | null {
   return `${base}/application/${unit.id}`;
 }
 
-function CopyLinkCell({ property }: { property: Property }) {
-  const [copied, setCopied] = useState(false);
-  const link = getAppLink(property);
-  if (!link) return <span className="text-muted-foreground text-xs">—</span>;
-
-  const copy = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={copy}>
-      {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
-      {copied ? "Copied" : "Copy link"}
-    </Button>
-  );
-}
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -146,7 +128,7 @@ export default function PropertiesPage() {
                         <TableCell className="text-sm text-foreground">{prop.units?.length ?? 0}</TableCell>
                         <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <CopyLinkCell property={prop} />
+                          prop.units?.[0] ? <GenerateUnitLinkButton unitId={prop.units[0].id} /> : <span className="text-muted-foreground text-xs">—</span>
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">

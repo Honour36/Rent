@@ -114,3 +114,38 @@ export type UpdatePropertyDto = z.infer<typeof UpdatePropertySchema>;
   }
 
 export const propertiesService = new PropertiesService();
+
+  async update(id: string, data: any, user: TokenPayload) {
+    const existing = await prisma.property.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new Error('Property not found');
+    const property = await prisma.property.update({
+      where: { id },
+      data: {
+        name: data.name,
+        address: data.address,
+        suburb: data.suburb,
+        city: data.city,
+        type: data.type,
+        ...(data.ownerId ? { owner_id: data.ownerId } : {}),
+      },
+    });
+    return property;
+  }
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.property.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new Error('Property not found');
+    await prisma.property.delete({ where: { id } });
+    return { deleted: true };
+  }
+}
+
+export const propertiesService = new PropertiesService();
+
+export const UpdatePropertySchema = CreatePropertySchema.partial();
+export type UpdatePropertyDto = z.infer<typeof UpdatePropertySchema>;

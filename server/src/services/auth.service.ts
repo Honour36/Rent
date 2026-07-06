@@ -32,8 +32,8 @@ class AppError extends Error {
 }
 
 export class AuthService {
-  private generateTokens(userId: string, accountId: string, role: string) {
-    const payload = { sub: userId, accountId, role };
+  private generateTokens(userId: string, accountId: string, role: string, name?: string, email?: string) {
+    const payload = { sub: userId, accountId, role, name: name ?? '', email: email ?? '' };
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '15m' });
     const refreshToken = jwt.sign({ sub: userId }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '30d' });
     return { accessToken, refreshToken };
@@ -73,7 +73,7 @@ export class AuthService {
     });
 
     // Generate tokens
-    const { accessToken, refreshToken } = this.generateTokens(user.id, account.id, user.role);
+    const { accessToken, refreshToken } = this.generateTokens(user.id, account.id, user.role, user.full_name, user.email);
 
     // Save refresh token
     const tokenHash = await bcrypt.hash(refreshToken, 10);
@@ -109,7 +109,7 @@ export class AuthService {
       throw new AppError('Invalid credentials', 401);
     }
 
-    const { accessToken, refreshToken } = this.generateTokens(user.id, user.account_id, user.role);
+    const { accessToken, refreshToken } = this.generateTokens(user.id, user.account_id, user.role, user.full_name, user.email);
 
     const tokenHash = await bcrypt.hash(refreshToken, 10);
     const expiresAt = new Date();

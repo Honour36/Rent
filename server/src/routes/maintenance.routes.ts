@@ -8,5 +8,6 @@ router.get('/', authenticate, (req, res) => maintenanceController.list(req as an
 router.get('/:id', authenticate, (req, res) => maintenanceController.getById(req as any, res));
 router.post('/', authenticate, (req, res) => maintenanceController.create(req as any, res));
 router.patch('/:id', authenticate, (req, res) => maintenanceController.update(req as any, res));
+router.delete('/:id', authenticate, (req, res) => maintenanceController.delete(req as any, res));
 
 export default router;

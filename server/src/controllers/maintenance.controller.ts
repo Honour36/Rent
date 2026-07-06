@@ -70,6 +70,16 @@ export class MaintenanceController {
       res.status(statusCode).json({ success: false, error: message });
     }
   }
+
+  async delete(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await maintenanceService.delete(req.params.id, req.user!);
+      res.json({ success: true, data: result });
+    } catch (err: unknown) {
+      const anyErr = err as any;
+      res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to delete' });
+    }
+  }
 }
 
 export const maintenanceController = new MaintenanceController();

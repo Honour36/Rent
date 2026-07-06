@@ -82,9 +82,6 @@ export class OwnersService {
     });
     return owner;
   }
-}
-
-export const ownersService = new OwnersService();
 
   async delete(id: string, user: TokenPayload) {
     const existing = await prisma.owner.findFirst({
@@ -95,3 +92,6 @@ export const ownersService = new OwnersService();
     await prisma.owner.delete({ where: { id } });
     return { deleted: true };
   }
+}
+
+export const ownersService = new OwnersService();
