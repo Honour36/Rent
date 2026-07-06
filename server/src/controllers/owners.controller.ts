@@ -44,6 +44,7 @@ export const ownersController = {
       res.status(status).json({ success: false, error: error.message || 'Failed to update owner' });
     }
   }
+,
   async delete(req: AuthRequest, res: Response) {
     try {
       const data = await ownersService.delete(req.params.id, req.user!);

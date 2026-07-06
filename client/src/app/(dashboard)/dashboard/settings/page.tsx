@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSettings, Template } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores/auth.store";
-import { useSearchParams, redirect } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -39,6 +39,7 @@ import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
 import { Badge } from "@/components/ui/badge";
 
 function SettingsPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") ?? "account";
   const { user } = useAuthStore();
@@ -57,7 +58,7 @@ function SettingsPageInner() {
   const [templateBody, setTemplateBody] = useState("");
 
   if (user?.role !== 'admin') {
-    redirect('/dashboard/overview');
+    router.push('/dashboard/overview'); return null;
   }
 
   // Populate account form when loaded

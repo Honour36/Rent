@@ -17,6 +17,7 @@ import reportsRoutes from './routes/reports.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
 import { agentsRoutes } from './routes/agents.routes';
 import { settingsRoutes } from './routes/settings.routes';
+import storageRoutes from './routes/storage.routes';
 import { startRentRemindersJob } from './jobs/rent-reminders.job';
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/storage', storageRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });

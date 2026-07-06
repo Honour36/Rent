@@ -33,6 +33,7 @@ export const propertiesController = {
       res.status(status).json({ success: false, error: error.message || 'Failed to create property' });
     }
   }
+,
   async delete(req: AuthRequest, res: Response) {
     try {
       const data = await propertiesService.delete(req.params.id, req.user!);

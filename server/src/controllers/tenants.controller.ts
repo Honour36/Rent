@@ -44,6 +44,7 @@ export const tenantsController = {
       res.status(status).json({ success: false, error: error.message || 'Failed to update tenant' });
     }
   }
+,
   async delete(req: AuthRequest, res: Response) {
     try {
       const data = await tenantsService.delete(req.params.id, req.user!);
