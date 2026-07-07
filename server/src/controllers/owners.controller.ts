@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { ZodError } from 'zod';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { ownersService, CreateOwnerSchema } from '../services/owners.service';
+import { ownersService, CreateOwnerSchema, UpdateOwnerSchema } from '../services/owners.service';
 
 function zodMessage(err: ZodError): string {
   return err.errors.map(e => e.message).join('. ');
