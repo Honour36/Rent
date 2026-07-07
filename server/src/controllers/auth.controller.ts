@@ -78,8 +78,7 @@ export const authController = {
       const status = error.statusCode || 400;
       res.status(status).json({ success: false, error: error.message || 'Failed to accept invite' });
     }
-  }
-};
+  },
 
   async me(req: any, res: Response) {
     try {
@@ -94,3 +93,4 @@ export const authController = {
       res.status(500).json({ success: false, error: error.message });
     }
   }
+};

@@ -79,41 +79,6 @@ export class PropertiesService {
     });
     return property;
   }
-}
-
-  async delete(id: string, user: TokenPayload) {
-    const existing = await prisma.property.findFirst({
-      where: { id, account_id: user.accountId },
-      select: { id: true },
-    });
-    if (!existing) throw new AppError('Propertie not found', 404);
-    await prisma.property.delete({ where: { id } });
-    return { deleted: true };
-  }
-
-export const UpdatePropertySchema = CreatePropertySchema.partial();
-export type UpdatePropertyDto = z.infer<typeof UpdatePropertySchema>;
-  async update(id: string, data: any, user: TokenPayload) {
-    const existing = await prisma.property.findFirst({
-      where: { id, account_id: user.accountId },
-      select: { id: true },
-    });
-    if (!existing) throw new Error('Property not found');
-    const property = await prisma.property.update({
-      where: { id },
-      data: {
-        name: data.name,
-        address: data.address,
-        suburb: data.suburb,
-        city: data.city,
-        type: data.type,
-        ...(data.ownerId ? { owner_id: data.ownerId } : {}),
-      },
-    });
-    return property;
-  }
-
-export const propertiesService = new PropertiesService();
 
   async update(id: string, data: any, user: TokenPayload) {
     const existing = await prisma.property.findFirst({
@@ -134,12 +99,18 @@ export const propertiesService = new PropertiesService();
     });
     return property;
   }
+
   async delete(id: string, user: TokenPayload) {
     const existing = await prisma.property.findFirst({
       where: { id, account_id: user.accountId },
-      select: { id: true },
+      include: { _count: { select: { units: true } } },
     });
-    if (!existing) throw new Error('Property not found');
+    if (!existing) throw new AppError('Property not found', 404);
+    
+    if (existing._count.units > 0) {
+      throw new AppError('Cannot delete property with existing units. Please remove all units first.', 400);
+    }
+
     await prisma.property.delete({ where: { id } });
     return { deleted: true };
   }

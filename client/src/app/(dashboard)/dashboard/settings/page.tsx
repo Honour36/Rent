@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSettings, Template } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores/auth.store";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -57,8 +57,14 @@ function SettingsPageInner() {
   const [templateSubject, setTemplateSubject] = useState("");
   const [templateBody, setTemplateBody] = useState("");
 
-  if (user?.role !== 'admin') {
-    router.push('/dashboard/overview'); return null;
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      router.push('/dashboard/overview');
+    }
+  }, [user, router]);
+
+  if (!user || user.role !== 'admin') {
+    return null;
   }
 
   // Populate account form when loaded

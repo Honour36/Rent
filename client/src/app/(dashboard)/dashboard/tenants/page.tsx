@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Users, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,15 @@ export default function TenantsPage() {
   const handleDelete = async () => {
     if (!deleteTenant) return;
     setDeleting(true);
-    await apiClient(`/tenants/${deleteTenant.id}`, { method: "DELETE" });
+    const res = await apiClient(`/tenants/${deleteTenant.id}`, { method: "DELETE" });
+    if (!res.success) {
+      toast.error(res.error || "Failed to delete tenant");
+    } else {
+      toast.success("Tenant deleted successfully");
+      refetch();
+    }
     setDeleteTenant(null);
     setDeleting(false);
-    refetch();
   };
 
   return (

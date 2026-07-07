@@ -32,7 +32,7 @@ class AppError extends Error {
 }
 
 export class AuthService {
-  private generateTokens(userId: string, accountId: string, role: string, name?: string, email?: string) {
+  private generateTokens(userId: string, accountId: string, role: string, name?: string | null, email?: string | null) {
     const payload = { sub: userId, accountId, role, name: name ?? '', email: email ?? '' };
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '15m' });
     const refreshToken = jwt.sign({ sub: userId }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '30d' });

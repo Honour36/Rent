@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Search, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,10 +55,15 @@ export default function PropertiesPage() {
   const handleDelete = async () => {
     if (!deleteProp) return;
     setDeleting(true);
-    await apiClient(`/properties/${deleteProp.id}`, { method: "DELETE" });
+    const res = await apiClient(`/properties/${deleteProp.id}`, { method: "DELETE" });
+    if (!res.success) {
+      toast.error(res.error || "Failed to delete property");
+    } else {
+      toast.success("Property deleted successfully");
+      refetch();
+    }
     setDeleteProp(null);
     setDeleting(false);
-    refetch();
   };
 
   return (
@@ -128,7 +134,7 @@ export default function PropertiesPage() {
                         <TableCell className="text-sm text-foreground">{prop.units?.length ?? 0}</TableCell>
                         <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          prop.units?.[0] ? <GenerateUnitLinkButton unitId={prop.units[0].id} /> : <span className="text-muted-foreground text-xs">—</span>
+                          {prop.units && prop.units[0] ? <GenerateUnitLinkButton unitId={prop.units[0].id} /> : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
