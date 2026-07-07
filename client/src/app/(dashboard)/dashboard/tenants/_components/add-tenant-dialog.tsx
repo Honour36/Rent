@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
@@ -34,6 +35,10 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.fullName.trim()) {
+      toast.warning("Full name is required.");
+      return;
+    }
     setLoading(true);
     setError("");
     const { propertyId, ...rest } = form;
@@ -41,6 +46,7 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
       data: { ...rest, monthlyIncome: rest.monthlyIncome ? Number(rest.monthlyIncome) : undefined },
     });
     if (res.success) {
+      toast.success('Tenant added successfully.');
       setOpen(false);
       setForm({ fullName: "", email: "", phone: "", idNumber: "", employer: "", employmentStatus: "", monthlyIncome: "", propertyId: "" });
       onSuccess?.();

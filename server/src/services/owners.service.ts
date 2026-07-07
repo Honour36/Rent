@@ -3,12 +3,12 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 
 export const CreateOwnerSchema = z.object({
-  fullName: z.string().min(2),
-  email: z.string().email().optional(),
+  fullName: z.string({ required_error: 'Full name is required.' }).min(2, 'Name must be at least 2 characters.'),
+  email: z.string().email('Please enter a valid email address.').optional().or(z.literal('')),
   phone: z.string().optional(),
   bankName: z.string().optional(),
   bankAccount: z.string().optional(),
-  isDiaspora: z.boolean().default(false)
+  isDiaspora: z.boolean().default(false),
 });
 
 export const UpdateOwnerSchema = CreateOwnerSchema.partial();

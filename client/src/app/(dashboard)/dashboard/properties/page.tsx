@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Search, Pencil, Trash2 } from "lucide-react";
+import { Building2, Search, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,22 +21,17 @@ import { AddPropertyDialog } from "./_components/add-property-dialog";
 import { EditPropertyDialog } from "./_components/edit-property-dialog";
 import { GenerateUnitLinkButton } from "@/components/properties/GenerateUnitLinkButton";
 
+function isIncomplete(p: Property) {
+  return !p.units || p.units.length === 0;
+}
+
 function getVacancyStatus(property: Property) {
   if (!property.units || property.units.length === 0)
-    return { label: "No units", variant: "outline" as const };
+    return { label: "No units yet", variant: "secondary" as const };
   const vacant = property.units.filter((u) => u.status === "vacant").length;
   if (vacant === 0) return { label: "Fully Occupied", variant: "default" as const };
   return { label: `${vacant} Vacant`, variant: "outline" as const };
 }
-
-/** Derive the first unit's application link for the property */
-function getAppLink(property: Property): string | null {
-  const unit = property.units?.[0];
-  if (!unit) return null;
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${base}/application/${unit.id}`;
-}
-
 
 export default function PropertiesPage() {
   const router = useRouter();
@@ -54,10 +50,15 @@ export default function PropertiesPage() {
   const handleDelete = async () => {
     if (!deleteProp) return;
     setDeleting(true);
-    await apiClient(`/properties/${deleteProp.id}`, { method: "DELETE" });
+    const res = await apiClient(`/properties/${deleteProp.id}`, { method: "DELETE" });
+    if (res.success) {
+      toast.success(`"${deleteProp.name}" deleted.`);
+      refetch();
+    } else {
+      toast.error("Could not delete property", { description: (res as any).error });
+    }
     setDeleteProp(null);
     setDeleting(false);
-    refetch();
   };
 
   return (
@@ -73,18 +74,22 @@ export default function PropertiesPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Properties</CardTitle>
-          <CardDescription>Click a row to view details. Copy the application link to share with prospective tenants.</CardDescription>
+          <CardDescription>
+            Click a row to view details and add units. Properties without units cannot generate application links.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search properties..." className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Search properties…" className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
           {loading ? (
-            <div className="flex h-32 items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>
+            <div className="flex h-32 items-center justify-center">
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            </div>
           ) : error ? (
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="text-sm text-destructive">Unable to load properties. Please refresh.</p>
           ) : filtered.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border">
               <Building2 className="h-10 w-10 text-muted-foreground" />
@@ -111,24 +116,41 @@ export default function PropertiesPage() {
                 <TableBody>
                   {filtered.map((prop) => {
                     const status = getVacancyStatus(prop);
+                    const incomplete = isIncomplete(prop);
                     return (
                       <TableRow
                         key={prop.id}
-                        className="hover:bg-muted/50 cursor-pointer"
+                        className={`cursor-pointer transition-colors ${
+                          incomplete
+                            ? "bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 border-l-2 border-l-amber-400"
+                            : "hover:bg-muted/50"
+                        }`}
                         onClick={() => router.push(`/dashboard/properties/${prop.id}`)}
                       >
-                        <TableCell className="text-sm font-medium text-foreground">{prop.name}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">{prop.name}</span>
+                            {incomplete && (
+                              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+                                <ArrowRight className="h-3 w-3" />
+                                Click to add units &amp; details
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col text-sm">
                             <span className="text-foreground">{prop.address}</span>
-                            <span className="text-muted-foreground">{prop.suburb} {prop.city}</span>
+                            <span className="text-muted-foreground">{[prop.suburb, prop.city].filter(Boolean).join(", ")}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-foreground">{prop.owner?.full_name ?? "—"}</TableCell>
                         <TableCell className="text-sm text-foreground">{prop.units?.length ?? 0}</TableCell>
                         <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          prop.units?.[0] ? <GenerateUnitLinkButton unitId={prop.units[0].id} /> : <span className="text-muted-foreground text-xs">—</span>
+                          {prop.units?.[0]
+                            ? <GenerateUnitLinkButton unitId={prop.units[0].id} />
+                            : <span className="text-xs text-muted-foreground">Add units first</span>}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
@@ -156,7 +178,11 @@ export default function PropertiesPage() {
         <EditPropertyDialog
           property={editProp}
           onOpenChange={(v) => { if (!v) setEditProp(null); }}
-          onSuccess={() => { setEditProp(null); refetch(); }}
+          onSuccess={() => {
+            setEditProp(null);
+            toast.success("Property updated.");
+            refetch();
+          }}
         />
       )}
 
@@ -165,13 +191,15 @@ export default function PropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Property</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteProp?.name}</strong>? This cannot be undone.
+              Are you sure you want to delete <strong>{deleteProp?.name}</strong>?
+              All associated units and records will be removed. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleting ? "Deleting..." : "Delete"}
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting…" : "Yes, delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

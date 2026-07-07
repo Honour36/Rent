@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Search, UserCheck, Pencil, Trash2 } from "lucide-react";
 
@@ -31,10 +32,15 @@ export default function OwnersPage() {
   const handleDelete = async () => {
     if (!deleteOwner) return;
     setDeleting(true);
-    await apiClient(`/owners/${deleteOwner.id}`, { method: "DELETE" });
+    const res = await apiClient(`/owners/${deleteOwner.id}`, { method: "DELETE" });
+    if (res.success) {
+      toast.success(`"${deleteOwner?.full_name}" removed.`);
+      refetch();
+    } else {
+      toast.error("Could not delete owner", { description: (res as any).error });
+    }
     setDeleteOwner(null);
     setDeleting(false);
-    refetch();
   };
 
   return (

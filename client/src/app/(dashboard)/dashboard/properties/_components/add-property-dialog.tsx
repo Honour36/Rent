@@ -1,17 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,203 +15,163 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { createProperty } from "@/hooks/useProperties";
 import { useOwners } from "@/hooks/useOwners";
 
-interface AddPropertyDialogProps {
-  onSuccess?: () => void;
-}
+interface AddPropertyDialogProps { onSuccess?: () => void }
 
 export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { owners, loading: loadingOwners } = useOwners();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    suburb: "",
-    city: "",
-    type: "residential",
-    ownerId: "",
-    rentAmount: "",
-    currency: "USD",
+  const [form, setForm] = useState({
+    name: "", address: "", suburb: "", city: "",
+    type: "residential", ownerId: "", rentAmount: "", currency: "USD",
   });
+
+  const change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    setFieldErrors((p) => ({ ...p, [e.target.name]: "" }));
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Property name is required.";
+    if (!form.address.trim()) errs.address = "Street address is required.";
+    if (!form.ownerId) errs.ownerId = "You must select an owner before saving a property.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.warning("Please fix the highlighted fields before continuing.");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
-    setError("");
 
-    try {
-      const res = await createProperty({
-        ...formData,
-        ownerId: formData.ownerId || undefined, // send undefined if empty
+    const res = await createProperty({ ...form, ownerId: form.ownerId || undefined });
+
+    if (res.success) {
+      toast.success(`"${form.name}" added.`, {
+        description: "Open the property to add units and generate an application link.",
+        duration: 6000,
       });
-      
-      if (res.success) {
-        setOpen(false);
-        setFormData({
-          name: "",
-          address: "",
-          suburb: "",
-          city: "",
-          type: "residential",
-          ownerId: "",
-          rentAmount: "",
-          currency: "USD",
-        });
-        if (onSuccess) onSuccess();
+      setOpen(false);
+      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD" });
+      setFieldErrors({});
+      onSuccess?.();
+    } else {
+      const msg = (res as any).error || "Could not save the property.";
+      if ((res as any).code === "TIER_LIMIT_REACHED") {
+        toast.error("Plan limit reached", { description: msg });
       } else {
-        setError(res.error || "Failed to create property");
+        toast.error("Could not save property", { description: msg });
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const noOwners = !loadingOwners && owners.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Property
-        </Button>
+        <Button><Plus className="mr-2 h-4 w-4" />Add Property</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Add Property</DialogTitle>
           <DialogDescription>
-            Enter the details of the new property to add it to your portfolio.
+            Enter the property details. An owner must be selected — add owners first if none appear.
           </DialogDescription>
         </DialogHeader>
+
+        {noOwners && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>No owners on record. <strong>Go to Owners → Add Owner</strong> before adding a property.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {error && <div className="text-sm font-medium text-destructive">{error}</div>}
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="e.g. Sunset Apartments"
-                className="col-span-3"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main St"
-                className="col-span-3"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="suburb" className="text-right">
-                Suburb
-              </Label>
-              <Input
-                id="suburb"
-                name="suburb"
-                value={formData.suburb}
-                onChange={handleChange}
-                placeholder="Borrowdale"
-                className="col-span-3"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="city" className="text-right">
-                City
-              </Label>
-              <Input
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                placeholder="Harare"
-                className="col-span-3"
-              />
+          <div className="grid gap-4 py-2">
+
+            <FormField label="Property Name" required error={fieldErrors.name}>
+              <Input name="name" value={form.name} onChange={change} placeholder="e.g. Sunset Apartments"
+                className={fieldErrors.name ? "border-destructive" : ""} />
+            </FormField>
+
+            <FormField label="Street Address" required error={fieldErrors.address}>
+              <Input name="address" value={form.address} onChange={change} placeholder="123 Views Drive"
+                className={fieldErrors.address ? "border-destructive" : ""} />
+            </FormField>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Suburb">
+                <Input name="suburb" value={form.suburb} onChange={change} placeholder="Borrowdale" />
+              </FormField>
+              <FormField label="City">
+                <Input name="city" value={form.city} onChange={change} placeholder="Harare" />
+              </FormField>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="type" className="text-right">
-                Type
-              </Label>
-              <div className="col-span-3">
-                <NativeSelect id="type" name="type" value={formData.type} onChange={handleChange} className="w-full">
-                  <NativeSelectOption value="residential">Residential</NativeSelectOption>
-                  <NativeSelectOption value="commercial">Commercial</NativeSelectOption>
-                </NativeSelect>
-              </div>
-            </div>
+            <FormField label="Type">
+              <NativeSelect name="type" value={form.type} onChange={change} className="w-full">
+                <NativeSelectOption value="residential">Residential</NativeSelectOption>
+                <NativeSelectOption value="commercial">Commercial</NativeSelectOption>
+              </NativeSelect>
+            </FormField>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="ownerId" className="text-right">
-                Owner
-              </Label>
-              <div className="col-span-3">
-                <NativeSelect id="ownerId" name="ownerId" value={formData.ownerId} onChange={handleChange} className="w-full" disabled={loadingOwners}>
-                  <NativeSelectOption value="">-- Select Owner --</NativeSelectOption>
-                  {owners.map(owner => (
-                    <NativeSelectOption key={owner.id} value={owner.id}>
-                      {owner.full_name}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-            </div>
+            <FormField label="Owner" required error={fieldErrors.ownerId}>
+              <NativeSelect name="ownerId" value={form.ownerId} onChange={change}
+                className={`w-full ${fieldErrors.ownerId ? "border-destructive" : ""}`}
+                disabled={loadingOwners || noOwners}>
+                <NativeSelectOption value="">
+                  {loadingOwners ? "Loading owners…" : noOwners ? "No owners — add one first" : "— Select owner —"}
+                </NativeSelectOption>
+                {owners.map((o) => (
+                  <NativeSelectOption key={o.id} value={o.id}>{o.full_name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </FormField>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rentAmount" className="text-right">
-                Default Rent
-              </Label>
-              <div className="col-span-3 flex gap-2">
-                <Input
-                  id="rentAmount"
-                  name="rentAmount"
-                  type="number"
-                  min="0"
-                  value={formData.rentAmount}
-                  onChange={handleChange}
-                  placeholder="e.g. 350"
-                  className="flex-1"
-                />
+            <FormField label="Default Rent">
+              <div className="flex gap-2">
+                <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className="flex-1" />
                 <div className="w-24">
-                  <NativeSelect id="currency" name="currency" value={formData.currency} onChange={handleChange} className="w-full">
+                  <NativeSelect name="currency" value={form.currency} onChange={change} className="w-full">
                     <NativeSelectOption value="USD">USD</NativeSelectOption>
                     <NativeSelectOption value="ZiG">ZiG</NativeSelectOption>
                   </NativeSelect>
                 </div>
               </div>
-            </div>
+            </FormField>
 
           </div>
-          <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Property"}
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={loading || noOwners}>
+              {loading ? "Saving…" : "Save Property"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function FormField({ label, required, error, children }: {
+  label: string; required?: boolean; error?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-medium">
+        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
+      {children}
+      {error && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" />{error}</p>}
+    </div>
   );
 }

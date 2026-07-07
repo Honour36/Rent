@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -49,7 +50,7 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
     setLoading(true);
     setError("");
     const res = await apiClient(`/properties/${property.id}`, { method: "PATCH", data: form });
-    if (res.success) { onSuccess(); onOpenChange(false); }
+    if (res.success) { toast.success("Property updated."); onSuccess(); onOpenChange(false); }
     else setError((res as any).error || "Failed to update property");
     setLoading(false);
   };
