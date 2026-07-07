@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -34,7 +35,7 @@ export function EditTenantDialog({ tenant, onOpenChange, onSuccess }: Props) {
       method: "PATCH",
       data: { ...form, monthlyIncome: form.monthlyIncome ? Number(form.monthlyIncome) : undefined },
     });
-    if (res.success) { onSuccess(); onOpenChange(false); }
+    if (res.success) { toast.success("Tenant updated."); onSuccess(); onOpenChange(false); }
     else setError((res as any).error || "Failed to update tenant");
     setLoading(false);
   };

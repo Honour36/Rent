@@ -3,12 +3,13 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 
 export const CreatePropertySchema = z.object({
-  ownerId: z.string().uuid().optional(),
-  name: z.string().min(2),
-  address: z.string().min(5),
+  ownerId: z.string({ required_error: 'An owner must be selected before saving a property.' })
+            .uuid('Please select a valid owner.'),
+  name: z.string().min(2, 'Property name must be at least 2 characters.'),
+  address: z.string().min(5, 'Please enter a full street address.'),
   suburb: z.string().optional(),
   city: z.string().optional(),
-  type: z.enum(['residential', 'commercial']).default('residential')
+  type: z.enum(['residential', 'commercial']).default('residential'),
 });
 
 export type CreatePropertyDto = z.infer<typeof CreatePropertySchema>;

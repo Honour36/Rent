@@ -1,4 +1,6 @@
 "use client";
+import { toast } from "sonner";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
@@ -39,8 +41,12 @@ export function AddOwnerDialog({ onSuccess }: AddOwnerDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.fullName.trim()) {
+      setError('Full name is required.');
+      return;
+    }
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       const res = await apiClient<Owner>("/owners", {
@@ -49,6 +55,7 @@ export function AddOwnerDialog({ onSuccess }: AddOwnerDialogProps) {
       });
       
       if (res.success) {
+        toast.success('Owner added successfully.');
         setOpen(false);
         setFormData({
           fullName: "",

@@ -1,78 +1,180 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Bell, Building2, Users, AlertTriangle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 
-interface SystemNotification {
+interface ContextualNotification {
   id: string;
   message: string;
-  type: "info" | "warning" | "success";
-  timestamp: Date;
+  type: "info" | "warning" | "success" | "error";
+  action?: string;
+  actionUrl?: string;
 }
 
-function generateNotifications(): SystemNotification[] {
-  const now = new Date();
-  return [
-    {
-      id: "1",
-      message: "Rent reminders will be sent on the 1st.",
-      type: "info",
-      timestamp: new Date(now.getTime() - 1000 * 60 * 60 * 2),
-    },
-    {
-      id: "2",
-      message: "System online and synced.",
-      type: "success",
-      timestamp: new Date(now.getTime() - 1000 * 60 * 30),
-    },
-  ];
+async function fetchContextualNotifications(): Promise<ContextualNotification[]> {
+  const notes: ContextualNotification[] = [];
+
+  try {
+    // Check for properties with no units
+    const propsRes = await apiClient<any[]>("/properties");
+    if (propsRes.success) {
+      const noUnits = (propsRes as any).data?.filter((p: any) => !p.units || p.units.length === 0) ?? [];
+      if (noUnits.length > 0) {
+        notes.push({
+          id: "no-units",
+          message: `${noUnits.length} propert${noUnits.length === 1 ? "y" : "ies"} without units`,
+          type: "warning",
+          action: noUnits.length === 1 ? `Open "${noUnits[0].name}" to add units` : "Click each highlighted property to add units",
+          actionUrl: noUnits.length === 1 ? `/dashboard/properties/${noUnits[0].id}` : "/dashboard/properties",
+        });
+      }
+    }
+
+    // Check for vacant units across all properties
+    const allUnits: any[] = (propsRes as any).data?.flatMap((p: any) => p.units ?? []) ?? [];
+    const vacantCount = allUnits.filter((u: any) => u.status === "vacant").length;
+    if (vacantCount > 0) {
+      notes.push({
+        id: "vacant-units",
+        message: `${vacantCount} vacant unit${vacantCount > 1 ? "s" : ""} available`,
+        type: "info",
+        action: "Generate application links to fill vacancies",
+        actionUrl: "/dashboard/properties",
+      });
+    }
+
+    // Check maintenance
+    const maintRes = await apiClient<any>("/maintenance?status=open");
+    if (maintRes.success) {
+      const open = (maintRes as any).data?.records?.length ?? 0;
+      if (open > 0) {
+        notes.push({
+          id: "open-maintenance",
+          message: `${open} open maintenance request${open > 1 ? "s" : ""}`,
+          type: open >= 3 ? "error" : "warning",
+          action: "Review and assign requests",
+          actionUrl: "/dashboard/maintenance",
+        });
+      }
+    }
+
+    // Check applications
+    const appsRes = await apiClient<any>("/applications?status=pending");
+    if (appsRes.success) {
+      const pending = (appsRes as any).data?.length ?? (appsRes as any).data?.applications?.length ?? 0;
+      if (pending > 0) {
+        notes.push({
+          id: "pending-apps",
+          message: `${pending} pending tenant application${pending > 1 ? "s" : ""}`,
+          type: "info",
+          action: "Review applications",
+          actionUrl: "/dashboard/applications",
+        });
+      }
+    }
+
+    if (notes.length === 0) {
+      notes.push({ id: "all-good", message: "All systems in order.", type: "success" });
+    }
+  } catch {
+    notes.push({ id: "system", message: "System online.", type: "success" });
+  }
+
+  return notes;
 }
+
+const typeIcon: Record<string, React.ElementType> = {
+  info: Building2,
+  warning: AlertTriangle,
+  success: CheckCircle,
+  error: AlertTriangle,
+};
+
+const typeColor: Record<string, string> = {
+  info: "text-blue-600 dark:text-blue-400",
+  warning: "text-amber-600 dark:text-amber-400",
+  success: "text-green-600 dark:text-green-400",
+  error: "text-red-600 dark:text-red-400",
+};
 
 export function SidebarSupportCard() {
-  const [notifications] = useState<SystemNotification[]>(generateNotifications);
+  const [notifications, setNotifications] = useState<ContextualNotification[]>([]);
   const [expanded, setExpanded] = useState(false);
+  const [shown, setShown] = useState(false);
 
-  const typeColor: Record<string, string> = {
-    info: "text-blue-600",
-    warning: "text-amber-600",
-    success: "text-green-600",
-  };
+  const load = useCallback(async () => {
+    const notes = await fetchContextualNotifications();
+    setNotifications(notes);
+
+    // Fire Sonner toast for warnings/errors on first load
+    if (!shown) {
+      notes.forEach((n) => {
+        if (n.type === "warning" || n.type === "error") {
+          toast[n.type === "error" ? "error" : "warning"](n.message, {
+            description: n.action,
+            duration: 7000,
+          });
+        }
+      });
+      setShown(true);
+    }
+  }, [shown]);
+
+  useEffect(() => {
+    load();
+    // Refresh every 5 minutes
+    const id = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const unread = notifications.filter((n) => n.type === "warning" || n.type === "error").length;
 
   return (
     <Card
       size="sm"
-      className="overflow-hidden shadow-none group-data-[collapsible=icon]:hidden cursor-pointer"
+      className="overflow-hidden shadow-none group-data-[collapsible=icon]:hidden cursor-pointer select-none"
       onClick={() => setExpanded((v) => !v)}
     >
       <CardHeader className="min-w-0 px-4 py-3">
         <div className="flex items-center justify-between">
           <CardTitle className="truncate text-sm flex items-center gap-1.5">
             <Bell className="h-3.5 w-3.5" />
-            Notifications
+            Reminders
           </CardTitle>
-          <Badge variant="secondary" className="text-xs px-1.5 py-0">{notifications.length}</Badge>
+          {unread > 0
+            ? <Badge variant="destructive" className="text-xs px-1.5 py-0">{unread}</Badge>
+            : <Badge variant="secondary" className="text-xs px-1.5 py-0">{notifications.length}</Badge>}
         </div>
-
-        {expanded && (
-          <div className="mt-2 space-y-2">
-            {notifications.map((n) => (
-              <div key={n.id} className="text-xs">
-                <span className={typeColor[n.type] ?? "text-muted-foreground"}>●</span>{" "}
-                <span className="text-foreground">{n.message}</span>
-                <div className="text-muted-foreground ml-3">
-                  {n.timestamp.toLocaleTimeString("en-ZW", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {!expanded && (
           <CardDescription className="line-clamp-1 text-xs mt-0.5">
-            {notifications[notifications.length - 1]?.message}
+            {notifications[0]?.message ?? "Loading…"}
           </CardDescription>
+        )}
+
+        {expanded && (
+          <div className="mt-2 space-y-2.5">
+            {notifications.map((n) => {
+              const Icon = typeIcon[n.type] ?? Bell;
+              return (
+                <div key={n.id} className="text-xs">
+                  <div className={cn("flex items-start gap-1.5 font-medium", typeColor[n.type])}>
+                    <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{n.message}</span>
+                  </div>
+                  {n.action && (
+                    <p className="text-muted-foreground ml-5 mt-0.5 leading-tight">{n.action}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardHeader>
     </Card>

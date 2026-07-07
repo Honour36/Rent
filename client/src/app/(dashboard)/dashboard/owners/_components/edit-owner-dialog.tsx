@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -29,7 +30,7 @@ export function EditOwnerDialog({ owner, onOpenChange, onSuccess }: Props) {
     setLoading(true);
     setError("");
     const res = await apiClient(`/owners/${owner.id}`, { method: "PATCH", data: form });
-    if (res.success) { onSuccess(); onOpenChange(false); }
+    if (res.success) { toast.success("Owner updated."); onSuccess(); onOpenChange(false); }
     else setError((res as any).error || "Failed to update owner");
     setLoading(false);
   };

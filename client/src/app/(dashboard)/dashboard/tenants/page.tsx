@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Search, Users, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,11 +36,11 @@ export default function TenantsPage() {
     if (!deleteTenant) return;
     setDeleting(true);
     const res = await apiClient(`/tenants/${deleteTenant.id}`, { method: "DELETE" });
-    if (!res.success) {
-      toast.error(res.error || "Failed to delete tenant");
-    } else {
-      toast.success("Tenant deleted successfully");
+    if (res.success) {
+      toast.success(`"${deleteTenant?.full_name}" removed.`);
       refetch();
+    } else {
+      toast.error("Could not delete tenant", { description: (res as any).error });
     }
     setDeleteTenant(null);
     setDeleting(false);
