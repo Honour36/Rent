@@ -25,6 +25,11 @@ class AppError extends Error {
 
 export class TenantsService {
   async list(user: TokenPayload) {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const dayOfMonth = now.getDate();
+
     const tenants = await prisma.tenant.findMany({
       where: { account_id: user.accountId },
       orderBy: { created_at: 'desc' },
@@ -34,24 +39,32 @@ export class TenantsService {
           take: 1,
           orderBy: { created_at: 'desc' },
           include: {
-            unit: {
-              include: { property: true },
-            },
+            unit: { include: { property: true } },
             payments: {
-              select: { amount_paid: true, status: true },
+              where: { period_month: currentMonth, period_year: currentYear },
+              select: { amount_paid: true, status: true, period_month: true, period_year: true },
+              take: 1,
+              orderBy: { created_at: 'desc' },
             },
           },
         },
       },
     });
 
-    // Compute arrears flag for each tenant
     return tenants.map((t) => {
       const activeTenancy = t.tenancies[0] ?? null;
-      const hasArrears = activeTenancy
-        ? activeTenancy.payments.some((p) => p.status === 'unpaid' || p.status === 'partial')
+      const currentPayment = activeTenancy?.payments[0] ?? null;
+      const rentDueDay = activeTenancy?.rent_due_day ?? 1;
+
+      // Overdue = past due day this month, no paid/late payment recorded
+      const isOverdue = activeTenancy
+        ? dayOfMonth > rentDueDay &&
+          (!currentPayment || currentPayment.status === 'unpaid' || currentPayment.status === 'partial')
         : false;
-      return { ...t, activeTenancy, hasArrears };
+
+      const hasArrears = isOverdue || (currentPayment?.status === 'partial');
+
+      return { ...t, activeTenancy, hasArrears, isOverdue, currentPayment };
     });
   }
 

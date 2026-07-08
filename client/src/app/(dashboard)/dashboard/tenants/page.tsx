@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Search, Users, Pencil, Trash2 } from "lucide-react";
+import { Search, Users, Pencil, Trash2, AlertTriangle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,7 @@ export default function TenantsPage() {
                   {filtered.map((tenant) => {
                     const t = tenant.activeTenancy;
                     return (
-                      <TableRow key={tenant.id} className="hover:bg-muted/50 cursor-pointer"
+                      <TableRow key={tenant.id} className={`cursor-pointer transition-colors ${(tenant as any).isOverdue ? "bg-red-50/60 dark:bg-red-950/20 hover:bg-red-100/60 border-l-2 border-l-destructive" : "hover:bg-muted/50"}`}
                         onClick={() => router.push(`/dashboard/tenants/${tenant.id}`)}>
                         <TableCell className="text-sm font-medium text-foreground">{tenant.full_name}</TableCell>
                         <TableCell>
@@ -116,8 +116,16 @@ export default function TenantsPage() {
                         <TableCell>
                           {t ? <Badge variant="default">Active</Badge> : <Badge variant="outline">No Tenancy</Badge>}
                         </TableCell>
-                        <TableCell>
-                          {tenant.hasArrears ? <Badge variant="destructive">Arrears</Badge> : <Badge variant="secondary">Clear</Badge>}
+<TableCell>
+                          {(tenant as any).isOverdue ? (
+                            <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                              <AlertTriangle className="h-3 w-3" />Overdue
+                            </Badge>
+                          ) : tenant.hasArrears ? (
+                            <Badge variant="destructive">Partial</Badge>
+                          ) : (
+                            <Badge variant="secondary">Clear</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">

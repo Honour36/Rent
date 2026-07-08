@@ -26,6 +26,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
   const [form, setForm] = useState({
     name: "", address: "", suburb: "", city: "",
     type: "residential", ownerId: "", rentAmount: "", currency: "USD",
+    isSingleUnit: false,
   });
 
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -59,7 +60,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
         duration: 6000,
       });
       setOpen(false);
-      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD" });
+      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", isSingleUnit: false });
       setFieldErrors({});
       onSuccess?.();
     } else {
@@ -137,7 +138,23 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
               </NativeSelect>
             </FormField>
 
-            <FormField label="Default Rent">
+<div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">Single unit property</p>
+                <p className="text-xs text-muted-foreground">Auto-creates one "Main Unit" — skip the separate unit step</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.isSingleUnit}
+                onClick={() => setForm(p => ({ ...p, isSingleUnit: !p.isSingleUnit }))}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${form.isSingleUnit ? "bg-primary" : "bg-input"}`}
+              >
+                <span className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg transition-transform ${form.isSingleUnit ? "translate-x-4" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            <FormField label="Rent Amount" required={form.isSingleUnit}>
               <div className="flex gap-2">
                 <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className="flex-1" />
                 <div className="w-24">

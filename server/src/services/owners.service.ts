@@ -26,8 +26,17 @@ export class OwnersService {
   async list(user: TokenPayload) {
     const owners = await prisma.owner.findMany({
       where: { account_id: user.accountId },
+      orderBy: { created_at: 'desc' },
       include: {
         _count: { select: { properties: true } },
+        properties: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            units: { select: { id: true, status: true } },
+          },
+        },
       },
     });
     return owners;

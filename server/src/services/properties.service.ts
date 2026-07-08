@@ -10,6 +10,10 @@ export const CreatePropertySchema = z.object({
   suburb: z.string().optional(),
   city: z.string().optional(),
   type: z.enum(['residential', 'commercial']).default('residential'),
+  // Optional: if true, auto-create a single unit with these values
+  isSingleUnit: z.boolean().optional().default(false),
+  rentAmount: z.number().positive().optional(),
+  currency: z.enum(['USD', 'ZiG']).optional().default('USD'),
 });
 
 export type CreatePropertyDto = z.infer<typeof CreatePropertySchema>;
@@ -78,6 +82,21 @@ export class PropertiesService {
         type: data.type,
       },
     });
+
+    // If single-unit flag: auto-create one unit named "Main Unit"
+    if (data.isSingleUnit && data.rentAmount) {
+      await prisma.unit.create({
+        data: {
+          account_id: user.accountId,
+          property_id: property.id,
+          unit_number: 'Main Unit',
+          rent_amount: data.rentAmount,
+          currency: data.currency ?? 'USD',
+          status: 'vacant',
+        },
+      });
+    }
+
     return property;
   }
 }
