@@ -101,11 +101,7 @@ class ApplicationsController {
       res.status(err.statusCode || 500).json({ success: false, error: err.message });
     }
   };
-}
-
-export const applicationsController = new ApplicationsController();
-
-  async delete(req: AuthRequest, res: Response): Promise<void> {
+  delete = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const result = await applicationsService.delete(req.params.id, req.user!);
       res.json({ success: true, data: result });
@@ -113,4 +109,7 @@ export const applicationsController = new ApplicationsController();
       const status = err.message?.includes('approved') ? 400 : 404;
       res.status(status).json({ success: false, error: err.message || 'Could not delete application.' });
     }
-  }
+  };
+}
+
+export const applicationsController = new ApplicationsController();
