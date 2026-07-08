@@ -296,7 +296,7 @@ export class ApplicationsService {
     return prisma.application.update({
       where: { id },
       data: {
-        ...(data.notes !== undefined && { additional_notes: data.notes }),
+        ...(data.notes !== undefined && { vetting_notes: data.notes }),
       },
     });
   }
