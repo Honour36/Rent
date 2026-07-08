@@ -93,7 +93,27 @@ export class PaymentsService {
         },
       });
 
-      return { payment, receipt };
+      // Return enriched data for the owner-notification prompt on frontend
+      const enriched = await tx.payment.findUnique({
+        where: { id: payment.id },
+        include: {
+          tenancy: {
+            include: {
+              tenant: { select: { id: true, full_name: true, email: true, phone: true } },
+              unit: {
+                include: {
+                  property: {
+                    include: { owner: { select: { id: true, full_name: true, email: true, phone: true } } },
+                  },
+                },
+              },
+            },
+          },
+          receipts: true,
+        },
+      });
+
+      return { payment: enriched, receipt };
     });
   }
 }

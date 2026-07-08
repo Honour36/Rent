@@ -275,6 +275,31 @@ export class ApplicationsService {
       return updatedApp;
     });
   }
+
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.application.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true, status: true },
+    });
+    if (!existing) throw new Error('Application not found');
+    if (existing.status === 'approved') throw new Error('Cannot delete an approved application — it has already created a tenant record.');
+    await prisma.application.delete({ where: { id } });
+    return { deleted: true };
+  }
+
+  async update(id: string, data: { notes?: string; status?: string }, user: TokenPayload) {
+    const existing = await prisma.application.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id: true },
+    });
+    if (!existing) throw new Error('Application not found');
+    return prisma.application.update({
+      where: { id },
+      data: {
+        ...(data.notes !== undefined && { additional_notes: data.notes }),
+      },
+    });
+  }
 }
 
 export const applicationsService = new ApplicationsService();

@@ -103,7 +103,19 @@ export default function OwnersPage() {
                           <span className="text-muted-foreground">{owner.phone ?? "—"}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-foreground">{owner.properties?.[0]?.count ?? 0}</TableCell>
+                      <TableCell className="text-sm text-foreground">
+                          {(owner as any).properties?.length > 0 ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-medium">{(owner as any).properties.length} propert{(owner as any).properties.length === 1 ? 'y' : 'ies'}</span>
+                              <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                                {(owner as any).properties.slice(0, 2).map((p: any) => p.name).join(', ')}
+                                {(owner as any).properties.length > 2 ? ` +${(owner as any).properties.length - 2}` : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">None</span>
+                          )}
+                        </TableCell>
                       <TableCell>
                         {owner.bank_name ? <Badge variant="default">Complete</Badge> : <Badge variant="outline">Missing</Badge>}
                       </TableCell>
