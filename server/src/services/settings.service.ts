@@ -7,6 +7,15 @@ export const UpdateAccountSchema = z.object({
   logo_url: z.string().url().optional(),
   subscription_tier: z.enum(['free', 'starter', 'growth', 'professional']).optional(),
   management_fee_pct: z.number().min(0).max(100).optional(),
+  // Company / receipt details
+  address: z.string().optional(),
+  suburb: z.string().optional(),
+  city: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  vatNumber: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAccount: z.string().optional(),
 });
 
 export const TemplateSchema = z.object({
@@ -40,7 +49,15 @@ export class SettingsService {
         name: data.name,
         logo_url: data.logo_url,
         subscription_tier: data.subscription_tier,
-        management_fee_pct: data.management_fee_pct
+        management_fee_pct: data.management_fee_pct,
+        address: data.address,
+        suburb: data.suburb,
+        city: data.city,
+        phone: data.phone,
+        email: data.email,
+        vat_number: data.vatNumber,
+        bank_name: data.bankName,
+        bank_account: data.bankAccount,
       }
     });
     return account;

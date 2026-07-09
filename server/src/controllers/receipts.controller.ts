@@ -2,65 +2,54 @@ import { Request, Response } from 'express';
 import { receiptsService, SendReceiptSchema } from '../services/receipts.service';
 import { TokenPayload } from '../middleware/auth.middleware';
 
+function handleError(res: Response, error: any) {
+  const status = error.statusCode || 500;
+  // 422 = incomplete account details → frontend redirects to settings
+  const code = status === 422 ? 'ACCOUNT_DETAILS_INCOMPLETE' : undefined;
+  res.status(status).json({
+    success: false,
+    error: error.message || 'An unexpected error occurred.',
+    ...(code && { code }),
+  });
+}
+
 export class ReceiptsController {
   async getReceipt(req: Request, res: Response) {
     try {
       const user = (req as any).user as TokenPayload;
-      const { paymentId } = req.params;
-
-      const receipt = await receiptsService.getReceiptByPaymentId(paymentId, user);
+      const receipt = await receiptsService.getReceiptByPaymentId(req.params.paymentId, user);
       res.json({ success: true, data: receipt });
-    } catch (error: any) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ error: error.message });
-    }
+    } catch (error: any) { handleError(res, error); }
   }
 
   async getReceiptPdf(req: Request, res: Response) {
     try {
       const user = (req as any).user as TokenPayload;
-      const { paymentId } = req.params;
-
-      const pdfBuffer = await receiptsService.generateReceiptPdf(paymentId, user);
-
+      const pdfBuffer = await receiptsService.generateReceiptPdf(req.params.paymentId, user);
       res.setHeader('Content-Type', 'application/pdf');
       res.send(pdfBuffer);
-    } catch (error: any) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ error: error.message });
-    }
+    } catch (error: any) { handleError(res, error); }
   }
 
-  /** Returns a short-lived signed URL to the receipt PDF stored in Supabase Storage. */
   async getReceiptSignedUrl(req: Request, res: Response) {
     try {
       const user = (req as any).user as TokenPayload;
-      const { paymentId } = req.params;
-      const url = await receiptsService.getReceiptSignedUrl(paymentId, user);
+      const url = await receiptsService.getReceiptSignedUrl(req.params.paymentId, user);
       res.json({ success: true, data: { url } });
-    } catch (error: any) {
-      const status = error.statusCode || 500;
-      res.status(status).json({ error: error.message });
-    }
+    } catch (error: any) { handleError(res, error); }
   }
 
   async sendReceipt(req: Request, res: Response) {
     try {
       const user = (req as any).user as TokenPayload;
-      const { paymentId } = req.params;
-      
-      const parsedData = SendReceiptSchema.parse(req.body);
-
-      const result = await receiptsService.sendReceipt(paymentId, parsedData.channel, user);
-      res.json({ success: true, data: result });
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
-        res.status(400).json({ error: 'Validation Error', details: error.errors });
-      } else {
-        const status = error.statusCode || 500;
-        res.status(status).json({ error: error.message });
+      const parsed = SendReceiptSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ success: false, error: 'Invalid channel. Use email or whatsapp.' });
+        return;
       }
-    }
+      const result = await receiptsService.sendReceipt(req.params.paymentId, parsed.data.channel, user);
+      res.json({ success: true, data: result });
+    } catch (error: any) { handleError(res, error); }
   }
 }
 

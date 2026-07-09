@@ -79,6 +79,21 @@ async function fetchContextualNotifications(): Promise<ContextualNotification[]>
       }
     }
 
+    // Check account receipt readiness
+    const accRes = await apiClient<any>("/settings/account");
+    if (accRes.success) {
+      const acc = (accRes as any).data;
+      if (!acc?.address || !acc?.phone || !acc?.email) {
+        notes.push({
+          id: "account-incomplete",
+          message: "Account details incomplete",
+          type: "warning",
+          action: "Fill in address, phone & email to enable receipt printing.",
+          actionUrl: "/dashboard/settings?tab=account",
+        });
+      }
+    }
+
     if (notes.length === 0) {
       notes.push({ id: "all-good", message: "All systems in order.", type: "success" });
     }
@@ -120,6 +135,18 @@ export function SidebarSupportCard() {
             description: n.action,
             duration: 7000,
           });
+        }
+        // Fire an info toast for pending applications (once per session)
+        if (n.id === "pending-apps" && typeof sessionStorage !== "undefined") {
+          const key = `notified-apps-${n.message}`;
+          if (!sessionStorage.getItem(key)) {
+            toast.info("New application received!", {
+              description: n.message + " — review in Applications.",
+              duration: 8000,
+              action: { label: "Review", onClick: () => window.location.assign("/dashboard/applications") },
+            });
+            sessionStorage.setItem(key, "1");
+          }
         }
       });
       setShown(true);

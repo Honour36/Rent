@@ -149,7 +149,7 @@ export default function ApplicationsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(app.created_at).toLocaleDateString("en-ZW", { day: "2-digit", month: "short", year: "numeric" })}
+                          {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString("en-ZW", { day: "2-digit", month: "short", year: "numeric" }) : "Pending"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">

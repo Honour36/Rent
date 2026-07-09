@@ -12,6 +12,15 @@ model Account {
   logo_url           String?
   subscription_tier  String?
   management_fee_pct Decimal?  @db.Decimal
+  // Company / receipt details
+  address            String?
+  suburb             String?
+  city               String?
+  phone              String?
+  email              String?
+  vat_number         String?
+  bank_name          String?
+  bank_account       String?
   created_at         DateTime  @default(now()) @db.Timestamptz
 
   users              User[]

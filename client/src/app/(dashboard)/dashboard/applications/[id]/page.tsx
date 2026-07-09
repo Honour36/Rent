@@ -1,3 +1,5 @@
+'use client';
+import React from "react";
 "use client";
 
 import { useState } from "react";
@@ -41,6 +43,20 @@ const STATUS_CONFIG: Record<
   rejected: { label: "Rejected", variant: "destructive" },
   more_info: { label: "More Info Requested", variant: "outline" },
 };
+
+
+function CopyIdButton({ value }: { value: string }) {
+  const [copied, setCopied] = React.useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
 
 export default function ApplicationDetailPage() {
   const params = useParams();
@@ -103,6 +119,12 @@ export default function ApplicationDetailPage() {
         </div>
         <Badge variant={cfg.variant}>{cfg.label}</Badge>
       </div>
+      {/* Application ID */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground -mt-2 ml-12">
+        <span>Application ID:</span>
+        <code className="bg-muted px-2 py-0.5 rounded text-xs">{id}</code>
+        <CopyIdButton value={id} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Left Column ─────────────────────────────────────────────────── */}
@@ -128,11 +150,7 @@ export default function ApplicationDetailPage() {
                   label="Submitted"
                   value={
                     hasContent
-                      ? new Date(application.submitted_at).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })
+                      ? application.submitted_at ? new Date(application.submitted_at).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "Not submitted yet"
                       : "Not yet submitted"
                   }
                 />

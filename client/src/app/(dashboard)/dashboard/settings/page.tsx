@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
+import { toast } from "sonner";
 import { useSettings, Template } from "@/hooks/useSettings";
 import { useAuthStore } from "@/stores/auth.store";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -48,6 +49,14 @@ function SettingsPageInner() {
   // Account Form State
   const [accountName, setAccountName] = useState("");
   const [managementFee, setManagementFee] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companySuburb, setCompanySuburb] = useState("");
+  const [companyCity, setCompanyCity] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
   
   // Template Dialog State
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
@@ -77,7 +86,15 @@ function SettingsPageInner() {
     e.preventDefault();
     await updateAccount({
       name: accountName,
-      management_fee_pct: managementFee ? parseFloat(managementFee) : null as any
+      management_fee_pct: managementFee ? parseFloat(managementFee) : undefined,
+      address: companyAddress,
+      suburb: companySuburb,
+      city: companyCity,
+      phone: companyPhone,
+      email: companyEmail,
+      vatNumber: vatNumber,
+      bankName: bankName,
+      bankAccount: bankAccount,
     });
   };
 
@@ -143,36 +160,76 @@ function SettingsPageInner() {
               <CardHeader>
                 <CardTitle>Account Details</CardTitle>
                 <CardDescription>
-                  Update your company information.
+                  These details appear on every payment receipt. Fields marked <span className="text-destructive">*</span> are required to generate receipts.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    placeholder="e.g. Acme Properties"
-                    required
-                  />
+              <CardContent className="space-y-5">
+
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+                  ⚠ Receipts cannot be printed until Address, Phone and Email are filled in.
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="fee">Default Management Fee (%)</Label>
-                  <Input
-                    id="fee"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={managementFee}
-                    onChange={(e) => setManagementFee(e.target.value)}
-                    placeholder="e.g. 10"
-                  />
+
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Company Information</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2 grid gap-2">
+                      <Label htmlFor="companyName">Company / Agency Name <span className="text-destructive">*</span></Label>
+                      <Input id="companyName" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="e.g. Sermony Properties" required />
+                    </div>
+                    <div className="sm:col-span-2 grid gap-2">
+                      <Label htmlFor="companyAddress">Street Address <span className="text-destructive">*</span></Label>
+                      <Input id="companyAddress" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder="56 Edmonds Avenue" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="companySuburb">Suburb</Label>
+                      <Input id="companySuburb" value={companySuburb} onChange={(e) => setCompanySuburb(e.target.value)} placeholder="Belvedere" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="companyCity">City</Label>
+                      <Input id="companyCity" value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} placeholder="Harare" />
+                    </div>
+                  </div>
                 </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Details</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="companyPhone">Phone <span className="text-destructive">*</span></Label>
+                      <Input id="companyPhone" value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} placeholder="+263 242 700 300" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="companyEmail">Email <span className="text-destructive">*</span></Label>
+                      <Input id="companyEmail" type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} placeholder="info@yourcompany.co.zw" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="vatNumber">VAT Number</Label>
+                      <Input id="vatNumber" value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} placeholder="e.g. 10022800" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="fee">Management Fee (%)</Label>
+                      <Input id="fee" type="number" step="0.01" min="0" max="100" value={managementFee} onChange={(e) => setManagementFee(e.target.value)} placeholder="e.g. 15" />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Bank Details (shown on receipt)</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="bankName">Bank / Account Name</Label>
+                      <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. EASTVIEW" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="bankAccount">Account Number</Label>
+                      <Input id="bankAccount" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} placeholder="ZWG 6110157970480" />
+                    </div>
+                  </div>
+                </div>
+
               </CardContent>
               <CardFooter>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit">Save Account Details</Button>
               </CardFooter>
             </form>
           </Card>
