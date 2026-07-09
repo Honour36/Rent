@@ -133,7 +133,13 @@ export function SidebarSupportCard() {
         if (n.type === "warning" || n.type === "error") {
           toast[n.type === "error" ? "error" : "warning"](n.message, {
             description: n.action,
-            duration: 7000,
+            duration: 8000,
+            ...(n.actionUrl && {
+              action: {
+                label: "Fix now →",
+                onClick: () => window.location.assign(n.actionUrl!),
+              },
+            }),
           });
         }
         // Fire an info toast for pending applications (once per session)
@@ -190,13 +196,22 @@ export function SidebarSupportCard() {
             {notifications.map((n) => {
               const Icon = typeIcon[n.type] ?? Bell;
               return (
-                <div key={n.id} className="text-xs">
+                <div
+                  key={n.id}
+                  className={cn("text-xs rounded", n.actionUrl && "cursor-pointer hover:opacity-80")}
+                  onClick={n.actionUrl ? (e) => { e.stopPropagation(); window.location.assign(n.actionUrl!); } : undefined}
+                >
                   <div className={cn("flex items-start gap-1.5 font-medium", typeColor[n.type])}>
                     <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                     <span>{n.message}</span>
                   </div>
                   {n.action && (
-                    <p className="text-muted-foreground ml-5 mt-0.5 leading-tight">{n.action}</p>
+                    <p className={cn("ml-5 mt-0.5 leading-tight", typeColor[n.type])}>{n.action}</p>
+                  )}
+                  {n.actionUrl && (
+                    <p className={cn("ml-5 mt-0.5 text-[10px] underline underline-offset-2", typeColor[n.type])}>
+                      Click to fix →
+                    </p>
                   )}
                 </div>
               );
