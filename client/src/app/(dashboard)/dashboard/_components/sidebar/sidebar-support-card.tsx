@@ -79,6 +79,21 @@ async function fetchContextualNotifications(): Promise<ContextualNotification[]>
       }
     }
 
+    // Check account receipt readiness
+    const accRes = await apiClient<any>("/settings/account");
+    if (accRes.success) {
+      const acc = (accRes as any).data;
+      if (!acc?.address || !acc?.phone || !acc?.email) {
+        notes.push({
+          id: "account-incomplete",
+          message: "Account details incomplete",
+          type: "warning",
+          action: "Fill in address, phone & email to enable receipt printing.",
+          actionUrl: "/dashboard/settings?tab=account",
+        });
+      }
+    }
+
     if (notes.length === 0) {
       notes.push({ id: "all-good", message: "All systems in order.", type: "success" });
     }

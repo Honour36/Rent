@@ -8,6 +8,17 @@ export interface Account {
   logo_url: string | null;
   subscription_tier: string | null;
   management_fee_pct: string | null;
+  // Company / receipt details
+  address?: string | null;
+  suburb?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  vat_number?: string | null;
+  bank_name?: string | null;
+  bank_account?: string | null;
+  /** Computed: true if the minimum fields for receipt generation are filled */
+  receiptReady?: boolean;
 }
 
 export interface Template {
@@ -31,7 +42,9 @@ export function useSettings() {
     ]);
 
     if (accRes.success && accRes.data) {
-      setAccount(accRes.data);
+      const acc = accRes.data as Account;
+      acc.receiptReady = !!(acc.address && acc.phone && acc.email);
+      setAccount(acc);
     }
     if (tplRes.success && tplRes.data) {
       setTemplates(tplRes.data);

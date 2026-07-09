@@ -56,9 +56,16 @@ export default function PaymentDetailPage({ params }: PageProps) {
     setPdfLoading(true);
     const res = await apiClient<{ url: string }>(`/receipts/${id}/signed-url`);
     setPdfLoading(false);
-    if (res.success) window.open((res as any).data.url, '_blank');
-    else {
-      // Fallback to streaming PDF
+    if (res.success) {
+      window.open((res as any).data.url, '_blank');
+    } else if ((res as any).code === 'ACCOUNT_DETAILS_INCOMPLETE') {
+      toast.error('Account details incomplete', {
+        description: 'Fill in your address, phone, and email in Settings before printing.',
+        duration: 8000,
+        action: { label: 'Go to Settings', onClick: () => router.push('/dashboard/settings?tab=account') },
+      });
+    } else {
+      // Fallback: stream directly
       window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/receipts/${id}/pdf`, '_blank');
     }
   };

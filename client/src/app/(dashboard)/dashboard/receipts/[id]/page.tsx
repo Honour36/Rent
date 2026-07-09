@@ -48,9 +48,17 @@ export default function ReceiptPreviewPage() {
 
   const handlePrint = async () => {
     setActionLoading('pdf');
-    const url = pdfUrl ?? (await getSignedUrl(paymentId));
+    const res = await getSignedUrl(paymentId);
     setActionLoading(null);
-    if (url) window.open(url, '_blank');
+    if (typeof res === 'string') {
+      window.open(res, '_blank');
+    } else if ((res as any)?.code === 'ACCOUNT_DETAILS_INCOMPLETE' || !res) {
+      toast.error('Complete your account details first', {
+        description: 'Go to Settings → Account and fill in your address, phone, and email before printing a receipt.',
+        duration: 8000,
+        action: { label: 'Go to Settings', onClick: () => window.location.assign('/dashboard/settings?tab=account') },
+      });
+    }
   };
 
   return (
