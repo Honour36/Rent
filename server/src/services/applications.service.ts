@@ -121,15 +121,25 @@ export class ApplicationsService {
 
     if (!application) throw new AppError('Application link not found or expired', 404);
 
-    // Only allow form submission if still pending (not already submitted with data)
+    // Link is expired if the form has already been filled (applicant_name present + form_data non-empty)
     const alreadySubmitted =
       application.status !== 'pending' ||
-      (application.applicant_name && application.applicant_name.length > 0 &&
+      (application.applicant_name && application.applicant_name.trim().length > 0 &&
         Object.keys(application.form_data as object).length > 0);
+
+    if (alreadySubmitted) {
+      return {
+        token: application.token,
+        alreadySubmitted: true,
+        expired: true,
+        unit: null,
+      };
+    }
 
     return {
       token: application.token,
-      alreadySubmitted,
+      alreadySubmitted: false,
+      expired: false,
       unit: {
         unit_number: application.unit.unit_number,
         rent_amount: Number(application.unit.rent_amount),
@@ -137,6 +147,7 @@ export class ApplicationsService {
         bedrooms: application.unit.bedrooms,
         bathrooms: application.unit.bathrooms,
         property: application.unit.property,
+        status: application.unit.status,
       },
     };
   }

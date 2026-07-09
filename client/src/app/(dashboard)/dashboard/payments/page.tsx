@@ -63,7 +63,7 @@ export default function PaymentsPage() {
           Loading payments...
         </div>
       ) : (
-        <PaymentListTable payments={payments} />
+        <PaymentListTable payments={payments} onRefresh={() => { const filters = statusFilter !== "all" ? { status: statusFilter } : {}; listPayments(filters).then(setPayments); }} />
       )}
     </div>
   );

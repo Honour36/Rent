@@ -10,6 +10,7 @@ import {
   DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api-client";
@@ -79,7 +80,12 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
             {error && <div className="text-sm font-medium text-destructive">{error}</div>}
             {field("fullName", "Full Name", "text", "Jane Doe")}
             {field("email", "Email", "email", "jane@example.com")}
-            {field("phone", "Phone", "text", "+263 77 123 4567")}
+            <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor="phone" className="text-right">Phone</Label>
+      <div className="col-span-3">
+        <PhoneInput value={form.phone} onChange={(v) => setForm({...form, phone: v})} placeholder="+263 77 123 4567" />
+      </div>
+    </div>
             {field("idNumber", "ID Number", "text", "63-123456A00")}
             {field("employer", "Employer", "text", "Acme Ltd")}
             {field("employmentStatus", "Emp. Status", "text", "Employed / Self-employed")}

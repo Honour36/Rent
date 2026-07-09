@@ -118,4 +118,50 @@ export class PaymentsService {
   }
 }
 
+  async getById(id: string, user: TokenPayload) {
+    const payment = await prisma.payment.findFirst({
+      where: { id, account_id: user.accountId },
+      include: {
+        tenancy: {
+          include: {
+            tenant: { select: { id: true, full_name: true, email: true, phone: true } },
+            unit: {
+              include: {
+                property: {
+                  include: { owner: { select: { id: true, full_name: true, email: true, phone: true } } },
+                },
+              },
+            },
+          },
+        },
+        receipts: true,
+      },
+    });
+    if (!payment) throw new Error('Payment not found');
+    return payment;
+  }
+
+  async update(id: string, data: { amountPaid?: number; method?: string; reference?: string; paymentDate?: string }, user: TokenPayload) {
+    const existing = await prisma.payment.findFirst({ where: { id, account_id: user.accountId } });
+    if (!existing) throw new Error('Payment not found');
+    return prisma.payment.update({
+      where: { id },
+      data: {
+        ...(data.amountPaid !== undefined && { amount_paid: data.amountPaid }),
+        ...(data.method && { method: data.method }),
+        ...(data.reference !== undefined && { reference: data.reference }),
+        ...(data.paymentDate && { payment_date: new Date(data.paymentDate) }),
+      },
+    });
+  }
+
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.payment.findFirst({ where: { id, account_id: user.accountId }, select: { id: true } });
+    if (!existing) throw new Error('Payment not found');
+    // Cascade delete receipt first
+    await prisma.receipt.deleteMany({ where: { payment_id: id } });
+    await prisma.payment.delete({ where: { id } });
+    return { deleted: true };
+  }
+
 export const paymentsService = new PaymentsService();

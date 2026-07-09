@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -136,18 +137,18 @@ export default function RecordPaymentPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Tenant / Property <span className="text-destructive">*</span></Label>
-              <Select disabled={loadingTenants} onValueChange={handleTenancyChange} value={formData.tenancyId ?? ""}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingTenants ? "Loading…" : "Select tenant"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeTenancies.map((t) => (
-                    <SelectItem key={t.tenancyId} value={t.tenancyId}>
-                      {t.tenantName} — {t.propertyName} · {t.unitNumber}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  <SearchableSelect
+                disabled={loadingTenants}
+                value={formData.tenancyId ?? ""}
+                onChange={handleTenancyChange}
+                placeholder={loadingTenants ? "Loading tenants…" : "Search by tenant or property…"}
+                searchPlaceholder="Type tenant name or property…"
+                options={activeTenancies.map(t => ({
+                  value: t.tenancyId,
+                  label: t.tenantName,
+                  sublabel: `${t.propertyName} · ${t.unitNumber} · ${t.currency} ${Number(t.rentAmount).toLocaleString()}/mo`,
+                }))}
+              />
               {selectedTenancy && (
                 <p className="text-xs text-muted-foreground">
                   Rent: {selectedTenancy.currency} {Number(selectedTenancy.rentAmount).toLocaleString()}/mo

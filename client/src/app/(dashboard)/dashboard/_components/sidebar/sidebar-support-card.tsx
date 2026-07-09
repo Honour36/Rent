@@ -121,6 +121,18 @@ export function SidebarSupportCard() {
             duration: 7000,
           });
         }
+        // Fire an info toast for pending applications (once per session)
+        if (n.id === "pending-apps" && typeof sessionStorage !== "undefined") {
+          const key = `notified-apps-${n.message}`;
+          if (!sessionStorage.getItem(key)) {
+            toast.info("New application received!", {
+              description: n.message + " — review in Applications.",
+              duration: 8000,
+              action: { label: "Review", onClick: () => window.location.assign("/dashboard/applications") },
+            });
+            sessionStorage.setItem(key, "1");
+          }
+        }
       });
       setShown(true);
     }

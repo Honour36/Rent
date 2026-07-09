@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
@@ -161,7 +163,7 @@ export default function ApplicationPage() {
     };
 
     const res = await apiClient(`/applications/public/${token}`, { method: "POST", data: payload });
-    if (res.success) { setSubmitted(true); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (res.success) { setSubmitted(true); window.scrollTo({ top: 0, behavior: "smooth" }); toast.success("Application submitted!", { description: "The property agent will contact you shortly." }); }
     else setSubmitError((res as any).error || "Submission failed. Please try again.");
     setSubmitting(false);
   };
@@ -179,6 +181,20 @@ export default function ApplicationPage() {
           <AlertCircle className="h-12 w-12 text-destructive" />
           <p className="font-semibold">Link not found</p>
           <p className="text-sm text-muted-foreground">{infoError || "This application link is invalid or has expired."}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  if (unitInfo && (unitInfo as any).expired) return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-lg text-center">
+        <CardContent className="flex flex-col items-center gap-4 py-16">
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-2xl font-bold">Link Expired</h2>
+          <p className="text-muted-foreground">This application link has already been used and is no longer active. If you believe this is an error, please contact the property agent directly.</p>
         </CardContent>
       </Card>
     </div>
@@ -258,11 +274,11 @@ export default function ApplicationPage() {
                 </Field>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Cell No.">
-                  <Input value={form.cellNo} onChange={set("cellNo")} placeholder="+263 77 000 0000" />
+                <Field label="Cell No." required>
+                  <PhoneInput value={form.cellNo} onChange={(v) => setForm(p => ({...p, cellNo: v}))} placeholder="+263 77 000 0000" required />
                 </Field>
                 <Field label="Work No.">
-                  <Input value={form.workNo} onChange={set("workNo")} placeholder="+263 24 000 0000" />
+                  <PhoneInput value={form.workNo} onChange={(v) => setForm(p => ({...p, workNo: v}))} placeholder="+263 24 000 0000" />
                 </Field>
                 <Field label="Email">
                   <Input type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" />
@@ -342,10 +358,10 @@ export default function ApplicationPage() {
                   <Input type="number" value={form.spouseSalary} onChange={set("spouseSalary")} />
                 </Field>
                 <Field label="Spouse Work No.">
-                  <Input value={form.spouseWorkNo} onChange={set("spouseWorkNo")} />
+                  <PhoneInput value={form.spouseWorkNo} onChange={(v) => setForm(p => ({...p, spouseWorkNo: v}))} />
                 </Field>
                 <Field label="Spouse Cell No.">
-                  <Input value={form.spouseCellNo} onChange={set("spouseCellNo")} />
+                  <PhoneInput value={form.spouseCellNo} onChange={(v) => setForm(p => ({...p, spouseCellNo: v}))} />
                 </Field>
               </div>
               <Field label="Spouse Employer's Address">
@@ -382,7 +398,7 @@ export default function ApplicationPage() {
                   <Input value={form.presentEstateOwner} onChange={set("presentEstateOwner")} />
                 </Field>
                 <Field label="Owner's Cell No.">
-                  <Input value={form.presentEstateOwnerCell} onChange={set("presentEstateOwnerCell")} />
+                  <PhoneInput value={form.presentEstateOwnerCell} onChange={(v) => setForm(p => ({...p, presentEstateOwnerCell: v}))} />
                 </Field>
               </div>
               <Field label="Reasons for Vacating Present Accommodation">
