@@ -116,7 +116,6 @@ export class PaymentsService {
       return { payment: enriched, receipt };
     });
   }
-}
 
   async getById(id: string, user: TokenPayload) {
     const payment = await prisma.payment.findFirst({
@@ -163,5 +162,6 @@ export class PaymentsService {
     await prisma.payment.delete({ where: { id } });
     return { deleted: true };
   }
+}
 
 export const paymentsService = new PaymentsService();

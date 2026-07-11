@@ -7,7 +7,7 @@ export interface Account {
   name: string;
   logo_url: string | null;
   subscription_tier: string | null;
-  management_fee_pct: string | null;
+  management_fee_pct: string | number | null;
   // Company / receipt details
   address?: string | null;
   suburb?: string | null;

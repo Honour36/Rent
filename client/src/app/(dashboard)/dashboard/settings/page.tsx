@@ -3,7 +3,7 @@
 import { useState, Suspense, useEffect } from "react";
 import { toast } from "sonner";
 import { useSettings, Template } from "@/hooks/useSettings";
-import { useAuthStore } from "@/stores/auth.store";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") ?? "account";
-  const { user } = useAuthStore();
+  const user = useCurrentUser();
   const { account, templates, loading, updateAccount, createTemplate, updateTemplate, deleteTemplate } = useSettings();
   
   // Account Form State
@@ -92,9 +92,9 @@ function SettingsPageInner() {
       city: companyCity,
       phone: companyPhone,
       email: companyEmail,
-      vatNumber: vatNumber,
-      bankName: bankName,
-      bankAccount: bankAccount,
+      vat_number: vatNumber,
+      bank_name: bankName,
+      bank_account: bankAccount,
     });
   };
 

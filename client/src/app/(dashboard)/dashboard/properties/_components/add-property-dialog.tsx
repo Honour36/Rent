@@ -52,7 +52,11 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
     if (!validate()) return;
     setLoading(true);
 
-    const res = await createProperty({ ...form, ownerId: form.ownerId || undefined });
+    const res = await createProperty({
+      ...form,
+      ownerId: form.ownerId || undefined,
+      rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined
+    } as any);
 
     if (res.success) {
       toast.success(`"${form.name}" added.`, {
