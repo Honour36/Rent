@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
@@ -44,13 +45,13 @@ function RegisterForm() {
         data: { token: inviteToken, fullName, password },
       });
       if (res.success) { setUser(res.data.user); router.push("/dashboard/overview"); }
-      else setError(res.error);
+      else { const msg = (res as any).error || 'Registration failed.'; setError(msg); toast.error(msg); }
     } else {
-      const res = await apiClient<{ user: User }>("/auth/register", {
+      const res = await apiClient<any>("/auth/register", {
         data: { accountName, fullName, email, password },
       });
-      if (res.success) { setUser(res.data.user); router.push("/dashboard/overview"); }
-      else setError(res.error);
+      if (res.success) { router.push(`/verify-email?email=${encodeURIComponent(email)}`); }
+      else { const msg = (res as any).error || 'Registration failed.'; setError(msg); toast.error(msg); }
     }
     setLoading(false);
   };

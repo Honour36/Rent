@@ -3,12 +3,13 @@ import packageJson from "../../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "PropManager",
+  name: "Hi",
+  tagline: "Property Management, Simplified.",
   version: packageJson.version,
-  copyright: `© ${currentYear}, PropManager.`,
+  copyright: `© ${currentYear} Hi Property Manager.`,
   meta: {
-    title: "PropManager — Zimbabwe Property Management",
+    title: "Hi — Property Management for Zimbabwe",
     description:
-      "PropManager is a property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements — all in real time.",
+      "Hi is the modern property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements — all in one place.",
   },
 };
