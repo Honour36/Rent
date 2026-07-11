@@ -18,13 +18,13 @@ function VerifyEmailForm() {
   const email = searchParams.get("email") ?? "";
 
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
-  const refs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
-    refs[0].current?.focus();
+    inputRefs.current[0]?.focus();
   }, []);
 
   useEffect(() => {
@@ -36,20 +36,20 @@ function VerifyEmailForm() {
     const next = [...digits];
     next[i] = v;
     setDigits(next);
-    if (v && i < 5) refs[i + 1].current?.focus();
+    if (v && i < 5) inputRefs.current[i + 1]?.focus();
     // Auto-submit when all filled
     if (next.every(d => d) && i === 5) submit(next.join(""));
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) { refs[i - 1].current?.focus(); }
+    if (e.key === "Backspace" && !digits[i] && i > 0) { inputRefs.current[i - 1]?.focus(); }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setDigits(pasted.split(""));
-      refs[5].current?.focus();
+      inputRefs.current[5]?.focus();
       submit(pasted);
     }
   };
@@ -67,7 +67,7 @@ function VerifyEmailForm() {
     } else {
       toast.error((res as any).error || "Invalid code — please check and try again.");
       setDigits(["", "", "", "", "", ""]);
-      refs[0].current?.focus();
+      inputRefs.current[0]?.focus();
     }
   };
 
@@ -81,34 +81,33 @@ function VerifyEmailForm() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <MailCheck className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Check your inbox</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            We sent a 6-digit code to <strong>{email || "your email"}</strong>
-          </p>
+    <div className="w-full space-y-6">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <MailCheck className="h-6 w-6 text-primary" />
         </div>
+        <h1 className="text-2xl font-bold tracking-tight">Check your inbox</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          We sent a 6-digit code to <strong>{email || "your email"}</strong>
+        </p>
+      </div>
 
-        <Card>
-          <CardContent className="pt-6 space-y-6">
-            <div className="flex items-center justify-center gap-2" onPaste={handlePaste}>
-              {digits.map((d, i) => (
-                <Input
-                  key={i}
-                  ref={refs[i]}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={d}
-                  onChange={(e) => handleDigit(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="h-14 w-12 text-center text-2xl font-bold tracking-widest"
-                />
-              ))}
+      <Card>
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex items-center justify-center gap-2" onPaste={handlePaste}>
+            {digits.map((d, i) => (
+              <Input
+                key={i}
+                ref={(el) => { inputRefs.current[i] = el; }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                onChange={(e) => handleDigit(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                className="h-14 w-12 text-center text-2xl font-bold tracking-widest"
+              />
+            ))}
             </div>
 
             <Button className="w-full" onClick={() => submit(digits.join(""))} disabled={loading || digits.some(d => !d)}>
@@ -123,7 +122,6 @@ function VerifyEmailForm() {
           </CardFooter>
         </Card>
       </div>
-    </div>
   );
 }
 

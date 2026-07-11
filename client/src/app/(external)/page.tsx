@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { APP_CONFIG } from "@/config/app-config";
 import { SUBSCRIPTION_TIERS } from "@/config/subscription-tiers";
 import { CheckCircle2 } from "lucide-react";
+import { fetchPexelsPhotos } from "@/lib/pexels";
 
 export const metadata = {
   title: APP_CONFIG.meta.title,
@@ -9,57 +11,166 @@ export const metadata = {
 };
 
 /* ─── HERO ─────────────────────────────────────────────────── */
-function Hero() {
+async function Hero() {
+  const photos = await fetchPexelsPhotos("modern apartment building exterior", {
+    perPage: 4,
+    orientation: "portrait",
+  });
+
   return (
     <section className="relative overflow-hidden bg-white">
       {/* top rule */}
       <div className="h-px w-full bg-[#1a56db]" />
 
       <div className="mx-auto max-w-6xl px-6 pt-24 pb-20">
-        {/* logo row */}
-        <div className="flex items-center gap-3 mb-14">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a56db] text-white font-black text-xl leading-none">Hi</span>
-          <span className="text-sm font-semibold tracking-[0.15em] text-slate-400 uppercase">Property Manager</span>
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          {/* ── Left: copy ── */}
+          <div>
+            {/* logo row */}
+            <div className="flex items-center gap-3 mb-14">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a56db] text-white font-black text-xl leading-none">Hi</span>
+              <span className="text-sm font-semibold tracking-[0.15em] text-slate-400 uppercase">Property Manager</span>
+            </div>
+
+            {/* headline */}
+            <h1
+              className="font-black text-[#0f172a] leading-[0.9] tracking-tighter"
+              style={{ fontSize: "clamp(52px, 8vw, 96px)" }}
+            >
+              Hi.<br />
+              <span className="text-[#1a56db]">Your properties</span><br />
+              are waiting.
+            </h1>
+
+            <p className="mt-8 max-w-xl text-lg text-slate-500 leading-relaxed">
+              The modern property management platform built for Zimbabwean agents.
+              Collect rent, generate receipts, manage tenants and send owner statements
+              — without the spreadsheets.
+            </p>
+
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Link
+                href="/register"
+                className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#1a56db] px-8 text-sm font-semibold text-white hover:bg-[#1648c8] transition-colors"
+              >
+                Get started free →
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 px-8 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Sign in
+              </Link>
+            </div>
+
+            <p className="mt-5 text-xs text-slate-400">
+              No credit card required · Free tier available · Set up in 5 minutes
+            </p>
+          </div>
+
+          {/* ── Right: photo grid ── */}
+          {photos.length >= 2 && (
+            <div className="hidden lg:grid grid-cols-2 gap-3 h-[520px]">
+              {/* tall left image */}
+              <div className="relative rounded-2xl overflow-hidden row-span-2 shadow-xl">
+                <Image
+                  src={photos[0].src.large}
+                  alt={photos[0].alt || "Property"}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1200px) 50vw, 280px"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <p className="absolute bottom-3 left-3 text-[10px] text-white/60">
+                  Photo by{" "}
+                  <a
+                    href={photos[0].photographer_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {photos[0].photographer}
+                  </a>{" "}
+                  on Pexels
+                </p>
+              </div>
+
+              {/* top-right image */}
+              {photos[1] && (
+                <div className="relative rounded-2xl overflow-hidden shadow-xl">
+                  <Image
+                    src={photos[1].src.large}
+                    alt={photos[1].alt || "Property"}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1200px) 25vw, 140px"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
+              )}
+
+              {/* bottom-right image */}
+              {photos[2] && (
+                <div className="relative rounded-2xl overflow-hidden shadow-xl">
+                  <Image
+                    src={photos[2].src.large}
+                    alt={photos[2].alt || "Property"}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1200px) 25vw, 140px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* headline */}
-        <h1
-          className="font-black text-[#0f172a] leading-[0.9] tracking-tighter"
-          style={{ fontSize: "clamp(64px, 10vw, 128px)" }}
-        >
-          Hi.<br />
-          <span className="text-[#1a56db]">Your properties</span><br />
-          are waiting.
-        </h1>
-
-        <p className="mt-8 max-w-xl text-lg text-slate-500 leading-relaxed">
-          The modern property management platform built for Zimbabwean agents.
-          Collect rent, generate receipts, manage tenants and send owner statements
-          — without the spreadsheets.
-        </p>
-
-        <div className="mt-10 flex flex-wrap gap-4">
-          <Link
-            href="/register"
-            className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#1a56db] px-8 text-sm font-semibold text-white hover:bg-[#1648c8] transition-colors"
-          >
-            Get started free →
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 px-8 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Sign in
-          </Link>
-        </div>
-
-        <p className="mt-5 text-xs text-slate-400">
-          No credit card required · Free tier available · Set up in 5 minutes
-        </p>
       </div>
 
       {/* decorative rule */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-slate-100" />
+    </section>
+  );
+}
+
+/* ─── SHOWCASE ──────────────────────────────────────────────── */
+async function PhotoShowcase() {
+  const photos = await fetchPexelsPhotos("luxury apartment interior modern", {
+    perPage: 3,
+    orientation: "landscape",
+  });
+
+  if (photos.length < 3) return null;
+
+  return (
+    <section className="bg-[#0f172a] py-16">
+      <div className="mx-auto max-w-6xl px-6">
+        <p className="text-xs font-semibold tracking-[0.15em] text-[#60a5fa] uppercase mb-8 text-center">
+          Manage properties like these
+        </p>
+        <div className="grid grid-cols-3 gap-4 rounded-2xl overflow-hidden">
+          {photos.slice(0, 3).map((photo) => (
+            <div key={photo.id} className="relative aspect-[4/3] overflow-hidden rounded-xl group">
+              <Image
+                src={photo.src.large}
+                alt={photo.alt || "Property interior"}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            </div>
+          ))}
+        </div>
+        <p className="text-center mt-4 text-[10px] text-slate-500">
+          Photos from{" "}
+          <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-400">
+            Pexels
+          </a>
+        </p>
+      </div>
     </section>
   );
 }
@@ -295,12 +406,13 @@ function Footer() {
 }
 
 /* ─── PAGE ──────────────────────────────────────────────────── */
-export default function LandingPage() {
+export default async function LandingPage() {
   return (
     <main>
       <Hero />
       <Stats />
       <Features />
+      <PhotoShowcase />
       <HowItWorks />
       <Pricing />
       <CTA />

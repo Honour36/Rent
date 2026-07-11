@@ -5,6 +5,15 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.pexels.com",
+        pathname: "/**",
+      },
+    ],
+  },
   async redirects() {
     return [
       {
