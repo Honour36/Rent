@@ -4,7 +4,7 @@ import { colors } from './base-styles';
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock');
 
 function getFromAddress(accountName?: string): string {
-  const name = accountName || 'Hi Property Manager';
+  const name = accountName || 'Rental';
   const from = process.env.RESEND_FROM_EMAIL || 'noreply@propmanager.app';
   return `${name} <${from}>`;
 }
@@ -18,7 +18,7 @@ function buildHtml(opts: {
   logoText?: string;
 }): string {
   const accent = opts.accentColor || colors.primary;
-  const logo = opts.logoText || 'Hi';
+  const logo = opts.logoText || 'Rental';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,7 +60,7 @@ function buildHtml(opts: {
       ${opts.body}
     </div>
     <div class="footer">
-      <p>Hi Property Manager &nbsp;·&nbsp; <a href="#">Unsubscribe</a></p>
+      <p>Rental &nbsp;·&nbsp; <a href="#">Unsubscribe</a></p>
       <p style="margin-top:4px">This is an automated message — please do not reply directly to this email.</p>
     </div>
   </div>
@@ -79,7 +79,7 @@ export async function sendVerificationEmail(opts: {
 }) {
   const body = `
     <h1>Verify your email address</h1>
-    <p>Hi ${opts.name}, welcome to <strong>Hi</strong> — your property management platform. To get started, enter the verification code below.</p>
+    <p>Hi ${opts.name}, welcome to <strong>Rental</strong> — your property management platform. To get started, enter the verification code below.</p>
     <div class="otp-box">
       <div class="otp-code">${opts.code}</div>
       <div class="otp-label">This code expires in 15 minutes</div>
@@ -105,7 +105,7 @@ export async function sendWelcomeEmail(opts: {
 }) {
   const url = opts.dashboardUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/overview`;
   const body = `
-    <h1>Welcome to Hi, ${opts.name}! 🎉</h1>
+    <h1>Welcome to Rental, ${opts.name}! 🎉</h1>
     <p>You've successfully set up <strong>${opts.accountName}</strong> on Hi. You're now ready to manage your property portfolio in one place.</p>
     <div class="highlight">
       <strong>Quick start checklist:</strong><br/>
@@ -117,14 +117,14 @@ export async function sendWelcomeEmail(opts: {
     <p>If you have any questions, reply to this email or reach out to support.</p>
     <center><a href="${url}" class="btn">Go to Dashboard →</a></center>
     <hr class="divider" />
-    <p style="color:#6b7280;font-size:13px">You're receiving this because you registered at Hi Property Manager.</p>
+    <p style="color:#6b7280;font-size:13px">You're receiving this because you registered at Rental.</p>
   `;
 
   return resend.emails.send({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `Welcome to Hi, ${opts.name}!`,
-    html: buildHtml({ title: 'Welcome to Hi', body }),
+    subject: `Welcome to Rental, ${opts.name}!`,
+    html: buildHtml({ title: 'Welcome to Rental', body }),
   });
 }
 

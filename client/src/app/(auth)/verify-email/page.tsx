@@ -62,7 +62,7 @@ function VerifyEmailForm() {
     if (res.success) {
       const d = (res as any).data ?? res;
       setUser(d.user);
-      toast.success("Email verified! Welcome to Hi 🎉");
+      toast.success("Email verified! Welcome to Rental 🎉");
       router.push("/dashboard/overview");
     } else {
       toast.error((res as any).error || "Invalid code — please check and try again.");
