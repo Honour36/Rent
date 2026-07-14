@@ -1,7 +1,7 @@
 export type TierKey = "free" | "starter" | "growth" | "professional";
 
 export interface TierLimit {
-  properties: number;       // -1 = unlimited
+  properties: number;
   units: number;
   agents: number;
   owners: number;
@@ -11,11 +11,11 @@ export interface TierLimit {
 export interface SubscriptionTier {
   key: TierKey;
   name: string;
-  priceUsd: number;          // per month in USD
+  priceUsd: number;
   tagline: string;
   limits: TierLimit;
   features: string[];
-  highlighted?: boolean;    // "most popular" badge
+  highlighted?: boolean;
 }
 
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
@@ -37,52 +37,52 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     key: "starter",
     name: "Starter",
-    priceUsd: 15,
+    priceUsd: 49,
     tagline: "Perfect for independent landlords",
-    limits: { properties: 5, units: 20, agents: 2, owners: 5, storageGb: 2 },
+    limits: { properties: 10, units: 40, agents: 3, owners: 10, storageGb: 5 },
     features: [
-      "Up to 5 properties, 20 units",
-      "2 agents",
-      "5 owners",
+      "Up to 10 properties, 40 units",
+      "3 agents",
+      "10 owners",
       "Owner statements & reports",
       "Maintenance tracking",
-      "2 GB document storage",
+      "5 GB document storage",
       "WhatsApp & email dispatch",
     ],
   },
   {
     key: "growth",
     name: "Growth",
-    priceUsd: 35,
+    priceUsd: 129,
     tagline: "For growing property agencies",
     highlighted: true,
-    limits: { properties: 20, units: 100, agents: 5, owners: 20, storageGb: 10 },
+    limits: { properties: 50, units: 300, agents: 10, owners: 50, storageGb: 25 },
     features: [
-      "Up to 20 properties, 100 units",
-      "5 agents",
-      "20 owners",
+      "Up to 50 properties, 300 units",
+      "10 agents",
+      "50 owners",
       "Full communications centre",
       "Bulk rent reminders",
       "Trust ledger",
-      "10 GB document storage",
+      "25 GB document storage",
       "Priority support",
     ],
   },
   {
     key: "professional",
     name: "Professional",
-    priceUsd: 75,
+    priceUsd: 250,
     tagline: "Unlimited — full contact management",
-    limits: { properties: -1, units: -1, agents: -1, owners: -1, storageGb: 50 },
+    limits: { properties: -1, units: -1, agents: -1, owners: -1, storageGb: 100 },
     features: [
       "Unlimited properties & units",
-      "Unlimited agents",
-      "Unlimited owners",
+      "Unlimited agents & owners",
       "Full contact management",
       "Custom branding & templates",
-      "50 GB document storage",
+      "100 GB document storage",
       "Advanced analytics",
       "Dedicated support",
+      "White-label receipts",
     ],
   },
 ];
@@ -91,7 +91,6 @@ export function getTierByKey(key: string): SubscriptionTier {
   return SUBSCRIPTION_TIERS.find(t => t.key === key) ?? SUBSCRIPTION_TIERS[0];
 }
 
-/** Returns true when the account is within the limit for a resource count. */
 export function isWithinLimit(limit: number, current: number): boolean {
   return limit === -1 || current < limit;
 }
