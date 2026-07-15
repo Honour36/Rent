@@ -63,6 +63,7 @@ export interface PublicApplicationInfo {
     currency: string;
     bedrooms: number | null;
     bathrooms: number | null;
+    status: string;
     property: {
       name: string;
       address: string | null;
