@@ -82,5 +82,46 @@ export function useCommunications() {
     return { success: true as const, data: res.data };
   };
 
-  return { listCommunications, compose, loading, error };
+  const getCommunication = async (id: string) => {
+    setLoading(true);
+    setError("");
+    const res = await apiClient<CommunicationDto>(`/communications/${id}`);
+    setLoading(false);
+    if (!res.success) {
+      setError(res.error);
+      return null;
+    }
+    return res.data;
+  };
+
+  const updateCommunication = async (id: string, data: { subject?: string; body?: string }) => {
+    setLoading(true);
+    setError("");
+    const res = await apiClient<CommunicationDto>(`/communications/${id}`, {
+      method: "PATCH",
+      data,
+    });
+    setLoading(false);
+    if (!res.success) {
+      setError(res.error);
+      return { success: false as const, error: res.error };
+    }
+    return { success: true as const, data: res.data };
+  };
+
+  const deleteCommunication = async (id: string) => {
+    setLoading(true);
+    setError("");
+    const res = await apiClient<{ success: true }>(`/communications/${id}`, {
+      method: "DELETE",
+    });
+    setLoading(false);
+    if (!res.success) {
+      setError(res.error);
+      return { success: false as const, error: res.error };
+    }
+    return { success: true as const };
+  };
+
+  return { listCommunications, compose, getCommunication, updateCommunication, deleteCommunication, loading, error };
 }

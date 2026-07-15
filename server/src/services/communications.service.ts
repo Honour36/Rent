@@ -115,6 +115,62 @@ export class CommunicationsService {
 
     return { communication, waLink };
   }
+
+  async getById(id: string, user: TokenPayload) {
+    const communication = await prisma.communication.findFirst({
+      where: { id, account_id: user.accountId },
+      include: {
+        tenant: { select: { id: true, full_name: true, phone: true, email: true } },
+        sender: { select: { id: true, full_name: true } },
+      },
+    });
+
+    if (!communication) {
+      throw new AppError('Communication not found', 404);
+    }
+
+    return communication;
+  }
+
+  async update(id: string, data: { subject?: string; body?: string }, user: TokenPayload) {
+    const existing = await prisma.communication.findFirst({
+      where: { id, account_id: user.accountId },
+    });
+
+    if (!existing) {
+      throw new AppError('Communication not found', 404);
+    }
+
+    const communication = await prisma.communication.update({
+      where: { id },
+      data: {
+        subject: data.subject !== undefined ? data.subject : existing.subject,
+        body: data.body !== undefined ? data.body : existing.body,
+      },
+      include: {
+        tenant: { select: { id: true, full_name: true, phone: true, email: true } },
+        sender: { select: { id: true, full_name: true } },
+      },
+    });
+
+    return communication;
+  }
+
+  async delete(id: string, user: TokenPayload) {
+    const existing = await prisma.communication.findFirst({
+      where: { id, account_id: user.accountId },
+    });
+
+    if (!existing) {
+      throw new AppError('Communication not found', 404);
+    }
+
+    await prisma.communication.delete({
+      where: { id },
+    });
+
+    return { success: true };
+  }
 }
 
 export const communicationsService = new CommunicationsService();

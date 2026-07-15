@@ -39,6 +39,41 @@ export class CommunicationsController {
       res.status(statusCode).json({ success: false, error: message });
     }
   }
+  async get(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await communicationsService.getById(req.params.id, req.user!);
+      res.json({ success: true, data: result });
+    } catch (err: unknown) {
+      const anyErr = err as any;
+      const statusCode = anyErr?.statusCode ?? 500;
+      const message = anyErr?.message ?? 'Failed to get communication';
+      res.status(statusCode).json({ success: false, error: message });
+    }
+  }
+
+  async update(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await communicationsService.update(req.params.id, req.body, req.user!);
+      res.json({ success: true, data: result });
+    } catch (err: unknown) {
+      const anyErr = err as any;
+      const statusCode = anyErr?.statusCode ?? 500;
+      const message = anyErr?.message ?? 'Failed to update communication';
+      res.status(statusCode).json({ success: false, error: message });
+    }
+  }
+
+  async delete(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      await communicationsService.delete(req.params.id, req.user!);
+      res.json({ success: true });
+    } catch (err: unknown) {
+      const anyErr = err as any;
+      const statusCode = anyErr?.statusCode ?? 500;
+      const message = anyErr?.message ?? 'Failed to delete communication';
+      res.status(statusCode).json({ success: false, error: message });
+    }
+  }
 }
 
 export const communicationsController = new CommunicationsController();

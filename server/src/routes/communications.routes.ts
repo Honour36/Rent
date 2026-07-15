@@ -7,4 +7,8 @@ const router = Router();
 router.get('/', authenticate, (req, res) => communicationsController.list(req as any, res));
 router.post('/', authenticate, (req, res) => communicationsController.compose(req as any, res));
 
+router.get('/:id', authenticate, (req, res) => communicationsController.get(req as any, res));
+router.patch('/:id', authenticate, (req, res) => communicationsController.update(req as any, res));
+router.delete('/:id', authenticate, (req, res) => communicationsController.delete(req as any, res));
+
 export default router;
