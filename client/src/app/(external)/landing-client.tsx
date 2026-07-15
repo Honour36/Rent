@@ -1,9 +1,34 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function RentalLandingClient() {
+  const heroImages = [
+    "https://images.pexels.com/photos/1732414/pexels-photo-1732414.jpeg?auto=compress&cs=tinysrgb&w=600&h=1066&fit=crop",
+    "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600&h=1066&fit=crop",
+    "https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=600&h=1066&fit=crop",
+    "https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg?auto=compress&cs=tinysrgb&w=600&h=1066&fit=crop"
+  ];
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+  const features = [
+    "Lease PDF generated",
+    "Rent collected automatically",
+    "Arrears flagged instantly",
+    "Owner statements dispatched",
+    "Maintenance logged"
+  ];
+  const [featureIndex, setFeatureIndex] = useState(0);
+
+  useEffect(() => {
+    const imgInterval = setInterval(() => {
+      setCurrentImgIndex(prev => (prev + 1) % heroImages.length);
+      setFeatureIndex(prev => (prev + 1) % features.length);
+    }, 4500);
+    return () => clearInterval(imgInterval);
+  }, []);
+
   useEffect(() => {
     const headlines = [
       { h: "Your rent roll, finally under control.", s: "One dashboard for every property, tenant, and payment — so nothing slips through." },
@@ -114,7 +139,7 @@ export default function RentalLandingClient() {
 
   /* ---------- nav ---------- */
   header{border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); z-index:50;}
-  nav{display:flex; align-items:center; justify-content:space-between; padding:28px 32px;}
+  nav.wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 32px;}
   .logo{font-family:'Poppins',sans-serif; font-weight:600; font-size:20px; display:flex; align-items:center; gap:8px;}
   .logo .sq{width:9px; height:9px; background:var(--black); display:inline-block; border-radius:2px;}
   .nav-links{display:flex; gap:34px; font-size:14px; font-weight:500; color:var(--grey-900);}
@@ -174,12 +199,18 @@ export default function RentalLandingClient() {
   .hv-bignum{margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:baseline;}
   .hv-bignum .num{font-family:'Poppins',sans-serif; font-size:28px; font-weight:600;}
   .hv-bignum .lbl{font-size:11.5px; color:var(--grey-600); text-align:right; max-width:120px; line-height:1.4;}
+  @keyframes badge-bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-8px);}
+    60% {transform: translateY(-4px);}
+  }
   .hv-badge{
     position:absolute; bottom:-18px; left:-18px; background:var(--white); border:1px solid var(--line);
     border-radius:12px; padding:12px 16px; box-shadow:0 20px 40px -20px rgba(11,11,12,0.3);
-    display:flex; align-items:center; gap:10px; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:10px; font-size:12.5px; font-weight:600; white-space:nowrap;
+    animation: badge-bounce 4.5s infinite;
   }
-  .hv-badge svg{width:16px; height:16px; stroke:var(--black);}
+  .hv-badge svg{width:16px; height:16px; stroke:var(--black); flex-shrink:0;}
   @media(max-width:940px){.hero-visual{max-width:420px; margin:0 auto;} .hv-badge{left:50%; transform:translateX(-50%);}}
 
   /* ---------- pricing ---------- */
@@ -232,7 +263,7 @@ export default function RentalLandingClient() {
   footer{border-top:1px solid var(--line); padding:56px 0 32px; background:var(--grey-50);}
   .foot-top{display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; padding-bottom:40px;}
   .foot-brand p{margin-top:12px; font-size:13.5px; color:var(--grey-600); max-width:240px; line-height:1.6;}
-  .foot-cols{display:grid; grid-template-columns:repeat(4,1fr); gap:40px;}
+  .foot-cols{display:grid; grid-template-columns:repeat(3,1fr); gap:40px;}
   @media(max-width:760px){.foot-cols{grid-template-columns:repeat(2,1fr);}}
   .foot-col h5{font-family:'Montserrat',sans-serif; font-size:11.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--grey-600); margin-bottom:16px;}
   .foot-col a{display:block; font-size:13.5px; color:var(--ink); margin-bottom:11px; opacity:0.85;}
@@ -247,12 +278,11 @@ export default function RentalLandingClient() {
 
       <header>
         <nav className="wrap">
-          <div className="logo"><span className="sq"></span>Rent</div>
+          <div className="logo"><span className="sq"></span>Rental</div>
           <div className="nav-links">
             <Link href="#">Platform</Link>
             <Link href="#pricing">Pricing</Link>
             <Link href="#">Solutions</Link>
-            <Link href="#">Resources</Link>
           </div>
           <div className="nav-right">
             <Link href="/login" className="btn btn-line">Log in</Link>
@@ -264,7 +294,7 @@ export default function RentalLandingClient() {
       <section className="hero">
         <div className="wrap hero-grid">
           <div>
-            <div className="eyebrow-row">Meet Rent</div>
+            <div className="eyebrow-row">Meet Rental</div>
             <div className="headline-stage" id="headlineStage"></div>
             <p className="hero-sub" id="heroSub">One dashboard for every property, tenant, and payment — so nothing slips through.</p>
             <div className="hero-actions">
@@ -273,18 +303,31 @@ export default function RentalLandingClient() {
                 <span className="or">or</span>
                 <Link href="/login" className="btn btn-line btn-hero">Log in</Link>
               </div>
-              <p className="hero-legal">By continuing, you acknowledge Rent's <Link href="/privacy">Privacy Policy</Link>.</p>
+              <p className="hero-legal">By continuing, you acknowledge Rental's <Link href="/privacy">Privacy Policy</Link>.</p>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="hv-frame">
-              <div className="hv-bar"><span></span><span></span><span></span></div>
-              <div className="hv-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <img src="https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop" alt="Properties" style={{ width: '100%', height: '320px', objectFit: 'cover', display: 'block' }} />
+          <div className="hero-visual" style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+              <div className="hv-card" style={{ padding: 0, overflow: 'hidden', borderRadius: '20px', boxShadow: '0 40px 80px -32px rgba(11,11,12,0.35)', position: 'relative', aspectRatio: '6/12', border: '1px solid var(--line)' }}>
+                {heroImages.map((img, i) => (
+                  <img 
+                    key={img}
+                    src={img} 
+                    alt="Property Portfolio" 
+                    style={{ 
+                      position: 'absolute', inset: 0, 
+                      width: '100%', height: '100%', objectFit: 'cover', 
+                      opacity: i === currentImgIndex ? 1 : 0,
+                      transition: 'opacity 0.8s ease-in-out',
+                      display: 'block'
+                    }} 
+                  />
+                ))}
               </div>
-            </div>
-            <div className="hv-badge">
-              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Lease PDF generated
+              <div className="hv-badge">
+                <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                {features[featureIndex]}
+              </div>
             </div>
           </div>
         </div>
@@ -294,12 +337,12 @@ export default function RentalLandingClient() {
         <div className="wrap">
           <div className="pricing-head">
             <span className="caps">Explore plans</span>
-            <h2>Simple pricing, per landlord</h2>
+            <h2>Simple pricing, per property manager</h2>
           </div>
           <div className="plans">
             <div className="plan">
               <div className="plan-name">Free</div>
-              <div className="plan-tag">Try Rent</div>
+              <div className="plan-tag">Try Rental</div>
               <div className="plan-price">$0</div>
               <div className="plan-price-note">Free for a single property</div>
               <Link href="/register" className="btn btn-line">Get started</Link>
@@ -341,7 +384,7 @@ export default function RentalLandingClient() {
               <div className="plan-tag">Unlimited scale</div>
               <div className="plan-price">$250<sup>/mo</sup></div>
               <div className="plan-price-note">Billed monthly</div>
-              <Link href="#" className="btn btn-line">Talk to sales</Link>
+              <Link href="/register" className="btn btn-line">Choose Professional</Link>
               <ul className="plan-features">
                 <li className="lead-item">Everything in Growth, plus:</li>
                 <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited properties</li>
@@ -358,16 +401,16 @@ export default function RentalLandingClient() {
           <h2>Frequently asked questions</h2>
           <div className="faq-list">
             <div className="faq-item">
-              <div className="faq-q"><span>What is Rent and how does it work?</span><span className="plus"></span></div>
-              <div className="faq-a"><p>Rent is software for landlords and letting agents. You add a property and tenant once, and Rent generates the lease, sends monthly invoices, and reminds tenants automatically as rent comes due.</p></div>
+              <div className="faq-q"><span>What is Rental and how does it work?</span><span className="plus"></span></div>
+              <div className="faq-a"><p>Rental is software for landlords and letting agents. You add a property and tenant once, and Rental generates the lease, sends monthly invoices, and reminds tenants automatically as rent comes due.</p></div>
             </div>
             <div className="faq-item">
-              <div className="faq-q"><span>Who is Rent built for?</span><span className="plus"></span></div>
+              <div className="faq-q"><span>Who is Rental built for?</span><span className="plus"></span></div>
               <div className="faq-a"><p>Independent landlords managing a handful of units, and letting agencies managing a full portfolio across multiple properties and staff.</p></div>
             </div>
             <div className="faq-item">
               <div className="faq-q"><span>How much does it cost to use?</span><span className="plus"></span></div>
-              <div className="faq-a"><p>Rent is free for a single property. Paid plans start at $12/month for landlords with multiple units, and scale up for agencies with unlimited properties and staff seats.</p></div>
+              <div className="faq-a"><p>Rental is free for a single property. Paid plans start at $12/month for landlords with multiple units, and scale up for agencies with unlimited properties and staff seats.</p></div>
             </div>
             <div className="faq-item">
               <div className="faq-q"><span>Can I cancel anytime?</span><span className="plus"></span></div>
@@ -381,7 +424,7 @@ export default function RentalLandingClient() {
         <div className="wrap">
           <div className="foot-top">
             <div className="foot-brand">
-              <div className="logo"><span className="sq"></span>Rent</div>
+              <div className="logo"><span className="sq"></span>Rental</div>
               <p>Property management software for landlords and letting agents.</p>
             </div>
             <div className="foot-cols">
@@ -397,11 +440,6 @@ export default function RentalLandingClient() {
                 <Link href="#">Letting agents</Link>
               </div>
               <div className="foot-col">
-                <h5>Resources</h5>
-                <a href="https://github.com/Honour36/Rent">GitHub</a>
-                <Link href="#">Support</Link>
-              </div>
-              <div className="foot-col">
                 <h5>Company</h5>
                 <Link href="#">About</Link>
                 <Link href="#">Contact</Link>
@@ -409,8 +447,7 @@ export default function RentalLandingClient() {
             </div>
           </div>
           <div className="foot-bottom">
-            <span>© 2026 Rent.</span>
-            <span>Built in Harare.</span>
+            <span>© 2026 Rental.</span>
           </div>
         </div>
       </footer>

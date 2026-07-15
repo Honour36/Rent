@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
       
       <h2 style={{ fontSize: '24px', marginTop: '32px', marginBottom: '16px' }}>1. Introduction</h2>
       <p style={{ color: '#3D3D40', lineHeight: '1.6', marginBottom: '16px' }}>
-        Welcome to Rent. This Privacy Policy explains how we collect, use, and protect your information when you use our platform.
+        Welcome to Rental. This Privacy Policy explains how we collect, use, and protect your information when you use our platform.
       </p>
       
       <h2 style={{ fontSize: '24px', marginTop: '32px', marginBottom: '16px' }}>2. Data Collection</h2>
