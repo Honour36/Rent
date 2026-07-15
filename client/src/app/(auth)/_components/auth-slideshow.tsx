@@ -89,7 +89,7 @@ export function AuthSlideshow({ photos, interval = 5000 }: AuthSlideshowProps) {
             "The spreadsheet-free way to manage your portfolio."
           </p>
           <p className="text-sm text-white/70">
-            Hi Property Manager — built for Zimbabwean agents
+            Rental — built for Zimbabwean property managers
           </p>
         </blockquote>
       </div>

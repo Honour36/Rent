@@ -282,3 +282,12 @@ html {
     -webkit-print-color-adjust: exact;
   }
 }
+
+/* ── Sonner toast description visibility fix ── */
+[data-sonner-toast] [data-description] {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1 !important;
+}
+[data-sonner-toast] [data-title] {
+  color: hsl(var(--foreground)) !important;
+}

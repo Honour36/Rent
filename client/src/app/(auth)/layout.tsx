@@ -22,12 +22,9 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
       <div className="relative flex w-full flex-col items-center justify-center bg-background px-6 lg:w-1/2">
         {/* Logo */}
         <div className="absolute top-6 left-6">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-black text-sm">
-              Hi
-            </span>
-            <span className="text-sm font-semibold text-muted-foreground tracking-wide group-hover:text-foreground transition-colors">
-              Property Manager
+          <Link href="/" className="flex items-center group">
+            <span className="text-lg font-black tracking-tight text-foreground group-hover:text-primary transition-colors">
+              Rental
             </span>
           </Link>
         </div>
@@ -50,7 +47,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
                 "The spreadsheet-free way to manage your portfolio."
               </p>
               <p className="text-sm text-white/70">
-                Hi Property Manager — built for Zimbabwean agents
+                Rental — built for Zimbabwean property managers
               </p>
             </blockquote>
           </div>
