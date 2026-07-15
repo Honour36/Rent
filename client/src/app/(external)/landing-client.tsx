@@ -5,692 +5,412 @@ import Link from 'next/link';
 
 export default function RentalLandingClient() {
   useEffect(() => {
-    // Year
-    const yearEl = document.getElementById('year');
-    if (yearEl) {
-      yearEl.textContent = new Date().getFullYear().toString();
+    const headlines = [
+      { h: "Your rent roll, finally under control.", s: "One dashboard for every property, tenant, and payment — so nothing slips through." },
+      { h: "Stop chasing tenants for rent.", s: "Reminders go out automatically, before and after a payment is due." },
+      { h: "Leases that write themselves.", s: "A formatted lease PDF is ready the moment a new tenancy is added." },
+      { h: "Know who's paid, at a glance.", s: "Arrears and collection rate update the instant a payment lands." },
+      { h: "Every property, one simple system.", s: "Trade the spreadsheet and the paper folder for a single rent roll." }
+    ];
+    const stage = document.getElementById('headlineStage');
+    const sub = document.getElementById('heroSub');
+    let idx = 0;
+    
+    let intervalId: NodeJS.Timeout;
+
+    if (stage && sub) {
+      function renderSlide(i: number) {
+        const el = document.createElement('h1');
+        el.className = 'headline-slide';
+        el.textContent = headlines[i].h;
+        stage!.appendChild(el);
+        requestAnimationFrame(() => { 
+          requestAnimationFrame(() => el.classList.add('active')); 
+        });
+        return el;
+      }
+
+      let current = renderSlide(idx);
+      current.classList.add('active');
+
+      intervalId = setInterval(() => {
+        const next = (idx + 1) % headlines.length;
+        const outgoing = current;
+        outgoing.classList.remove('active');
+        outgoing.classList.add('leaving');
+        setTimeout(() => outgoing.remove(), 520);
+
+        current = renderSlide(next);
+        idx = next;
+
+        sub!.style.opacity = '0';
+        setTimeout(() => {
+          sub!.textContent = headlines[idx].s;
+          sub!.style.transition = 'opacity .4s ease';
+          sub!.style.opacity = '1';
+        }, 200);
+      }, 3600);
     }
 
-    // Navbar scroll state
-    const navbar = document.getElementById('navbar');
-    const handleScroll = () => {
-      if (navbar) {
-        navbar.classList.toggle('scrolled', window.scrollY > 50);
+    const faqItems = document.querySelectorAll('.faq-item');
+    const handleFaqClick = (item: Element, q: Element, a: HTMLElement) => {
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(o => {
+        o.classList.remove('open');
+        const ans = o.querySelector('.faq-a') as HTMLElement;
+        if (ans) ans.style.maxHeight = '0px'; 
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        a.style.maxHeight = a.scrollHeight + 'px';
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // init
 
-    // Smooth scroll for in-page links
-    const scrollLinks = document.querySelectorAll('[data-scroll]');
-    const handleSmoothScroll = (e: Event) => {
-      e.preventDefault();
-      const el = e.currentTarget as HTMLAnchorElement;
-      const targetId = el.getAttribute('href');
-      if (targetId) {
-        const target = document.querySelector(targetId);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
+    const listeners: {q: Element, fn: EventListener}[] = [];
+
+    faqItems.forEach(item => {
+      const q = item.querySelector('.faq-q');
+      const a = item.querySelector('.faq-a') as HTMLElement;
+      if (q && a) {
+        const fn = () => handleFaqClick(item, q, a);
+        q.addEventListener('click', fn);
+        listeners.push({ q, fn });
       }
-    };
-    scrollLinks.forEach(el => {
-      el.addEventListener('click', handleSmoothScroll);
     });
 
-    // Rotating taglines
-    const taglines = [
-      "Collect rent. Generate receipts. Done.",
-      "Your tenants, properties and owners — one place.",
-      "From vacant unit to signed lease in minutes.",
-      "PDF receipts that look like the real thing.",
-      "Share an application link. Get qualified tenants.",
-      "Owner statements dispatched with one click.",
-      "Maintenance logged. Resolved. Documented.",
-      "Know who's paid and who hasn't — instantly."
-    ];
-    let tIndex = 0;
-    const tagTop = document.getElementById('tag-top');
-    const tagBottom = document.getElementById('tag-bottom');
-
-    let taglineInterval: NodeJS.Timeout;
-    if (tagTop && tagBottom) {
-      const cycleTagline = () => {
-        tagTop.classList.add('fading');
-        tagBottom.classList.add('fading');
-        setTimeout(() => {
-          tIndex = (tIndex + 1) % taglines.length;
-          tagTop.textContent = taglines[tIndex];
-          tagBottom.textContent = taglines[(tIndex + 1) % taglines.length];
-          tagTop.classList.remove('fading');
-          tagBottom.classList.remove('fading');
-        }, 380);
-      };
-      tagBottom.textContent = taglines[1];
-      taglineInterval = setInterval(cycleTagline, 3200);
-    }
-
-    // Ambient blob field (monochrome fluid-esque background, mouse-reactive)
-    const field = document.getElementById('blob-field');
-    const blobCount = 5;
-    const blobs: any[] = [];
-    if (field) {
-      for (let i = 0; i < blobCount; i++) {
-        const el = document.createElement('div');
-        el.className = 'blob';
-        const size = 260 + Math.random() * 260;
-        el.style.width = size + 'px';
-        el.style.height = size + 'px';
-        field.appendChild(el);
-        blobs.push({
-          el,
-          baseX: Math.random() * 100,
-          baseY: Math.random() * 100,
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.15 + Math.random() * 0.15,
-          amp: 8 + Math.random() * 10
-        });
-      }
-
-      let mouseX = 0.5, mouseY = 0.5;
-      const handleMouseMove = (e: MouseEvent) => {
-        mouseX = e.clientX / window.innerWidth;
-        mouseY = e.clientY / window.innerHeight;
-      };
-      window.addEventListener('mousemove', handleMouseMove);
-
-      let animationFrameId: number;
-      const animateBlobs = (t: number) => {
-        const time = t * 0.001;
-        blobs.forEach(b => {
-          const dx = (mouseX - 0.5) * 40;
-          const dy = (mouseY - 0.5) * 40;
-          const x = b.baseX + Math.sin(time * b.speed + b.phase) * b.amp + dx;
-          const y = b.baseY + Math.cos(time * b.speed + b.phase) * b.amp + dy;
-          b.el.style.transform = `translate(${x}vw, ${y}vh) translate(-50%, -50%)`;
-        });
-        animationFrameId = requestAnimationFrame(animateBlobs);
-      };
-      blobs.forEach((b, i) => {
-        b.el.style.left = (i * 22 + 5) + '%';
-        b.el.style.top = (Math.random() * 70 + 10) + '%';
-      });
-      animationFrameId = requestAnimationFrame(animateBlobs);
-
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-        scrollLinks.forEach(el => el.removeEventListener('click', handleSmoothScroll));
-        if (taglineInterval) clearInterval(taglineInterval);
-        window.removeEventListener('mousemove', handleMouseMove);
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        // Clean up blobs
-        if (field) field.innerHTML = '';
-      };
-    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (stage) stage.innerHTML = '';
+      listeners.forEach(({q, fn}) => q.removeEventListener('click', fn));
+    };
   }, []);
 
   return (
     <>
       <style dangerouslySetInnerHTML={{
         __html: `
-        :root{
-          --bg: #050505;
-          --bg-alt: #080808;
-          --white: #ffffff;
-          --t-70: rgba(255,255,255,0.70);
-          --t-50: rgba(255,255,255,0.50);
-          --t-40: rgba(255,255,255,0.40);
-          --t-25: rgba(255,255,255,0.25);
-          --t-10: rgba(255,255,255,0.10);
-          --border: rgba(255,255,255,0.06);
-          --border-hover: rgba(255,255,255,0.30);
-          --card: rgba(255,255,255,0.02);
-          --card-hover: rgba(255,255,255,0.05);
-        }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        html{ scroll-behavior:smooth; scrollbar-width:none; }
-        html::-webkit-scrollbar{ display:none; }
-        body {
-          background:var(--bg);
-          color:var(--white);
-          font-family:'Inter', -apple-system, sans-serif;
-          overflow-x:hidden;
-          scrollbar-width:none;
-        }
-        body::-webkit-scrollbar{ display:none; }
-        h1,h2,h3,.font-display{ font-family:'Montserrat', sans-serif; }
-        img{ display:block; max-width:100%; }
-        a{ color:inherit; text-decoration:none; }
-        .container{ max-width:1200px; margin:0 auto; padding:0 24px; }
-        .eyebrow{
-          font-family:'Inter', sans-serif;
-          font-size:12px;
-          font-weight:700;
-          letter-spacing:0.2em;
-          text-transform:uppercase;
-          color:var(--t-50);
-        }
-        button{ font-family:inherit; border:none; cursor:pointer; }
+  :root{
+    --black:#0B0B0C;
+    --ink:#1A1A1C;
+    --grey-900:#3D3D40;
+    --grey-600:#6B6B6F;
+    --grey-300:#D8D8DA;
+    --grey-100:#F1F1F1;
+    --grey-50:#FAFAFA;
+    --white:#FFFFFF;
+    --line:#E4E4E6;
+    --radius:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Inter',sans-serif; color:var(--ink); background:var(--white);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit; text-decoration:none;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
+  h1,h2,.display{font-family:'Poppins',sans-serif;}
+  .caps{font-family:'Montserrat',sans-serif; text-transform:uppercase; letter-spacing:0.08em;}
+  ::selection{background:var(--black); color:var(--white);}
 
-        /* ---------- NAVBAR ---------- */
-        nav{
-          position:fixed; top:0; left:0; right:0; z-index:100;
-          height:64px;
-          display:flex; align-items:center;
-          background:transparent;
-          border-bottom:1px solid transparent;
-          transition:all 300ms ease;
-        }
-        nav.scrolled{
-          background:rgba(8,8,8,0.9);
-          backdrop-filter:blur(16px);
-          -webkit-backdrop-filter:blur(16px);
-          border-bottom:1px solid var(--border);
-        }
-        .nav-row{ display:flex; align-items:center; justify-content:space-between; width:100%; }
-        .nav-logo{ font-family:'Montserrat', sans-serif; font-weight:900; font-size:20px; letter-spacing:-0.02em; color:var(--white); }
-        .nav-links{ display:flex; gap:36px; font-size:14px; font-weight:500; color:var(--t-50); }
-        .nav-links a{ transition:color 300ms ease; }
-        .nav-links a:hover{ color:var(--white); }
-        .nav-actions{ display:flex; align-items:center; gap:20px; }
-        .nav-signin{ font-size:14px; color:var(--t-50); transition:color 300ms; }
-        .nav-signin:hover{ color:var(--white); }
-        .btn-pill{
-          height:36px; padding:0 20px; border-radius:999px;
-          background:var(--white); color:#000;
-          font-size:14px; font-weight:700;
-          display:inline-flex; align-items:center; gap:6px;
-          transition:all 300ms ease;
-        }
-        .btn-pill:hover{ transform:translateY(-1px); box-shadow:0 8px 20px -8px rgba(255,255,255,0.35); }
-        @media (max-width:860px){ .nav-links{ display:none; } }
+  /* ---------- nav ---------- */
+  header{border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); z-index:50;}
+  nav{display:flex; align-items:center; justify-content:space-between; padding:28px 32px;}
+  .logo{font-family:'Poppins',sans-serif; font-weight:600; font-size:20px; display:flex; align-items:center; gap:8px;}
+  .logo .sq{width:9px; height:9px; background:var(--black); display:inline-block; border-radius:2px;}
+  .nav-links{display:flex; gap:34px; font-size:14px; font-weight:500; color:var(--grey-900);}
+  .nav-links a:hover{color:var(--black);}
+  .nav-right{display:flex; align-items:center; gap:16px;}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 20px; border-radius:100px; font-size:14px; font-weight:600;
+    border:1px solid var(--black); cursor:pointer; transition:all .16s ease; white-space:nowrap;
+  }
+  .btn-dark{background:var(--black); color:var(--white);}
+  .btn-dark:hover{background:var(--ink); transform:translateY(-1px);}
+  .btn-line{background:transparent; color:var(--black);}
+  .btn-line:hover{background:var(--grey-100);}
+  @media(max-width:860px){.nav-links{display:none;}}
 
-        /* ---------- HERO ---------- */
-        .hero{
-          position:relative;
-          height:100vh; min-height:640px;
-          display:flex; flex-direction:column; align-items:center; justify-content:center;
-          overflow:hidden;
-          background:#050505;
-        }
-        #blob-field{ position:absolute; inset:0; z-index:0; }
-        .blob{
-          position:absolute;
-          border-radius:50%;
-          filter:blur(70px);
-          background:radial-gradient(circle, rgba(255,255,255,0.16), rgba(255,255,255,0) 70%);
-          will-change:transform;
-        }
-        .hero-overlay{
-          position:absolute; inset:0; z-index:1;
-          background:linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.75) 100%);
-          pointer-events:none;
-        }
-        .hero-content{ position:relative; z-index:2; text-align:center; padding:0 20px; }
-        .tagline-slot{
-          height:20px;
-          font-size:13px; font-weight:600; letter-spacing:0.04em;
-          color:var(--t-40);
-          margin-bottom:22px;
-          transition:opacity 0.38s ease, filter 0.38s ease;
-        }
-        .tagline-slot.fading{ opacity:0; filter:blur(10px); }
-        .wordmark{
-          font-family:'Montserrat', sans-serif;
-          font-weight:900;
-          font-size:clamp(90px, 20vw, 240px);
-          line-height:0.85;
-          letter-spacing:-0.03em;
-          color:var(--white);
-          text-shadow:0 0 140px rgba(255,255,255,0.35);
-          user-select:none;
-        }
-        .tagline-slot-bottom{
-          height:24px;
-          font-size:16px; font-weight:500;
-          color:var(--t-70);
-          margin-top:22px; margin-bottom:44px;
-          transition:opacity 0.38s ease, filter 0.38s ease;
-        }
-        .tagline-slot-bottom.fading{ opacity:0; filter:blur(10px); }
-        .hero-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
-        .btn-hero-primary{
-          height:48px; padding:0 32px; border-radius:999px;
-          background:var(--white); color:#000; font-weight:700; font-size:15px;
-          display:inline-flex; align-items:center; gap:8px;
-          transition:all 300ms ease;
-        }
-        .btn-hero-primary:hover{ transform:translateY(-2px); box-shadow:0 12px 30px -10px rgba(255,255,255,0.4); }
-        .btn-hero-ghost{
-          height:48px; padding:0 32px; border-radius:999px;
-          border:1px solid var(--t-10);
-          background:rgba(255,255,255,0.03);
-          backdrop-filter:blur(6px);
-          color:var(--t-70); font-weight:600; font-size:15px;
-          display:inline-flex; align-items:center;
-          transition:all 300ms ease;
-        }
-        .btn-hero-ghost:hover{ border-color:rgba(255,255,255,0.3); color:var(--white); }
-        .hero-hint{ margin-top:22px; font-size:12.5px; color:var(--t-25); }
-        .scroll-indicator{
-          position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:2;
-          color:var(--t-25);
-          animation:bounce 2s infinite;
-        }
-        @keyframes bounce{ 0%,100%{ transform:translate(-50%,0); } 50%{ transform:translate(-50%,8px); } }
+  /* ---------- hero ---------- */
+  .hero{padding:96px 0 90px;}
+  .hero-grid{display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center;}
+  @media(max-width:940px){.hero-grid{grid-template-columns:1fr; text-align:center;}}
+  .eyebrow-row{display:flex; gap:10px; font-size:13px; color:var(--grey-600); font-weight:500; margin-bottom:24px;}
+  @media(max-width:940px){.eyebrow-row{justify-content:center;}}
+  .headline-stage{position:relative; min-height:2.16em;}
+  @media(max-width:940px){.headline-stage{min-height:2.3em;}}
+  h1{font-size:clamp(32px,4.4vw,50px); font-weight:600; line-height:1.08; letter-spacing:-0.02em; max-width:560px;}
+  @media(max-width:940px){h1{max-width:none; margin:0 auto;}}
+  .headline-slide{position:absolute; top:0; left:0; right:0; opacity:0; transform:translateY(10px); transition:opacity .5s ease, transform .5s ease;}
+  .headline-slide.active{position:relative; opacity:1; transform:none;}
+  .headline-slide.leaving{opacity:0; transform:translateY(-10px);}
+  .hero-sub{margin-top:20px; font-size:16px; color:var(--grey-600); max-width:440px; line-height:1.6;}
+  @media(max-width:940px){.hero-sub{margin:20px auto 0;}}
+  .hero-actions{display:flex; flex-direction:column; align-items:flex-start; gap:14px; margin-top:36px;}
+  @media(max-width:940px){.hero-actions{align-items:center;}}
+  .hero-actions-row{display:flex; align-items:center; gap:14px;}
+  .btn-hero{padding:15px 34px; font-size:15.5px; border-radius:100px;}
+  .or{font-size:13px; color:var(--grey-600); font-weight:500;}
+  .hero-legal{font-size:12.5px; color:var(--grey-600); max-width:360px; margin-top:2px; line-height:1.6;}
+  .hero-legal a{text-decoration:underline; color:var(--grey-900);}
 
-        /* ---------- SECTIONS ---------- */
-        .section{ padding:112px 0; }
-        .section-alt{ background:var(--bg-alt); }
-        .section-head{ max-width:640px; margin-bottom:56px; }
-        .section-head h2{ font-size:clamp(30px,4.2vw,48px); font-weight:900; letter-spacing:-0.02em; margin-top:14px; line-height:1.08; color:var(--white); }
-        .section-head h2 .hl{ color:var(--white); border-bottom:3px solid var(--white); padding-bottom:2px; }
-        .section-head p{ margin-top:16px; font-size:17px; color:var(--t-40); line-height:1.6; max-width:480px; }
+  /* ---------- hero image ---------- */
+  .hero-visual{position:relative;}
+  .hv-frame{background:var(--black); border-radius:20px; padding:22px; box-shadow:0 40px 80px -32px rgba(11,11,12,0.35);}
+  .hv-bar{display:flex; gap:6px; padding:2px 4px 18px;}
+  .hv-bar span{width:9px; height:9px; border-radius:50%; background:#4A4A4D;}
+  .hv-card{background:var(--white); border-radius:12px; padding:22px;}
+  .hv-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px;}
+  .hv-head h4{font-family:'Poppins',sans-serif; font-size:15px; font-weight:600;}
+  .hv-head span{font-size:11.5px; color:var(--grey-600);}
+  .hv-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--line);}
+  .hv-row:first-of-type{border-top:none;}
+  .hv-unit{font-size:13.5px; font-weight:600;}
+  .hv-tenant{font-size:11.5px; color:var(--grey-600); margin-top:2px;}
+  .hv-pill{font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:100px; font-family:'Montserrat',sans-serif; letter-spacing:0.02em;}
+  .hv-paid{background:var(--grey-100); color:var(--ink);}
+  .hv-due{background:var(--ink); color:var(--white);}
+  .hv-late{background:var(--black); color:var(--white);}
+  .hv-bignum{margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:baseline;}
+  .hv-bignum .num{font-family:'Poppins',sans-serif; font-size:28px; font-weight:600;}
+  .hv-bignum .lbl{font-size:11.5px; color:var(--grey-600); text-align:right; max-width:120px; line-height:1.4;}
+  .hv-badge{
+    position:absolute; bottom:-18px; left:-18px; background:var(--white); border:1px solid var(--line);
+    border-radius:12px; padding:12px 16px; box-shadow:0 20px 40px -20px rgba(11,11,12,0.3);
+    display:flex; align-items:center; gap:10px; font-size:12.5px; font-weight:600;
+  }
+  .hv-badge svg{width:16px; height:16px; stroke:var(--black);}
+  @media(max-width:940px){.hero-visual{max-width:420px; margin:0 auto;} .hv-badge{left:50%; transform:translateX(-50%);}}
 
-        /* ---------- FEATURES ---------- */
-        .features-grid{
-          display:grid;
-          grid-template-columns:repeat(3,1fr);
-          grid-auto-rows:260px;
-          gap:12px;
-        }
-        @media (max-width:820px){ .features-grid{ grid-template-columns:1fr; grid-auto-rows:220px; } }
-        .f-card{
-          position:relative; border-radius:16px; overflow:hidden;
-          border:1px solid var(--border);
-          cursor:pointer;
-        }
-        .f-card.hero-card{ grid-column:span 2; grid-row:span 2; }
-        @media (max-width:820px){ .f-card.hero-card{ grid-column:span 1; grid-row:span 1; } }
-        .f-card img{
-          position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-          transform:scale(1); transition:transform 700ms ease;
-          filter:grayscale(45%) contrast(1.05);
-        }
-        .f-card:hover img{ transform:scale(1.06); }
-        .f-overlay-default{
-          position:absolute; inset:0;
-          background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 55%, transparent 100%);
-          display:flex; align-items:flex-end; padding:22px;
-          transition:opacity 400ms ease;
-        }
-        .f-overlay-default h3{ font-size:19px; font-weight:800; color:var(--white); }
-        .f-overlay-hover{
-          position:absolute; inset:0;
-          background:rgba(0,0,0,0.8);
-          backdrop-filter:blur(4px);
-          display:flex; flex-direction:column; align-items:center; justify-content:center;
-          text-align:center; padding:28px;
-          opacity:0; transition:opacity 400ms ease;
-        }
-        .f-overlay-hover h3{ font-size:20px; font-weight:900; color:var(--white); margin-bottom:10px; }
-        .f-overlay-hover p{ font-size:14px; color:var(--t-70); line-height:1.6; max-width:340px; }
-        .f-card:hover .f-overlay-default{ opacity:0; }
-        .f-card:hover .f-overlay-hover{ opacity:1; }
+  /* ---------- pricing ---------- */
+  .pricing{padding:20px 0 110px; border-top:1px solid var(--line);}
+  .pricing-head{text-align:center; padding:64px 0 48px;}
+  .pricing-head .caps{font-size:12px; color:var(--grey-600); margin-bottom:14px; display:block;}
+  .pricing-head h2{font-size:clamp(26px,3.4vw,36px); font-weight:600; letter-spacing:-0.01em;}
+  .plans{display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+  @media(max-width:900px){.plans{grid-template-columns:1fr; }}
+  .plan{padding:40px 32px; border-right:1px solid var(--line);}
+  .plan:last-child{border-right:none;}
+  @media(max-width:900px){.plan{border-right:none; border-bottom:1px solid var(--line);} .plan:last-child{border-bottom:none;}}
+  .plan.featured{background:var(--black); color:var(--white);}
+  .plan-name{font-family:'Poppins',sans-serif; font-weight:600; font-size:15px; margin-bottom:6px;}
+  .plan-tag{font-size:13.5px; color:var(--grey-600); margin-bottom:22px;}
+  .plan.featured .plan-tag{color:#B5B5B8;}
+  .plan-price{font-family:'Poppins',sans-serif; font-size:38px; font-weight:600; letter-spacing:-0.01em;}
+  .plan-price sup{font-size:16px; font-weight:500; top:-14px;}
+  .plan-price-note{font-size:12.5px; color:var(--grey-600); margin-top:6px; min-height:32px; line-height:1.5;}
+  .plan.featured .plan-price-note{color:#B5B5B8;}
+  .plan .btn{width:100%; margin-top:24px; margin-bottom:28px;}
+  .plan.featured .btn-line{border-color:var(--white); color:var(--white);}
+  .plan.featured .btn-line:hover{background:rgba(255,255,255,0.08);}
+  .plan-features{list-style:none; font-size:13.5px; color:var(--grey-900);}
+  .plan.featured .plan-features{color:#E4E4E6;}
+  .plan-features li{display:flex; gap:10px; padding:8px 0; line-height:1.5;}
+  .plan-features svg{width:15px; height:15px; flex:none; margin-top:2px; stroke:var(--black);}
+  .plan.featured .plan-features svg{stroke:var(--white);}
+  .plan-features .lead-item{font-weight:600; color:var(--black); padding-bottom:12px;}
+  .plan.featured .plan-features .lead-item{color:var(--white);}
 
-        /* ---------- HOW IT WORKS ---------- */
-        .steps{ display:flex; flex-direction:column; gap:12px; }
-        .step-row{
-          display:flex; align-items:center; gap:28px;
-          padding:26px 28px; border-radius:18px;
-          border:1px solid var(--border);
-          background:var(--card);
-          transition:all 300ms ease;
-        }
-        .step-row:hover{ border-color:var(--border-hover); background:var(--card-hover); }
-        .step-num{
-          font-family:'Montserrat', sans-serif;
-          font-size:34px; font-weight:900;
-          color:var(--t-10);
-          transition:color 300ms ease;
-          width:64px; flex-shrink:0;
-        }
-        .step-row:hover .step-num{ color:rgba(255,255,255,0.55); }
-        .step-body{ flex:1; min-width:0; }
-        .step-body h3{ font-size:17px; font-weight:700; color:var(--white); margin-bottom:6px; }
-        .step-body p{ font-size:14px; color:var(--t-40); line-height:1.6; max-width:560px; }
-        .step-arrow{ opacity:0; transform:translateX(-6px); transition:all 300ms ease; flex-shrink:0; color:var(--t-50); }
-        .step-row:hover .step-arrow{ opacity:1; transform:translateX(0); }
-        @media (max-width:640px){ .step-row{ flex-wrap:wrap; gap:14px; } .step-arrow{ display:none; } }
+  /* ---------- faq ---------- */
+  .faq{padding:90px 0; border-top:1px solid var(--line);}
+  .faq h2{text-align:center; font-size:clamp(24px,3vw,32px); font-weight:600; margin-bottom:44px;}
+  .faq-list{max-width:720px; margin:0 auto;}
+  .faq-item{border-bottom:1px solid var(--line);}
+  .faq-q{
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    padding:22px 4px; font-family:'Poppins',sans-serif; font-weight:500; font-size:16px; cursor:pointer;
+  }
+  .faq-q .plus{width:20px; height:20px; flex:none; position:relative; transition:transform .25s ease;}
+  .faq-q .plus::before,.faq-q .plus::after{content:''; position:absolute; background:var(--black); border-radius:2px;}
+  .faq-q .plus::before{width:14px; height:2px; top:9px; left:3px;}
+  .faq-q .plus::after{width:2px; height:14px; top:3px; left:9px; transition:opacity .2s ease;}
+  .faq-item.open .plus{transform:rotate(45deg);}
+  .faq-a{max-height:0; overflow:hidden; transition:max-height .3s ease;}
+  .faq-a p{padding:0 4px 22px; font-size:14.5px; color:var(--grey-600); line-height:1.65; max-width:620px;}
 
-        /* ---------- PRICING ---------- */
-        .pricing-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
-        @media (max-width:980px){ .pricing-grid{ grid-template-columns:repeat(2,1fr); } }
-        @media (max-width:560px){ .pricing-grid{ grid-template-columns:1fr; } }
-        .plan{
-          position:relative;
-          border-radius:20px;
-          border:1px solid var(--border);
-          background:var(--card);
-          padding:30px 26px;
-          display:flex; flex-direction:column;
-          transition:all 300ms ease;
-        }
-        .plan:hover{ border-color:var(--border-hover); }
-        .plan.featured{
-          background:var(--white); color:#000;
-          transform:scale(1.02);
-          border-color:var(--white);
-        }
-        .plan-badge{
-          position:absolute; top:-13px; left:50%; transform:translateX(-50%);
-          background:#000; color:var(--white);
-          font-size:10px; font-weight:900; letter-spacing:0.15em; text-transform:uppercase;
-          padding:6px 14px; border-radius:999px; white-space:nowrap;
-        }
-        .plan-name{ font-family:'Inter', sans-serif; font-size:12px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-50); margin-bottom:16px; }
-        .plan.featured .plan-name{ color:rgba(0,0,0,0.5); }
-        .plan-price{ font-family:'Montserrat', sans-serif; font-size:44px; font-weight:900; letter-spacing:-0.02em; }
-        .plan-price span{ font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--t-40); }
-        .plan.featured .plan-price span{ color:rgba(0,0,0,0.45); }
-        .plan-tagline{ font-size:13px; color:var(--t-40); margin:8px 0 22px; min-height:34px; }
-        .plan.featured .plan-tagline{ color:rgba(0,0,0,0.55); }
-        .plan-list{ list-style:none; display:flex; flex-direction:column; gap:11px; margin-bottom:26px; flex-grow:1; }
-        .plan-list li{ font-size:13.5px; color:var(--t-50); display:flex; gap:9px; align-items:flex-start; }
-        .plan.featured .plan-list li{ color:rgba(0,0,0,0.7); }
-        .plan-list li svg{ flex-shrink:0; margin-top:2px; }
-        .plan-cta{ width:100%; height:46px; border-radius:999px; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; transition:all 300ms ease; }
-        .plan-cta.dark{ background:rgba(255,255,255,0.05); border:1px solid var(--t-10); color:var(--white); }
-        .plan-cta.dark:hover{ background:rgba(255,255,255,0.1); }
-        .plan-cta.light{ background:#000; color:var(--white); }
-        .plan-cta.light:hover{ background:#1a1a1a; }
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line); padding:56px 0 32px; background:var(--grey-50);}
+  .foot-top{display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; padding-bottom:40px;}
+  .foot-brand p{margin-top:12px; font-size:13.5px; color:var(--grey-600); max-width:240px; line-height:1.6;}
+  .foot-cols{display:grid; grid-template-columns:repeat(4,1fr); gap:40px;}
+  @media(max-width:760px){.foot-cols{grid-template-columns:repeat(2,1fr);}}
+  .foot-col h5{font-family:'Montserrat',sans-serif; font-size:11.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--grey-600); margin-bottom:16px;}
+  .foot-col a{display:block; font-size:13.5px; color:var(--ink); margin-bottom:11px; opacity:0.85;}
+  .foot-col a:hover{opacity:1;}
+  .foot-bottom{display:flex; justify-content:space-between; align-items:center; padding-top:24px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-600); flex-wrap:wrap; gap:10px;}
+        `
+      }} />
 
-        /* ---------- CTA ---------- */
-        .cta-section{ background:var(--bg-alt); border-top:1px solid var(--border); padding:128px 24px; text-align:center; }
-        .cta-section h2{ font-weight:900; font-size:clamp(40px,7vw,84px); letter-spacing:-0.02em; line-height:1.02; }
-        .cta-section h2 .hl{ color:var(--white); border-bottom:4px solid var(--white); }
-        .cta-section p{ margin:24px auto 40px; font-size:17px; color:var(--t-40); max-width:520px; line-height:1.6; }
-        .cta-actions{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
-        .btn-cta-primary{
-          height:56px; padding:0 40px; border-radius:999px;
-          background:var(--white); color:#000; font-weight:800; font-size:15px;
-          display:inline-flex; align-items:center; gap:8px;
-          box-shadow:0 16px 40px -14px rgba(255,255,255,0.35);
-          transition:all 300ms ease;
-        }
-        .btn-cta-primary:hover{ transform:translateY(-2px); }
-        .btn-cta-ghost{
-          height:56px; padding:0 40px; border-radius:999px;
-          border:1px solid var(--t-10); color:var(--t-50); font-weight:600; font-size:15px;
-          display:inline-flex; align-items:center;
-          transition:all 300ms ease;
-        }
-        .btn-cta-ghost:hover{ border-color:rgba(255,255,255,0.3); color:var(--white); }
-
-        /* ---------- FOOTER ---------- */
-        footer{ background:var(--bg); border-top:1px solid var(--border); padding-top:64px; padding-bottom:40px; }
-        .footer-grid{ display:flex; gap:60px; flex-wrap:wrap; margin-bottom:56px; }
-        .footer-brand{ width:260px; }
-        .footer-brand .nav-logo{ margin-bottom:14px; display:block; }
-        .footer-brand p{ font-size:13.5px; color:var(--t-25); line-height:1.7; }
-        .footer-col{ min-width:140px; }
-        .footer-col h4{ font-family:'Inter',sans-serif; font-size:11px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-40); margin-bottom:18px; }
-        .footer-col ul{ list-style:none; display:flex; flex-direction:column; gap:12px; }
-        .footer-col ul a{ font-size:14px; color:var(--t-40); transition:color 300ms; }
-        .footer-col ul a:hover{ color:var(--white); }
-        .footer-bottom{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:26px; border-top:1px solid var(--border); font-size:12px; color:var(--t-25); }
-      `}} />
-
-      {/* Include fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=Montserrat:wght@500;600&display=swap" rel="stylesheet" />
 
-      <nav id="navbar">
-        <div className="container nav-row">
-          <Link href="/" className="nav-logo">Rental</Link>
+      <header>
+        <nav className="wrap">
+          <div className="logo"><span className="sq"></span>Rent</div>
           <div className="nav-links">
-            <a data-scroll="true" href="#features">Features</a>
-            <a data-scroll="true" href="#how-it-works">How it works</a>
-            <a data-scroll="true" href="#pricing">Pricing</a>
+            <Link href="#">Platform</Link>
+            <Link href="#pricing">Pricing</Link>
+            <Link href="#">Solutions</Link>
+            <Link href="#">Resources</Link>
           </div>
-          <div className="nav-actions">
-            <Link href="/login" className="nav-signin">Sign in</Link>
-            <Link href="/register" className="btn-pill">Get started</Link>
+          <div className="nav-right">
+            <Link href="/login" className="btn btn-line">Log in</Link>
+            <Link href="/register" className="btn btn-dark">Get started</Link>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
       <section className="hero">
-        <div id="blob-field"></div>
-        <div className="hero-overlay"></div>
-        <div className="hero-content">
-          <div className="tagline-slot" id="tag-top">Collect rent. Generate receipts. Done.</div>
-          <h1 className="wordmark">Rental</h1>
-          <div className="tagline-slot-bottom" id="tag-bottom">Your tenants, properties and owners one place.</div>
-          <div className="hero-actions">
-            <Link href="/register" className="btn-hero-primary">Start for free
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </Link>
-            <Link href="/login" className="btn-hero-ghost">Sign in</Link>
+        <div className="wrap hero-grid">
+          <div>
+            <div className="eyebrow-row">Meet Rent</div>
+            <div className="headline-stage" id="headlineStage"></div>
+            <p className="hero-sub" id="heroSub">One dashboard for every property, tenant, and payment — so nothing slips through.</p>
+            <div className="hero-actions">
+              <div className="hero-actions-row">
+                <Link href="/register" className="btn btn-dark btn-hero">Start free</Link>
+                <span className="or">or</span>
+                <Link href="/login" className="btn btn-line btn-hero">Log in</Link>
+              </div>
+              <p className="hero-legal">By continuing, you acknowledge Rent's <Link href="/privacy">Privacy Policy</Link>.</p>
+            </div>
           </div>
-          <div className="hero-hint">Free tier available · No credit card required</div>
-        </div>
-        <div className="scroll-indicator">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
-        </div>
-      </section>
-
-      <section className="section" id="features">
-        <div className="container">
-          <div className="section-head">
-            <span className="eyebrow">What Rental Does</span>
-            <h2>Every tool a property<br />agents needs.</h2>
-            <p>Hover each card to see how Rental solves real problems for property managers.</p>
-          </div>
-
-          <div className="features-grid">
-            <div className="f-card hero-card">
-              <img src="https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop" alt="Property portfolio" />
-              <div className="f-overlay-default"><h3>Property Portfolio</h3></div>
-              <div className="f-overlay-hover">
-                <h3>Property Portfolio</h3>
-                <p>Track every property, unit, and owner in one place. Vacant units highlighted instantly. Application links generated and shared in seconds.</p>
+          <div className="hero-visual">
+            <div className="hv-frame">
+              <div className="hv-bar"><span></span><span></span><span></span></div>
+              <div className="hv-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <img src="https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop" alt="Properties" style={{ width: '100%', height: '320px', objectFit: 'cover', display: 'block' }} />
               </div>
             </div>
-
-            <div className="f-card">
-              <img src="https://images.pexels.com/photos/6863183/pexels-photo-6863183.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop" alt="Instant receipts" />
-              <div className="f-overlay-default"><h3>Instant Receipts</h3></div>
-              <div className="f-overlay-hover">
-                <h3>Instant Receipts</h3>
-                <p>Professional PDF receipts with your VAT number, lease ID, and bank details — emailed or WhatsApp'd with one click.</p>
-              </div>
-            </div>
-
-            <div className="f-card">
-              <img src="https://images.pexels.com/photos/3760069/pexels-photo-3760069.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop" alt="Tenant applications" />
-              <div className="f-overlay-default"><h3>Tenant Applications</h3></div>
-              <div className="f-overlay-hover">
-                <h3>Tenant Applications</h3>
-                <p>Full Zimbabwean tenancy form online — ID upload, guarantor, employment history. Link auto-expires after submission.</p>
-              </div>
-            </div>
-
-            <div className="f-card">
-              <img src="https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop" alt="ZiG and USD payments" />
-              <div className="f-overlay-default"><h3>ZiG + USD Payments</h3></div>
-              <div className="f-overlay-hover">
-                <h3>ZiG + USD Payments</h3>
-                <p>Record rent in both currencies. System flags overdue tenants in red after the due date automatically.</p>
-              </div>
-            </div>
-
-            <div className="f-card">
-              <img src="https://images.pexels.com/photos/7235675/pexels-photo-7235675.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop" alt="Owner statements" />
-              <div className="f-overlay-default"><h3>Owner Statements</h3></div>
-              <div className="f-overlay-hover">
-                <h3>Owner Statements</h3>
-                <p>Generate monthly owner statements and dispatch by email or WhatsApp the moment rent is received.</p>
-              </div>
+            <div className="hv-badge">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Lease PDF generated
             </div>
           </div>
         </div>
       </section>
 
-      <section className="section section-alt" id="how-it-works">
-        <div className="container">
-          <div className="section-head">
-            <span className="eyebrow">How It Works</span>
-            <h2>From zero to<br /><span className="hl">first receipt</span> today.</h2>
+      <section className="pricing" id="pricing">
+        <div className="wrap">
+          <div className="pricing-head">
+            <span className="caps">Explore plans</span>
+            <h2>Simple pricing, per landlord</h2>
           </div>
-
-          <div className="steps">
-            <div className="step-row">
-              <div className="step-num">01</div>
-              <div className="step-body">
-                <h3>Register your agency</h3>
-                <p>Sign up, verify your email, fill in your company details. Address, VAT number, bank account — these print on every receipt. Under 5 minutes.</p>
-              </div>
-              <div className="step-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg></div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">02</div>
-              <div className="step-body">
-                <h3>Add properties & owners</h3>
-                <p>Add each property and assign it to an owner. For single-unit properties, one toggle auto-creates the unit — no extra step needed.</p>
-              </div>
-              <div className="step-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg></div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">03</div>
-              <div className="step-body">
-                <h3>Share application links</h3>
-                <p>Each unit gets a unique link. Prospective tenants fill the Zimbabwean tenancy form online — ID, guarantor, employment. Link expires after submission.</p>
-              </div>
-              <div className="step-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg></div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">04</div>
-              <div className="step-body">
-                <h3>Approve & activate lease</h3>
-                <p>Review applications in the dashboard. Approve and activate. Lease PDF generated automatically. Tenant is live in the system.</p>
-              </div>
-              <div className="step-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg></div>
-            </div>
-            <div className="step-row">
-              <div className="step-num">05</div>
-              <div className="step-body">
-                <h3>Collect rent & notify owners</h3>
-                <p>Record payments in ZiG or USD. Receipt generated instantly. One click emails or WhatsApps the tenant and owner.</p>
-              </div>
-              <div className="step-arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" id="pricing">
-        <div className="container">
-          <div className="section-head">
-            <span className="eyebrow">Pricing</span>
-            <h2>Start free.<br />Scale when ready.</h2>
-            <p>Every plan includes receipts, payments, and tenant management. From $0 to $250/mo.</p>
-          </div>
-
-          <div className="pricing-grid">
+          <div className="plans">
             <div className="plan">
               <div className="plan-name">Free</div>
-              <div className="plan-price">$0<span>/mo</span></div>
-              <div className="plan-tagline">Try it with your first property.</div>
-              <ul className="plan-list">
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>1 property, 5 units</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>1 agent, 1 owner</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>500 MB storage</li>
+              <div className="plan-tag">Try Rent</div>
+              <div className="plan-price">$0</div>
+              <div className="plan-price-note">Free for a single property</div>
+              <Link href="/register" className="btn btn-line">Get started</Link>
+              <ul className="plan-features">
+                <li className="lead-item">Manage 1 property</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Tenant &amp; lease records</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Auto-generated lease PDF</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Monthly rent invoices</li>
               </ul>
-              <Link href="/register" className="plan-cta dark">Start free</Link>
             </div>
-
             <div className="plan">
               <div className="plan-name">Starter</div>
-              <div className="plan-price">$49<span>/mo</span></div>
-              <div className="plan-tagline">For a small independent agency.</div>
-              <ul className="plan-list">
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>10 properties, 40 units</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>3 agents, 10 owners</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>5 GB storage</li>
+              <div className="plan-tag">For independent agents</div>
+              <div className="plan-price">$49<sup>/mo</sup></div>
+              <div className="plan-price-note">Billed monthly</div>
+              <Link href="/register" className="btn btn-line">Choose Starter</Link>
+              <ul className="plan-features">
+                <li className="lead-item">Everything in Free, plus:</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>10 properties, 40 units</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>3 agents, 10 owners</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Arrears dashboard</li>
               </ul>
-              <Link href="/register" className="plan-cta dark">Choose Starter</Link>
             </div>
-
             <div className="plan featured">
-              <div className="plan-badge">Most Popular</div>
               <div className="plan-name">Growth</div>
-              <div className="plan-price">$129<span>/mo</span></div>
-              <div className="plan-tagline">For agencies managing multiple portfolios.</div>
-              <ul className="plan-list">
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>50 properties, 300 units</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>10 agents, 50 owners</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>25 GB storage</li>
+              <div className="plan-tag">Most Popular</div>
+              <div className="plan-price">$129<sup>/mo</sup></div>
+              <div className="plan-price-note">Billed monthly</div>
+              <Link href="/register" className="btn btn-line">Choose Growth</Link>
+              <ul className="plan-features">
+                <li className="lead-item">Everything in Starter, plus:</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>50 properties, 300 units</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>10 agents, 50 owners</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Priority support</li>
               </ul>
-              <Link href="/register" className="plan-cta light">Choose Growth</Link>
             </div>
-
             <div className="plan">
               <div className="plan-name">Professional</div>
-              <div className="plan-price">$250<span>/mo</span></div>
-              <div className="plan-tagline">Unlimited scale.</div>
-              <ul className="plan-list">
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>Unlimited properties &amp; units</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>Unlimited agents &amp; owners</li>
-                <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>100 GB storage</li>
+              <div className="plan-tag">Unlimited scale</div>
+              <div className="plan-price">$250<sup>/mo</sup></div>
+              <div className="plan-price-note">Billed monthly</div>
+              <Link href="#" className="btn btn-line">Talk to sales</Link>
+              <ul className="plan-features">
+                <li className="lead-item">Everything in Growth, plus:</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited properties</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited agents</li>
+                <li><svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Dedicated onboarding</li>
               </ul>
-              <Link href="/register" className="plan-cta dark">Choose Professional</Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="cta-section">
-        <div className="container" style={{ padding: 0 }}>
-          <h2>Ready to modernise<br /><span className="hl">your portfolio?</span></h2>
-          <p>Join property managers across Zimbabwe who run their books on Rental. Sign up in under 5 minutes — no credit card needed.</p>
-          <div className="cta-actions">
-            <Link href="/register" className="btn-cta-primary">Create free account
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </Link>
-            <Link href="/login" className="btn-cta-ghost">Sign in</Link>
+      <section className="faq">
+        <div className="wrap">
+          <h2>Frequently asked questions</h2>
+          <div className="faq-list">
+            <div className="faq-item">
+              <div className="faq-q"><span>What is Rent and how does it work?</span><span className="plus"></span></div>
+              <div className="faq-a"><p>Rent is software for landlords and letting agents. You add a property and tenant once, and Rent generates the lease, sends monthly invoices, and reminds tenants automatically as rent comes due.</p></div>
+            </div>
+            <div className="faq-item">
+              <div className="faq-q"><span>Who is Rent built for?</span><span className="plus"></span></div>
+              <div className="faq-a"><p>Independent landlords managing a handful of units, and letting agencies managing a full portfolio across multiple properties and staff.</p></div>
+            </div>
+            <div className="faq-item">
+              <div className="faq-q"><span>How much does it cost to use?</span><span className="plus"></span></div>
+              <div className="faq-a"><p>Rent is free for a single property. Paid plans start at $12/month for landlords with multiple units, and scale up for agencies with unlimited properties and staff seats.</p></div>
+            </div>
+            <div className="faq-item">
+              <div className="faq-q"><span>Can I cancel anytime?</span><span className="plus"></span></div>
+              <div className="faq-a"><p>Yes. Paid plans have no lock-in contract — cancel whenever you like and keep access until the end of your billing period.</p></div>
+            </div>
           </div>
         </div>
       </section>
 
       <footer>
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <Link href="/" className="nav-logo">Rental</Link>
-              <p>Property management built for Zimbabwean agents. Manage tenants, collect rent, generate receipts.</p>
+        <div className="wrap">
+          <div className="foot-top">
+            <div className="foot-brand">
+              <div className="logo"><span className="sq"></span>Rent</div>
+              <p>Property management software for landlords and letting agents.</p>
             </div>
-            <div className="footer-col">
-              <h4>Product</h4>
-              <ul>
-                <li><a data-scroll="true" href="#features">Features</a></li>
-                <li><a data-scroll="true" href="#pricing">Pricing</a></li>
-                <li><a data-scroll="true" href="#how-it-works">How it works</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Platform</h4>
-              <ul>
-                <li><Link href="/dashboard/overview">Dashboard</Link></li>
-                <li><Link href="/dashboard/applications">Applications</Link></li>
-                <li><Link href="/dashboard/payments">Payments</Link></li>
-                <li><Link href="/dashboard/reports">Reports</Link></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Account</h4>
-              <ul>
-                <li><Link href="/login">Sign in</Link></li>
-                <li><Link href="/register">Register</Link></li>
-                <li><Link href="/dashboard/settings">Settings</Link></li>
-                <li><Link href="/dashboard/settings?tab=subscription">Billing</Link></li>
-              </ul>
+            <div className="foot-cols">
+              <div className="foot-col">
+                <h5>Product</h5>
+                <Link href="#">Overview</Link>
+                <Link href="#pricing">Pricing</Link>
+                <Link href="#">Dashboard</Link>
+              </div>
+              <div className="foot-col">
+                <h5>Solutions</h5>
+                <Link href="#">Landlords</Link>
+                <Link href="#">Letting agents</Link>
+              </div>
+              <div className="foot-col">
+                <h5>Resources</h5>
+                <a href="https://github.com/Honour36/Rent">GitHub</a>
+                <Link href="#">Support</Link>
+              </div>
+              <div className="foot-col">
+                <h5>Company</h5>
+                <Link href="#">About</Link>
+                <Link href="#">Contact</Link>
+              </div>
             </div>
           </div>
-          <div className="footer-bottom">
-            <span>© <span id="year"></span> Rental. All rights reserved.</span>
-            <span>🇿🇼 Zimbabwe &nbsp;|&nbsp; ZiG + USD &nbsp;|&nbsp; Built for agents</span>
+          <div className="foot-bottom">
+            <span>© 2026 Rent.</span>
+            <span>Built in Harare.</span>
           </div>
         </div>
       </footer>
