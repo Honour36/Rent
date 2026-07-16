@@ -28,7 +28,7 @@ export default function LoginPage() {
     const res = await apiClient<{ user: User }>("/auth/login", { data: { email, password } });
 
     if (res.success) {
-      setUser((res as any).data.user ?? (res as any).user);
+      setUser((res as any).data?.user ?? (res as any).user);
       toast.success("Welcome back!");
       router.push("/dashboard/overview");
     } else if ((res as any).code === "EMAIL_NOT_VERIFIED") {
