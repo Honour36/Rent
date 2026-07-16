@@ -23,6 +23,16 @@ const nextConfig = {
       },
     ];
   },
+  // ADD THIS REWRITES BLOCK:
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        // Replace with your ACTUAL Render backend URL! (Keep /api/:path* at the end)
+        destination: "https://your-backend-name.onrender.com/api/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
