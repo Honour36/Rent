@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (res.success) {
       setUser((res as any).data?.user ?? (res as any).user);
       toast.success("Welcome back!");
-      router.push("/dashboard/overview");
+      window.location.href = "/dashboard/overview";
     } else if ((res as any).code === "EMAIL_NOT_VERIFIED") {
       toast.warning("Email not verified", { description: "A new code has been sent to your inbox." });
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
