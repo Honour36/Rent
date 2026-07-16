@@ -25,7 +25,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
   const [form, setForm] = useState({
     name: "", address: "", suburb: "", city: "",
     type: "residential", ownerId: "", rentAmount: "", currency: "USD",
-    isSingleUnit: false, tenantId: "",
+    tenantId: "",
   });
 
   const { owners, loading: loadingOwners } = useOwners();
@@ -41,6 +41,9 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
     if (!form.name.trim()) errs.name = "Property name is required.";
     if (!form.address.trim()) errs.address = "Street address is required.";
     if (!form.ownerId) errs.ownerId = "You must select an owner before saving a property.";
+    if (form.tenantId && !form.rentAmount) {
+      errs.rentAmount = "Rent Amount is required when assigning a tenant.";
+    }
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
       toast.warning("Please fix the highlighted fields before continuing.");
@@ -58,7 +61,8 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
       ...form,
       ownerId: form.ownerId || undefined,
       rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined,
-      tenantId: form.isSingleUnit && form.tenantId ? form.tenantId : undefined,
+      tenantId: form.tenantId || undefined,
+      isSingleUnit: !!form.rentAmount || !!form.tenantId,
     } as any);
 
     if (res.success) {
@@ -67,7 +71,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
         duration: 6000,
       });
       setOpen(false);
-      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", isSingleUnit: false, tenantId: "" });
+      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", tenantId: "" });
       setFieldErrors({});
       onSuccess?.();
     } else {
@@ -145,25 +149,21 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
               </NativeSelect>
             </FormField>
 
-<div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
-              <div>
-                <p className="text-sm font-medium">Single unit property</p>
-                <p className="text-xs text-muted-foreground">Auto-creates one "Main Unit" — skip the separate unit step</p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.isSingleUnit}
-                onClick={() => setForm(p => ({ ...p, isSingleUnit: !p.isSingleUnit }))}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${form.isSingleUnit ? "bg-primary" : "bg-input"}`}
-              >
-                <span className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg transition-transform ${form.isSingleUnit ? "translate-x-4" : "translate-x-0"}`} />
-              </button>
-            </div>
+            <FormField label="Tenant (Optional)">
+              <NativeSelect name="tenantId" value={form.tenantId} onChange={change}
+                className="w-full" disabled={loadingTenants || tenants.length === 0}>
+                <NativeSelectOption value="">
+                  {loadingTenants ? "Loading tenants…" : tenants.length === 0 ? "No tenants available" : "— Select tenant —"}
+                </NativeSelectOption>
+                {tenants.map((t) => (
+                  <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </FormField>
 
-            <FormField label="Rent Amount" required={form.isSingleUnit}>
+            <FormField label="Rent Amount" required={!!form.tenantId} error={fieldErrors.rentAmount}>
               <div className="flex gap-2">
-                <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className="flex-1" />
+                <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className={`flex-1 ${fieldErrors.rentAmount ? "border-destructive" : ""}`} />
                 <div className="w-24">
                   <NativeSelect name="currency" value={form.currency} onChange={change} className="w-full">
                     <NativeSelectOption value="USD">USD</NativeSelectOption>
@@ -172,20 +172,6 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
                 </div>
               </div>
             </FormField>
-
-            {form.isSingleUnit && (
-              <FormField label="Assign Tenant (Optional)">
-                <NativeSelect name="tenantId" value={form.tenantId} onChange={change}
-                  className="w-full" disabled={loadingTenants}>
-                  <NativeSelectOption value="">
-                    {loadingTenants ? "Loading tenants…" : "— Skip assigning tenant —"}
-                  </NativeSelectOption>
-                  {tenants.map((t) => (
-                    <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </FormField>
-            )}
 
           </div>
           <DialogFooter className="mt-2">
