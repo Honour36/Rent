@@ -62,7 +62,9 @@ export const propertiesController = {
       res.json({ success: true, data });
     } catch (error: any) {
       const status = error.statusCode || 500;
-      const msg = status === 404 ? 'Property not found.' : 'Could not delete property.';
+      const msg = status === 404 ? 'Property not found.' : 
+                  status === 400 ? error.message : 
+                  'Could not delete property.';
       res.status(status).json({ success: false, error: msg });
     }
   },
