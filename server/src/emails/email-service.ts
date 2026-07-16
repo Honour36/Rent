@@ -103,7 +103,7 @@ export async function sendWelcomeEmail(opts: {
   accountName: string;
   dashboardUrl?: string;
 }) {
-  const url = opts.dashboardUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/overview`;
+  const url = opts.dashboardUrl || `${process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app'}/dashboard/overview`;
   const body = `
     <h1>Welcome to Rental, ${opts.name}! 🎉</h1>
     <p>You've successfully set up <strong>${opts.accountName}</strong> on Hi. You're now ready to manage your property portfolio in one place.</p>
@@ -275,7 +275,7 @@ export async function sendApplicationReceivedEmail(opts: {
   applicationId: string;
   accountName: string;
 }) {
-  const url = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/applications/${opts.applicationId}`;
+  const url = `${process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app'}/dashboard/applications/${opts.applicationId}`;
   const body = `
     <h1>New Tenant Application</h1>
     <p>Hi ${opts.agentName},</p>
