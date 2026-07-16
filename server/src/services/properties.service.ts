@@ -139,15 +139,30 @@ export class PropertiesService {
   async delete(id: string, user: TokenPayload) {
     const existing = await prisma.property.findFirst({
       where: { id, account_id: user.accountId },
-      include: { _count: { select: { units: true } } },
+      select: { id: true },
     });
     if (!existing) throw new AppError('Property not found', 404);
     
-    if (existing._count.units > 0) {
-      throw new AppError('Cannot delete property with existing units. Please remove all units first.', 400);
-    }
+    const units = await prisma.unit.findMany({ where: { property_id: id }, select: { id: true } });
+    const unitIds = units.map(u => u.id);
 
-    await prisma.property.delete({ where: { id } });
+    const tenancies = await prisma.tenancy.findMany({ where: { unit_id: { in: unitIds } }, select: { id: true } });
+    const tenancyIds = tenancies.map(t => t.id);
+
+    const payments = await prisma.payment.findMany({ where: { tenancy_id: { in: tenancyIds } }, select: { id: true } });
+    const paymentIds = payments.map(p => p.id);
+
+    await prisma.$transaction([
+      prisma.receipt.deleteMany({ where: { payment_id: { in: paymentIds } } }),
+      prisma.payment.deleteMany({ where: { tenancy_id: { in: tenancyIds } } }),
+      prisma.trustTransaction.deleteMany({ where: { tenancy_id: { in: tenancyIds } } }),
+      prisma.maintenanceRequest.deleteMany({ where: { unit_id: { in: unitIds } } }),
+      prisma.application.deleteMany({ where: { unit_id: { in: unitIds } } }),
+      prisma.tenancy.deleteMany({ where: { unit_id: { in: unitIds } } }),
+      prisma.unit.deleteMany({ where: { property_id: id } }),
+      prisma.property.delete({ where: { id } }),
+    ]);
+
     return { deleted: true };
   }
 }

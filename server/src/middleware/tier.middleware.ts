@@ -14,19 +14,6 @@ const LIMITS: Record<string, TierLimits> = {
 export function enforceTierLimit(resource: keyof TierLimits) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const accountId = req.user!.accountId;
-      const account = await prisma.account.findUnique({ where: { id: accountId }, select: { subscription_tier: true } });
-      const tier = account?.subscription_tier ?? 'free';
-      const limits = LIMITS[tier] ?? LIMITS['free'];
-      const max = limits[resource];
-      let current = 0;
-      if (resource === 'properties') current = await prisma.property.count({ where: { account_id: accountId } });
-      else if (resource === 'units')  current = await prisma.unit.count({ where: { account_id: accountId } });
-      else if (resource === 'agents') current = await prisma.user.count({ where: { account_id: accountId } });
-      else if (resource === 'owners') current = await prisma.owner.count({ where: { account_id: accountId } });
-      if (max !== -1 && current >= max) {
-        return res.status(403).json({ success: false, error: `Your ${tier} plan allows a maximum of ${max} ${resource}. Upgrade to add more.`, code: 'TIER_LIMIT_REACHED' });
-      }
       next();
     } catch (err) { next(err); }
   };
