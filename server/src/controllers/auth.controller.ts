@@ -26,8 +26,8 @@ export const authController = {
       const { email, code } = VerifyEmailSchema.parse(req.body);
       const result = await authService.verifyEmail(email, code);
       // Set cookies
-      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 15 * 60 * 1000 });
-      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 15 * 60 * 1000 });
+      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
       ok(res, result);
     } catch (e: any) { fail(res, e); }
   },
@@ -44,8 +44,8 @@ export const authController = {
     try {
       const dto = LoginSchema.parse(req.body);
       const result = await authService.login(dto);
-      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 15 * 60 * 1000 });
-      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 15 * 60 * 1000 });
+      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
       ok(res, result);
     } catch (e: any) { fail(res, e); }
   },
@@ -71,7 +71,7 @@ export const authController = {
       const token = req.cookies?.refresh_token || req.body?.refreshToken;
       if (!token) { res.status(401).json({ success: false, error: 'Refresh token required.' }); return; }
       const result = await authService.refresh(token);
-      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 15 * 60 * 1000 });
+      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 15 * 60 * 1000 });
       ok(res, result);
     } catch (e: any) { fail(res, e); }
   },
@@ -90,8 +90,8 @@ export const authController = {
     try {
       const data = AcceptInviteSchema.parse(req.body);
       const result = await authService.acceptInvite(data);
-      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 15 * 60 * 1000 });
-      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/auth/refresh', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      res.cookie('access_token', result.accessToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 15 * 60 * 1000 });
+      res.cookie('refresh_token', result.refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', path: '/api/auth/refresh', maxAge: 30 * 24 * 60 * 60 * 1000 });
       ok(res, result, 201);
     } catch (e: any) { fail(res, e); }
   },
