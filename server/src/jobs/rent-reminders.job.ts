@@ -7,10 +7,12 @@ const LOCK_KEY = 'cron:rent-reminders:lock';
 const LOCK_TTL = 60 * 5; // 5 minutes
 
 export async function runRentReminders() {
-  const lock = await redis.set(LOCK_KEY, 'locked', 'EX', LOCK_TTL, 'NX');
-  if (!lock) {
-    console.log('[Jobs] Rent reminders job is already running on another instance.');
-    return;
+  if (redis) {
+    const lock = await redis.set(LOCK_KEY, 'locked', 'EX', LOCK_TTL, 'NX');
+    if (!lock) {
+      console.log('[Jobs] Rent reminders job is already running on another instance.');
+      return;
+    }
   }
 
   console.log('[Jobs] Starting rent reminders job...');

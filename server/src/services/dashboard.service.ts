@@ -1,11 +1,11 @@
 import { prisma } from '../db/prisma';
-import { redis } from '../db/redis';
+import { cacheGet, cacheSet } from '../db/redis';
 import { reportsService } from './reports.service';
 
 export class DashboardService {
   async getOverview(accountId: string) {
     const cacheKey = `dashboard:overview:${accountId}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
       return JSON.parse(cached);
     }
@@ -108,7 +108,7 @@ export class DashboardService {
     };
 
     // Cache for 5 minutes (300 seconds)
-    await redis.setex(cacheKey, 300, JSON.stringify(overviewData));
+    await cacheSet(cacheKey, 300, JSON.stringify(overviewData));
 
     return overviewData;
   }
