@@ -36,8 +36,9 @@ export function GenerateUnitLinkButton({ unitId, size = "sm" }: Props) {
     );
     setLoading(false);
 
-    if (res.success && (res as any).data?.url) {
-      const url = (res as any).data.url;
+    if (res.success && (res as any).data?.token) {
+      const token = (res as any).data.token;
+      const url = `${window.location.origin}/application/${token}`;
       setLink(url);
       navigator.clipboard.writeText(url);
       setCopied(true);
