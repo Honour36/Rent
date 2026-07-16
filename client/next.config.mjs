@@ -29,7 +29,7 @@ const nextConfig = {
       {
         source: "/api/:path*",
         // Replace with your ACTUAL Render backend URL! (Keep /api/:path* at the end)
-        destination: "https://your-backend-name.onrender.com/api/:path*",
+        destination: "https://rental-31h2.onrender.com/api/:path*",
       },
     ];
   },
