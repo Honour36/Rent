@@ -14,6 +14,7 @@ export const CreatePropertySchema = z.object({
   isSingleUnit: z.boolean().optional().default(false),
   rentAmount: z.number().positive().optional(),
   currency: z.enum(['USD', 'ZiG']).optional().default('USD'),
+  tenantId: z.string().uuid().optional(),
 });
 
 export type CreatePropertyDto = z.infer<typeof CreatePropertySchema>;
@@ -85,16 +86,31 @@ export class PropertiesService {
 
     // If single-unit flag: auto-create one unit named "Main Unit"
     if (data.isSingleUnit && data.rentAmount) {
-      await prisma.unit.create({
+      const unit = await prisma.unit.create({
         data: {
           account_id: user.accountId,
           property_id: property.id,
           unit_number: 'Main Unit',
           rent_amount: data.rentAmount,
           currency: data.currency ?? 'USD',
-          status: 'vacant',
+          status: data.tenantId ? 'occupied' : 'vacant',
         },
       });
+
+      // Auto-assign tenant if provided
+      if (data.tenantId) {
+        await prisma.tenancy.create({
+          data: {
+            account_id: user.accountId,
+            unit_id: unit.id,
+            tenant_id: data.tenantId,
+            lease_start: new Date(),
+            rent_amount: data.rentAmount,
+            currency: data.currency ?? 'USD',
+            status: 'active',
+          }
+        });
+      }
     }
 
     return property;

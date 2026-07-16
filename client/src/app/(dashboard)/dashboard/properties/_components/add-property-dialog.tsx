@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { createProperty } from "@/hooks/useProperties";
 import { useOwners } from "@/hooks/useOwners";
+import { useTenants } from "@/hooks/useTenants";
 
 interface AddPropertyDialogProps { onSuccess?: () => void }
 
@@ -21,13 +22,14 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const { owners, loading: loadingOwners } = useOwners();
-
   const [form, setForm] = useState({
     name: "", address: "", suburb: "", city: "",
     type: "residential", ownerId: "", rentAmount: "", currency: "USD",
-    isSingleUnit: false,
+    isSingleUnit: false, tenantId: "",
   });
+
+  const { owners, loading: loadingOwners } = useOwners();
+  const { tenants, loading: loadingTenants } = useTenants();
 
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -55,7 +57,8 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
     const res = await createProperty({
       ...form,
       ownerId: form.ownerId || undefined,
-      rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined
+      rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined,
+      tenantId: form.isSingleUnit && form.tenantId ? form.tenantId : undefined,
     } as any);
 
     if (res.success) {
@@ -64,7 +67,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
         duration: 6000,
       });
       setOpen(false);
-      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", isSingleUnit: false });
+      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", isSingleUnit: false, tenantId: "" });
       setFieldErrors({});
       onSuccess?.();
     } else {
@@ -169,6 +172,20 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
                 </div>
               </div>
             </FormField>
+
+            {form.isSingleUnit && (
+              <FormField label="Assign Tenant (Optional)">
+                <NativeSelect name="tenantId" value={form.tenantId} onChange={change}
+                  className="w-full" disabled={loadingTenants}>
+                  <NativeSelectOption value="">
+                    {loadingTenants ? "Loading tenants…" : "— Skip assigning tenant —"}
+                  </NativeSelectOption>
+                  {tenants.map((t) => (
+                    <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </FormField>
+            )}
 
           </div>
           <DialogFooter className="mt-2">
