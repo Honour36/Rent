@@ -71,6 +71,9 @@ export class ApplicationsService {
       include: { property: { select: { name: true, address: true } } },
     });
     if (!unit) throw new AppError('Unit not found', 404);
+    if (unit.rent_amount == null) {
+      throw new AppError('Set a rent amount for this property before generating an application link.', 400);
+    }
 
     const token = randomBytes(24).toString('hex');
 
@@ -293,7 +296,7 @@ export class ApplicationsService {
       select: { id: true, status: true },
     });
     if (!existing) throw new Error('Application not found');
-    if (existing.status === 'approved') throw new Error('Cannot delete an approved application — it has already created a tenant record.');
+    if (existing.status === 'approved') throw new Error('Cannot delete an approved application - it has already created a tenant record.');
     await prisma.application.delete({ where: { id } });
     return { deleted: true };
   }

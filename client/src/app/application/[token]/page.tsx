@@ -16,7 +16,7 @@ import { apiClient } from "@/lib/api-client";
 import type { PublicApplicationInfo } from "@/hooks/useApplications";
 
 interface FormState {
-  // Section 1 — Tenant
+  // Section 1 - Tenant
   title: string;
   fullName: string;
   idNumber: string;
@@ -24,13 +24,13 @@ interface FormState {
   cellNo: string;
   workNo: string;
   email: string;
-  // Section 2 — Employment
+  // Section 2 - Employment
   employer: string;
   occupation: string;
   yearsEmployed: string;
   salary: string;
   employerAddress: string;
-  // Section 3 — Spouse / Dependants
+  // Section 3 - Spouse / Dependants
   spouseName: string;
   numberOfDependants: string;
   spouseEmployer: string;
@@ -39,16 +39,16 @@ interface FormState {
   spouseEmployerAddress: string;
   spouseWorkNo: string;
   spouseCellNo: string;
-  // Section 4 — Guarantor
+  // Section 4 - Guarantor
   guarantorName: string;
   guarantorContact: string;
-  // Section 5 — Addresses
+  // Section 5 - Addresses
   presentAddress: string;
   previousAddress: string;
   presentEstateOwner: string;
   presentEstateOwnerCell: string;
   reasonForVacating: string;
-  // Section 6 — Trade Reference
+  // Section 6 - Trade Reference
   reference1Name: string;
   reference1AccountTel: string;
   // Consent
@@ -206,7 +206,7 @@ export default function ApplicationPage() {
         <CardContent className="flex flex-col items-center gap-4 py-16">
           <CheckCircle2 className="h-16 w-16 text-green-500" />
           <h2 className="text-2xl font-bold">Application Submitted!</h2>
-          <p className="text-muted-foreground">Your application for <strong>{unitInfo.unit.property.name} — Unit {unitInfo.unit.unit_number}</strong> has been received. The agent will be in touch shortly.</p>
+          <p className="text-muted-foreground">Your application for <strong>{unitInfo.unit.property.name} - Unit {unitInfo.unit.unit_number}</strong> has been received. The agent will be in touch shortly.</p>
           <p className="text-xs text-muted-foreground">NB: A non-refundable fee of USD 10.00 is paid for credit clearance.</p>
         </CardContent>
       </Card>
@@ -223,7 +223,7 @@ export default function ApplicationPage() {
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Building2 className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold text-primary">PropManager</span>
+            <span className="text-xl font-bold text-primary">Rental</span>
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wide">Tenancy Application Form</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-xl mx-auto">
@@ -248,7 +248,7 @@ export default function ApplicationPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Section 1 — Personal */}
+          {/* Section 1 - Personal */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Personal Details</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -307,7 +307,7 @@ export default function ApplicationPage() {
             </CardContent>
           </Card>
 
-          {/* Section 2 — Employment */}
+          {/* Section 2 - Employment */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Employment Details</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -333,7 +333,7 @@ export default function ApplicationPage() {
             </CardContent>
           </Card>
 
-          {/* Section 3 — Spouse */}
+          {/* Section 3 - Spouse */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Spouse & Dependants</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -370,7 +370,7 @@ export default function ApplicationPage() {
             </CardContent>
           </Card>
 
-          {/* Section 4 — Guarantor */}
+          {/* Section 4 - Guarantor */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Guarantor</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -383,7 +383,7 @@ export default function ApplicationPage() {
             </CardContent>
           </Card>
 
-          {/* Section 5 — Addresses */}
+          {/* Section 5 - Addresses */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Residential History</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -407,7 +407,7 @@ export default function ApplicationPage() {
             </CardContent>
           </Card>
 
-          {/* Section 6 — Trade Reference */}
+          {/* Section 6 - Trade Reference */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Trade Reference</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">

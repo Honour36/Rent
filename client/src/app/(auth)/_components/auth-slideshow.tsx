@@ -48,7 +48,7 @@ export function AuthSlideshow({ photos, interval = 5000 }: AuthSlideshowProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* Previous slide — fades out */}
+      {/* Previous slide - fades out */}
       {prev !== null && (
         <div
           key={`prev-${prev}`}
@@ -64,7 +64,7 @@ export function AuthSlideshow({ photos, interval = 5000 }: AuthSlideshowProps) {
         </div>
       )}
 
-      {/* Current slide — fades in */}
+      {/* Current slide - fades in */}
       <div
         key={`curr-${current}`}
         className="absolute inset-0 transition-opacity duration-700 ease-in-out opacity-100"
@@ -89,7 +89,7 @@ export function AuthSlideshow({ photos, interval = 5000 }: AuthSlideshowProps) {
             "The spreadsheet-free way to manage your portfolio."
           </p>
           <p className="text-sm text-white/70">
-            Rental — built for Zimbabwean property managers
+            Rental - built for Zimbabwean property managers
           </p>
         </blockquote>
       </div>

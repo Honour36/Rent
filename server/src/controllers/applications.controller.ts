@@ -10,7 +10,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 class ApplicationsController {
   /**
    * POST /api/applications/generate-link
-   * Authenticated — agent generates shareable link for a unit.
+   * Authenticated - agent generates shareable link for a unit.
    */
   generateLink = async (req: AuthRequest, res: Response) => {
     const parsed = GenerateLinkSchema.safeParse(req.body);
@@ -28,7 +28,7 @@ class ApplicationsController {
 
   /**
    * GET /api/applications/public/:token
-   * No auth — returns unit info for form header pre-fill.
+   * No auth - returns unit info for form header pre-fill.
    */
   getPublic = async (req: Request, res: Response) => {
     try {
@@ -41,7 +41,7 @@ class ApplicationsController {
 
   /**
    * POST /api/applications/public/:token
-   * No auth — tenant submits application form.
+   * No auth - tenant submits application form.
    */
   submitPublic = async (req: Request, res: Response) => {
     const parsed = ApplicationSubmitSchema.safeParse(req.body);
@@ -59,7 +59,7 @@ class ApplicationsController {
 
   /**
    * GET /api/applications
-   * Authenticated — list all applications for account with optional status filter.
+   * Authenticated - list all applications for account with optional status filter.
    */
   list = async (req: AuthRequest, res: Response) => {
     try {
@@ -73,7 +73,7 @@ class ApplicationsController {
 
   /**
    * GET /api/applications/:id
-   * Authenticated — full application detail for vetting view.
+   * Authenticated - full application detail for vetting view.
    */
   getById = async (req: AuthRequest, res: Response) => {
     try {
@@ -86,7 +86,7 @@ class ApplicationsController {
 
   /**
    * PATCH /api/applications/:id/status
-   * Authenticated — update status + vetting notes.
+   * Authenticated - update status + vetting notes.
    */
   updateStatus = async (req: AuthRequest, res: Response) => {
     const parsed = UpdateApplicationStatusSchema.safeParse(req.body);

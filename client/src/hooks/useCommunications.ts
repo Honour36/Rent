@@ -4,7 +4,8 @@ import { apiClient } from "@/lib/api-client";
 export interface CommunicationDto {
   id: string;
   account_id: string;
-  tenant_id: string;
+  tenant_id: string | null;
+  owner_id: string | null;
   channel: "email" | "whatsapp";
   direction: string;
   subject: string | null;
@@ -16,7 +17,13 @@ export interface CommunicationDto {
     full_name: string;
     phone: string | null;
     email: string | null;
-  };
+  } | null;
+  owner: {
+    id: string;
+    full_name: string;
+    phone: string | null;
+    email: string | null;
+  } | null;
   sender: {
     id: string;
     full_name: string | null;
@@ -31,7 +38,9 @@ export interface CommunicationListResult {
 }
 
 export interface ComposeCommunicationDto {
-  tenantId: string;
+  recipientType: "tenant" | "owner";
+  tenantId?: string;
+  ownerId?: string;
   channel: "email" | "whatsapp";
   subject?: string;
   body: string;
@@ -47,11 +56,12 @@ export function useCommunications() {
   const [error, setError] = useState("");
 
   const listCommunications = useCallback(
-    async (filters: { tenantId?: string; channel?: string; page?: number } = {}) => {
+    async (filters: { tenantId?: string; ownerId?: string; channel?: string; page?: number } = {}) => {
       setLoading(true);
       setError("");
       const params = new URLSearchParams();
       if (filters.tenantId) params.set("tenantId", filters.tenantId);
+      if (filters.ownerId) params.set("ownerId", filters.ownerId);
       if (filters.channel && filters.channel !== "all") params.set("channel", filters.channel);
       if (filters.page) params.set("page", String(filters.page));
 

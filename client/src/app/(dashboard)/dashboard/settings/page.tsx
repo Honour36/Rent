@@ -174,7 +174,7 @@ function SettingsPageInner() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2 grid gap-2">
                       <Label htmlFor="companyName">Company / Agency Name <span className="text-destructive">*</span></Label>
-                      <Input id="companyName" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="e.g. Sermony Properties" required />
+                      <Input id="companyName" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="e.g. Your Company Name" required />
                     </div>
                     <div className="sm:col-span-2 grid gap-2">
                       <Label htmlFor="companyAddress">Street Address <span className="text-destructive">*</span></Label>
@@ -218,7 +218,7 @@ function SettingsPageInner() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="grid gap-2">
                       <Label htmlFor="bankName">Bank / Account Name</Label>
-                      <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. EASTVIEW" />
+                      <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Your Bank" />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="bankAccount">Account Number</Label>
@@ -300,7 +300,7 @@ function SettingsPageInner() {
                 <Badge variant="outline" className="ml-1 capitalize font-semibold">
                   {account?.subscription_tier ?? "free"}
                 </Badge>
-                {" "}— contact support to upgrade.
+                {" "}- contact support to upgrade.
               </p>
             </div>
 
@@ -355,7 +355,7 @@ function SettingsPageInner() {
                         <Button
                           className="w-full"
                           variant={tier.highlighted ? "default" : "outline"}
-                          onClick={() => window.open("mailto:support@propmanager.app?subject=Upgrade to " + tier.name, "_blank")}
+                          onClick={() => window.open("mailto:support@rental.app?subject=Upgrade to " + tier.name, "_blank")}
                         >
                           {tier.priceUsd === 0 ? "Get Started Free" : `Upgrade to ${tier.name}`}
                         </Button>

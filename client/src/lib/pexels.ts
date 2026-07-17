@@ -1,6 +1,6 @@
 /**
  * Server-side Pexels helper.
- * PEXELS_API_KEY has no NEXT_PUBLIC_ prefix — it is ONLY available in
+ * PEXELS_API_KEY has no NEXT_PUBLIC_ prefix - it is ONLY available in
  * server components / route handlers and is never shipped to the browser.
  */
 
@@ -43,7 +43,7 @@ export async function fetchPexelsPhotos(
 ): Promise<PexelsPhoto[]> {
   const apiKey = process.env.PEXELS_API_KEY;
   if (!apiKey) {
-    console.warn("[pexels] PEXELS_API_KEY is not set — returning empty array.");
+    console.warn("[pexels] PEXELS_API_KEY is not set - returning empty array.");
     return [];
   }
 
@@ -56,7 +56,7 @@ export async function fetchPexelsPhotos(
   try {
     const res = await fetch(url.toString(), {
       headers: { Authorization: apiKey },
-      // Cache for 1 hour — avoids hammering the API on every page visit
+      // Cache for 1 hour - avoids hammering the API on every page visit
       next: { revalidate: 3600 },
     });
 

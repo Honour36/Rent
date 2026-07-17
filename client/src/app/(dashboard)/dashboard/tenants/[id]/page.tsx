@@ -44,7 +44,7 @@ function formatCurrency(amount: number | string, currency: string) {
 }
 
 function formatDate(dateStr: string | null) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -141,17 +141,17 @@ export default function TenantDetailPage({ params }: PageProps) {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{tenant.email || "—"}</span>
+              <span className="text-sm">{tenant.email || "-"}</span>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{tenant.phone || "—"}</span>
+              <span className="text-sm">{tenant.phone || "-"}</span>
             </div>
             <div className="flex items-center gap-3">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <div className="text-sm">
                 <span className="text-muted-foreground mr-1">ID:</span>
-                {tenant.id_number || "—"}
+                {tenant.id_number || "-"}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -175,18 +175,18 @@ export default function TenantDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-medium text-muted-foreground">Employer</p>
-                <p className="mt-1">{tenant.employer || "—"}</p>
+                <p className="mt-1">{tenant.employer || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-muted-foreground">Status</p>
-                <p className="mt-1 capitalize">{tenant.employment_status || "—"}</p>
+                <p className="mt-1 capitalize">{tenant.employment_status || "-"}</p>
               </div>
               <div className="col-span-2">
                 <p className="font-medium text-muted-foreground">Monthly Income</p>
                 <p className="mt-1">
                   {tenant.monthly_income
                     ? formatCurrency(tenant.monthly_income, "USD")
-                    : "—"}
+                    : "-"}
                 </p>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                 <p className="mt-1">
                   {activeTenancy.deposit_amount
                     ? formatCurrency(activeTenancy.deposit_amount, activeTenancy.currency)
-                    : "—"}
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                 <p className="mt-1">
                   {activeTenancy.rent_due_day
                     ? `${activeTenancy.rent_due_day}${ordinal(activeTenancy.rent_due_day)} of month`
-                    : "—"}
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -339,7 +339,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                             </Button>
                           </Link>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -408,7 +408,7 @@ export default function TenantDetailPage({ params }: PageProps) {
                           <p className="truncate text-muted-foreground">{comm.body}</p>
                         )}
                         {!comm.subject && !comm.body && (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                     </TableRow>

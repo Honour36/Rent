@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
     await apiClient("/auth/forgot-password", { data: { email } });
     setLoading(false);
     setSent(true);
-    toast.success("Reset code sent — check your inbox.");
+    toast.success("Reset code sent - check your inbox.");
   };
 
   return (

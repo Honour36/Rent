@@ -75,13 +75,17 @@ export class AgentsService {
     });
 
     const setupLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/register?token=${token}`;
-    
-    await this.resend.emails.send({
-      from: 'Rent System <noreply@rent-system.local>',
+
+    const result = await this.resend.emails.send({
+      from: 'Rental <onboarding@resend.dev>',
       to: data.email,
-      subject: 'You have been invited to join Rent System',
+      subject: 'You have been invited to join Rental',
       html: `<p>You have been invited to join as an agent.</p><p><a href="${setupLink}">Click here to set up your account</a></p>`
     });
+    if (result.error) {
+      // Resend resolves with an `error` field instead of throwing.
+      throw new AppError(`Failed to send invite email: ${result.error.message}`, 500);
+    }
 
     return invite;
   }

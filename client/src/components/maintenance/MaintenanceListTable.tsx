@@ -221,7 +221,7 @@ export function MaintenanceListTable() {
                   <TableCell>{priorityBadge(r.priority)}</TableCell>
                   <TableCell>{statusBadge(r.status)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{format(new Date(r.created_at), "dd MMM yyyy")}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.logger.full_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{r.logger.full_name ?? "-"}</TableCell>
                   <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditRecord(r)}>

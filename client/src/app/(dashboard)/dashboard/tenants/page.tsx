@@ -102,8 +102,8 @@ export default function TenantsPage() {
                         <TableCell className="text-sm font-medium text-foreground">{tenant.full_name}</TableCell>
                         <TableCell>
                           <div className="flex flex-col text-sm">
-                            <span className="text-foreground">{tenant.email ?? "—"}</span>
-                            <span className="text-muted-foreground">{tenant.phone ?? "—"}</span>
+                            <span className="text-foreground">{tenant.email ?? "-"}</span>
+                            <span className="text-muted-foreground">{tenant.phone ?? "-"}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-foreground">
@@ -112,7 +112,7 @@ export default function TenantsPage() {
                               <span className="font-medium">{t.unit.property.name}</span>
                               <span className="text-muted-foreground">Unit {t.unit.unit_number}</span>
                             </div>
-                          ) : <span className="text-muted-foreground">—</span>}
+                          ) : <span className="text-muted-foreground">-</span>}
                         </TableCell>
                         <TableCell>
                           {t ? <Badge variant="default">Active</Badge> : <Badge variant="outline">No Tenancy</Badge>}

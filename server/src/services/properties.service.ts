@@ -10,8 +10,9 @@ export const CreatePropertySchema = z.object({
   suburb: z.string().optional(),
   city: z.string().optional(),
   type: z.enum(['residential', 'commercial']).default('residential'),
-  // Optional: if true, auto-create a single unit with these values
-  isSingleUnit: z.boolean().optional().default(false),
+  // Rent amount is optional at creation time - it can always be added or
+  // changed later from Edit Property. It is never required just to save
+  // the property record itself.
   rentAmount: z.number().positive().optional(),
   currency: z.enum(['USD', 'ZiG']).optional().default('USD'),
   tenantId: z.string().uuid().optional(),
@@ -32,6 +33,7 @@ export class PropertiesService {
       orderBy: { created_at: 'desc' },
       include: {
         units: {
+          orderBy: { created_at: 'asc' },
           include: {
             tenancies: {
               where: { status: 'active' },
@@ -53,6 +55,7 @@ export class PropertiesService {
       where: { id, account_id: user.accountId },
       include: {
         units: {
+          orderBy: { created_at: 'asc' },
           include: {
             tenancies: {
               where: { status: 'active' },
@@ -84,33 +87,39 @@ export class PropertiesService {
       },
     });
 
-    // If single-unit flag: auto-create one unit named "Main Unit"
-    if (data.isSingleUnit && data.rentAmount) {
-      const unit = await prisma.unit.create({
+    // Most properties in this system are basic, standalone properties (a
+    // whole house, a shop) rather than a block with several sub-units - but
+    // rent/status/occupancy are still stored per-unit under the hood. So we
+    // always give a property exactly one "primary" unit representing the
+    // property itself, whether or not a rent amount was supplied yet. This
+    // is what Edit Property later updates when the agent adds/changes rent -
+    // without it, there was nothing for Edit Property to update. Agents who
+    // are genuinely managing a multi-unit building (e.g. a block of flats)
+    // can still add further units from the property page.
+    const unit = await prisma.unit.create({
+      data: {
+        account_id: user.accountId,
+        property_id: property.id,
+        unit_number: 'Main Unit',
+        rent_amount: data.rentAmount ?? null,
+        currency: data.currency ?? 'USD',
+        status: data.tenantId ? 'occupied' : 'vacant',
+      },
+    });
+
+    // Auto-assign tenant if provided (requires a rent amount to open a tenancy)
+    if (data.tenantId && data.rentAmount) {
+      await prisma.tenancy.create({
         data: {
           account_id: user.accountId,
-          property_id: property.id,
-          unit_number: 'Main Unit',
+          unit_id: unit.id,
+          tenant_id: data.tenantId,
+          lease_start: new Date(),
           rent_amount: data.rentAmount,
           currency: data.currency ?? 'USD',
-          status: data.tenantId ? 'occupied' : 'vacant',
-        },
+          status: 'active',
+        }
       });
-
-      // Auto-assign tenant if provided
-      if (data.tenantId) {
-        await prisma.tenancy.create({
-          data: {
-            account_id: user.accountId,
-            unit_id: unit.id,
-            tenant_id: data.tenantId,
-            lease_start: new Date(),
-            rent_amount: data.rentAmount,
-            currency: data.currency ?? 'USD',
-            status: 'active',
-          }
-        });
-      }
     }
 
     return property;
@@ -119,9 +128,10 @@ export class PropertiesService {
   async update(id: string, data: any, user: TokenPayload) {
     const existing = await prisma.property.findFirst({
       where: { id, account_id: user.accountId },
-      select: { id: true },
+      include: { units: { orderBy: { created_at: 'asc' }, take: 1 } },
     });
     if (!existing) throw new Error('Property not found');
+
     const property = await prisma.property.update({
       where: { id },
       data: {
@@ -133,6 +143,41 @@ export class PropertiesService {
         ...(data.ownerId ? { owner_id: data.ownerId } : {}),
       },
     });
+
+    // Rent amount lives on the property's primary unit under the hood - this
+    // is what makes it possible to actually edit it from Edit Property. Only
+    // touch it when the caller sent rentAmount/currency, and only against the
+    // primary unit (index 0) - additional units on a genuine multi-unit
+    // property are managed individually, not through this top-level field.
+    if (data.rentAmount !== undefined || data.currency !== undefined) {
+      const rentAmount = data.rentAmount === '' || data.rentAmount === undefined
+        ? undefined
+        : Number(data.rentAmount);
+      const primaryUnit = existing.units[0];
+
+      if (primaryUnit) {
+        await prisma.unit.update({
+          where: { id: primaryUnit.id },
+          data: {
+            ...(rentAmount !== undefined ? { rent_amount: rentAmount } : {}),
+            ...(data.currency ? { currency: data.currency } : {}),
+          },
+        });
+      } else {
+        // Defensive: a property saved before this fix could have zero units.
+        await prisma.unit.create({
+          data: {
+            account_id: user.accountId,
+            property_id: id,
+            unit_number: 'Main Unit',
+            rent_amount: rentAmount ?? null,
+            currency: data.currency ?? 'USD',
+            status: 'vacant',
+          },
+        });
+      }
+    }
+
     return property;
   }
 

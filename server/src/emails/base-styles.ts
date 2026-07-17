@@ -1,14 +1,14 @@
 export const colors = {
-  primary: '#1a56db',
-  primaryLight: '#e8f0fe',
+  primary: '#000000',
+  primaryLight: '#f3f4f6',
   dark: '#111827',
   gray: '#6b7280',
   lightGray: '#f9fafb',
   border: '#e5e7eb',
   white: '#ffffff',
-  green: '#16a34a',
-  amber: '#d97706',
-  red: '#dc2626',
+  green: '#111827',
+  amber: '#111827',
+  red: '#111827',
 };
 
 export const fonts = {

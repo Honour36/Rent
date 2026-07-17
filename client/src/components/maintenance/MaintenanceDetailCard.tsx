@@ -128,7 +128,7 @@ export function MaintenanceDetailCard({ request, onUpdated }: MaintenanceDetailC
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left — details */}
+        {/* Left - details */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Description */}
           <Card>
@@ -161,7 +161,7 @@ export function MaintenanceDetailCard({ request, onUpdated }: MaintenanceDetailC
           )}
         </div>
 
-        {/* Right — controls */}
+        {/* Right - controls */}
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
@@ -250,7 +250,7 @@ export function MaintenanceDetailCard({ request, onUpdated }: MaintenanceDetailC
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Logged by</span>
-                <span className="font-medium">{request.logger.full_name ?? "—"}</span>
+                <span className="font-medium">{request.logger.full_name ?? "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Logged on</span>

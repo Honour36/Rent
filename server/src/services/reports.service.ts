@@ -286,7 +286,7 @@ export class ReportsService {
           );
         }
         doc.fontSize(11).text(
-          `  Subtotal — Due: $${property.subtotalRentDue.toFixed(2)} | Collected: $${property.subtotalCollected.toFixed(2)}`,
+          `  Subtotal - Due: $${property.subtotalRentDue.toFixed(2)} | Collected: $${property.subtotalCollected.toFixed(2)}`,
           { indent: 10 },
         );
         doc.moveDown(0.5);
@@ -350,10 +350,10 @@ export class ReportsService {
     });
 
     try {
-      await this.resend.emails.send({
-        from: 'Rent System <onboarding@resend.dev>',
+      const result = await this.resend.emails.send({
+        from: 'Rental <onboarding@resend.dev>',
         to: [statement.owner.email],
-        subject: `Owner Statement — ${monthName} ${statement.period_year}`,
+        subject: `Owner Statement - ${monthName} ${statement.period_year}`,
         html: `<p>Dear ${statement.owner.full_name},</p><p>Please find attached your owner statement for ${monthName} ${statement.period_year}.</p>`,
         attachments: [
           {
@@ -362,6 +362,10 @@ export class ReportsService {
           },
         ],
       });
+      if (result.error) {
+        // Resend resolves with an `error` field instead of throwing.
+        throw new Error(result.error.message);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       throw new AppError(`Failed to send statement email: ${message}`, 500);

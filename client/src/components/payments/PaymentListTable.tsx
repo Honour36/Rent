@@ -132,10 +132,10 @@ export function PaymentListTable({ payments, onRefresh }: { payments: PaymentDto
               <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50"
                 onClick={() => router.push(`/dashboard/payments/${p.id}`)}>
                 <TableCell>{format(new Date(p.payment_date), 'dd MMM yyyy')}</TableCell>
-                <TableCell className="font-medium">{p.tenancy?.tenant?.full_name ?? '—'}</TableCell>
+                <TableCell className="font-medium">{p.tenancy?.tenant?.full_name ?? '-'}</TableCell>
                 <TableCell>
                   <div className="flex flex-col text-sm">
-                    <span>{p.tenancy?.unit?.property?.name ?? '—'}</span>
+                    <span>{p.tenancy?.unit?.property?.name ?? '-'}</span>
                     <span className="text-muted-foreground">{p.tenancy?.unit?.unit_number}</span>
                   </div>
                 </TableCell>

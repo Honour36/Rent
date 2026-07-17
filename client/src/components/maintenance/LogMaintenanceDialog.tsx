@@ -29,7 +29,7 @@ interface LogMaintenanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
-  /** Pre-fill a specific unit — used when logging from a unit detail page */
+  /** Pre-fill a specific unit - used when logging from a unit detail page */
   prefilledUnitId?: string;
 }
 

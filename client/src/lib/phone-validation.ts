@@ -16,7 +16,7 @@ function normalise(raw: string): string {
 }
 
 export function validatePhone(raw: string): PhoneValidationResult {
-  if (!raw || !raw.trim()) return { valid: true }; // optional field — blank is fine
+  if (!raw || !raw.trim()) return { valid: true }; // optional field - blank is fine
 
   const n = normalise(raw);
 
@@ -29,12 +29,12 @@ export function validatePhone(raw: string): PhoneValidationResult {
 
   // Too short
   if (digits.length < 7) {
-    return { valid: false, message: 'Phone number is too short — at least 7 digits required.' };
+    return { valid: false, message: 'Phone number is too short - at least 7 digits required.' };
   }
 
   // Too long
   if (digits.length > 15) {
-    return { valid: false, message: 'Phone number is too long — maximum 15 digits.' };
+    return { valid: false, message: 'Phone number is too long - maximum 15 digits.' };
   }
 
   // Zimbabwe mobile: 07XXXXXXXX (10 digits) or +2637XXXXXXX (12 digits)
@@ -52,7 +52,7 @@ export function validatePhone(raw: string): PhoneValidationResult {
     return { valid: true, formatted: `+263 ${local.slice(0,2)} ${local.slice(2,5)} ${local.slice(5)}` };
   }
 
-  // International — accept anything 7-15 digits
+  // International - accept anything 7-15 digits
   if (digits.length >= 7 && digits.length <= 15) {
     return { valid: true };
   }

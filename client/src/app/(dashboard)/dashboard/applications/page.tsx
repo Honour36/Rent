@@ -141,7 +141,7 @@ export default function ApplicationsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {app.applicant_phone ?? "—"}
+                          {app.applicant_phone ?? "-"}
                         </TableCell>
                         <TableCell>
                           <Badge variant={cfg.variant} className="flex items-center gap-1 w-fit">

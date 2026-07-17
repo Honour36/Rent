@@ -26,20 +26,27 @@ export function UnitCard({ unit }: UnitCardProps) {
 
   // Find active tenancy if it exists
   const activeTenancy = unit.tenancies?.find(t => t.status === "active");
+  const isPrimaryUnit = unit.unit_number === "Main Unit";
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Unit {unit.unit_number}</CardTitle>
+        <CardTitle className="text-sm font-medium">{isPrimaryUnit ? "Rent & Occupancy" : `Unit ${unit.unit_number}`}</CardTitle>
         <Badge variant={badgeVariant} className={badgeColorClass}>
           {statusLabel}
         </Badge>
       </CardHeader>
       <CardContent>
         <div className="mt-2 text-2xl font-bold">
-          {unit.currency === "USD" ? "$" : "ZiG "}
-          {unit.rent_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          <span className="text-sm font-normal text-muted-foreground"> /mo</span>
+          {unit.rent_amount == null ? (
+            <span className="text-muted-foreground text-base font-normal">Rent not set - edit property to add it</span>
+          ) : (
+            <>
+              {unit.currency === "USD" ? "$" : "ZiG "}
+              {unit.rent_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-sm font-normal text-muted-foreground"> /mo</span>
+            </>
+          )}
         </div>
         
         <div className="mt-4 flex flex-col gap-1 text-sm text-muted-foreground">
@@ -47,13 +54,13 @@ export function UnitCard({ unit }: UnitCardProps) {
             <>
               <div>
                 <span className="font-medium text-foreground">Tenant:</span>{" "}
-                {activeTenancy.tenant?.full_name ?? "—"}
+                {activeTenancy.tenant?.full_name ?? "-"}
               </div>
               <div>
                 <span className="font-medium text-foreground">Lease from:</span>{" "}
                 {activeTenancy.lease_start
                   ? new Date(activeTenancy.lease_start).toLocaleDateString("en-ZW", { day: "2-digit", month: "short", year: "numeric" })
-                  : "—"}
+                  : "-"}
               </div>
             </>
           ) : (

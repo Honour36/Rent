@@ -62,7 +62,6 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
       ownerId: form.ownerId || undefined,
       rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined,
       tenantId: form.tenantId || undefined,
-      isSingleUnit: !!form.rentAmount || !!form.tenantId,
     } as any);
 
     if (res.success) {
@@ -92,11 +91,11 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
       <DialogTrigger asChild>
         <Button><Plus className="mr-2 h-4 w-4" />Add Property</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Add Property</DialogTitle>
           <DialogDescription>
-            Enter the property details. An owner must be selected — add owners first if none appear.
+            Enter the property details. An owner must be selected - add owners first if none appear.
           </DialogDescription>
         </DialogHeader>
 
@@ -107,8 +106,8 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-2">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="grid gap-4 py-2 max-h-[65vh] overflow-y-auto pr-1">
 
             <FormField label="Property Name" required error={fieldErrors.name}>
               <Input name="name" value={form.name} onChange={change} placeholder="e.g. Sunset Apartments"
@@ -129,49 +128,53 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
               </FormField>
             </div>
 
-            <FormField label="Type">
-              <NativeSelect name="type" value={form.type} onChange={change} className="w-full">
-                <NativeSelectOption value="residential">Residential</NativeSelectOption>
-                <NativeSelectOption value="commercial">Commercial</NativeSelectOption>
-              </NativeSelect>
-            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Type">
+                <NativeSelect name="type" value={form.type} onChange={change} className="w-full">
+                  <NativeSelectOption value="residential">Residential</NativeSelectOption>
+                  <NativeSelectOption value="commercial">Commercial</NativeSelectOption>
+                </NativeSelect>
+              </FormField>
 
-            <FormField label="Owner" required error={fieldErrors.ownerId}>
-              <NativeSelect name="ownerId" value={form.ownerId} onChange={change}
-                className={`w-full ${fieldErrors.ownerId ? "border-destructive" : ""}`}
-                disabled={loadingOwners || noOwners}>
-                <NativeSelectOption value="">
-                  {loadingOwners ? "Loading owners…" : noOwners ? "No owners — add one first" : "— Select owner —"}
-                </NativeSelectOption>
-                {owners.map((o) => (
-                  <NativeSelectOption key={o.id} value={o.id}>{o.full_name}</NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </FormField>
+              <FormField label="Owner" required error={fieldErrors.ownerId}>
+                <NativeSelect name="ownerId" value={form.ownerId} onChange={change}
+                  className={`w-full ${fieldErrors.ownerId ? "border-destructive" : ""}`}
+                  disabled={loadingOwners || noOwners}>
+                  <NativeSelectOption value="">
+                    {loadingOwners ? "Loading owners…" : noOwners ? "No owners - add one first" : "- Select owner -"}
+                  </NativeSelectOption>
+                  {owners.map((o) => (
+                    <NativeSelectOption key={o.id} value={o.id}>{o.full_name}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </FormField>
+            </div>
 
-            <FormField label="Tenant (Optional)">
-              <NativeSelect name="tenantId" value={form.tenantId} onChange={change}
-                className="w-full" disabled={loadingTenants || tenants.length === 0}>
-                <NativeSelectOption value="">
-                  {loadingTenants ? "Loading tenants…" : tenants.length === 0 ? "No tenants available" : "— Select tenant —"}
-                </NativeSelectOption>
-                {tenants.map((t) => (
-                  <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Tenant (Optional)">
+                <NativeSelect name="tenantId" value={form.tenantId} onChange={change}
+                  className="w-full" disabled={loadingTenants || tenants.length === 0}>
+                  <NativeSelectOption value="">
+                    {loadingTenants ? "Loading tenants…" : tenants.length === 0 ? "No tenants available" : "- Select tenant -"}
+                  </NativeSelectOption>
+                  {tenants.map((t) => (
+                    <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </FormField>
 
-            <FormField label="Rent Amount" required={!!form.tenantId} error={fieldErrors.rentAmount}>
-              <div className="flex gap-2">
-                <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className={`flex-1 ${fieldErrors.rentAmount ? "border-destructive" : ""}`} />
-                <div className="w-24">
-                  <NativeSelect name="currency" value={form.currency} onChange={change} className="w-full">
-                    <NativeSelectOption value="USD">USD</NativeSelectOption>
-                    <NativeSelectOption value="ZiG">ZiG</NativeSelectOption>
-                  </NativeSelect>
+              <FormField label="Rent Amount" required={!!form.tenantId} error={fieldErrors.rentAmount}>
+                <div className="flex gap-2">
+                  <Input name="rentAmount" type="number" min="0" value={form.rentAmount} onChange={change} placeholder="e.g. 350" className={`flex-1 min-w-0 ${fieldErrors.rentAmount ? "border-destructive" : ""}`} />
+                  <div className="w-20 shrink-0">
+                    <NativeSelect name="currency" value={form.currency} onChange={change} className="w-full">
+                      <NativeSelectOption value="USD">USD</NativeSelectOption>
+                      <NativeSelectOption value="ZiG">ZiG</NativeSelectOption>
+                    </NativeSelect>
+                  </div>
                 </div>
-              </div>
-            </FormField>
+              </FormField>
+            </div>
 
           </div>
           <DialogFooter className="mt-2">

@@ -70,11 +70,11 @@ export default function OwnerDetailPage({ params }: PageProps) {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{owner.email || "—"}</span>
+              <span className="text-sm">{owner.email || "-"}</span>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{owner.phone || "—"}</span>
+              <span className="text-sm">{owner.phone || "-"}</span>
             </div>
           </CardContent>
         </Card>
@@ -90,11 +90,11 @@ export default function OwnerDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="font-medium text-muted-foreground">Bank Name</p>
-                <p className="mt-1">{owner.bank_name || "—"}</p>
+                <p className="mt-1">{owner.bank_name || "-"}</p>
               </div>
               <div>
                 <p className="font-medium text-muted-foreground">Account Number</p>
-                <p className="mt-1">{owner.bank_account || "—"}</p>
+                <p className="mt-1">{owner.bank_account || "-"}</p>
               </div>
             </div>
           </CardContent>
@@ -165,7 +165,7 @@ export default function OwnerDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border">
-            <p className="text-sm text-muted-foreground">Coming in Phase 6 — Reports & Owner Statements</p>
+            <p className="text-sm text-muted-foreground">Coming in Phase 6 - Reports & Owner Statements</p>
           </div>
         </CardContent>
       </Card>

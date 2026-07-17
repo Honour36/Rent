@@ -37,7 +37,7 @@ export default function CommunicationsPage() {
   const filtered = search.trim()
     ? records.filter(
         (r) =>
-          r.tenant.full_name.toLowerCase().includes(search.toLowerCase()) ||
+          (r.tenant?.full_name ?? r.owner?.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
           r.subject?.toLowerCase().includes(search.toLowerCase()) ||
           r.body?.toLowerCase().includes(search.toLowerCase()),
       )
@@ -51,7 +51,7 @@ export default function CommunicationsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Communications</h1>
             <p className="text-muted-foreground mt-1">
-              Full outbound message log — email and WhatsApp.
+              Full outbound message log - email and WhatsApp.
               {total > 0 && (
                 <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded-full">
                   {total} total
@@ -70,7 +70,7 @@ export default function CommunicationsPage() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by tenant or message…"
+              placeholder="Search by tenant, owner, or message…"
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

@@ -44,16 +44,21 @@ export class RemindersService {
       <p>Rent Amount: ${tenancy.currency} ${tenancy.rent_amount}</p>
       <p>Please ensure payment is made promptly to avoid any late fees.</p>
       <p>Thank you,</p>
-      <p>Property Management</p>
+      <p>Rental</p>
     `;
 
     try {
-      await this.resend.emails.send({
-        from: 'Rent System <onboarding@resend.dev>',
+      const result = await this.resend.emails.send({
+        from: 'Rental <onboarding@resend.dev>',
         to: [tenant.email as string],
         subject,
         html,
       });
+      if (result.error) {
+        // Resend resolves with an `error` field instead of throwing - without
+        // this check a failed send fell through to "success" below.
+        throw new Error(result.error.message);
+      }
 
       await prisma.communication.create({
         data: {

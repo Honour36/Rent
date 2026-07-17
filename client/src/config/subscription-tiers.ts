@@ -23,7 +23,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     key: "free",
     name: "Free",
     priceUsd: 0,
-    tagline: "Try it out — no credit card needed",
+    tagline: "Try it out - no credit card needed",
     limits: { properties: 1, units: 5, agents: 1, owners: 1, storageGb: 0.5 },
     features: [
       "1 property, up to 5 units",
@@ -72,7 +72,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     key: "professional",
     name: "Professional",
     priceUsd: 250,
-    tagline: "Unlimited — full contact management",
+    tagline: "Unlimited - full contact management",
     limits: { properties: -1, units: -1, agents: -1, owners: -1, storageGb: 100 },
     features: [
       "Unlimited properties & units",

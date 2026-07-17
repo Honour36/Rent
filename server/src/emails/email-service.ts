@@ -3,13 +3,29 @@ import { colors } from './base-styles';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock');
 
+/**
+ * Resend's SDK resolves with `{ data, error }` on failure rather than throwing
+ * (invalid API key, unverified domain, bad recipient, etc). Every call site in
+ * this file used to `return resend.emails.send(...)` directly, so a failed send
+ * looked identical to a successful one to the caller - this is why emails could
+ * silently stop going out. Route every send through here so failures surface.
+ */
+async function sendEmail(payload: Parameters<typeof resend.emails.send>[0]) {
+  const result = await resend.emails.send(payload);
+  if (result.error) {
+    console.error('Resend email failed:', result.error);
+    throw new Error(result.error.message || 'Failed to send email');
+  }
+  return result;
+}
+
 function getFromAddress(accountName?: string): string {
   const name = accountName || 'Rental';
-  const from = process.env.RESEND_FROM_EMAIL || 'noreply@propmanager.app';
+  const from = process.env.RESEND_FROM_EMAIL || 'noreply@rental.app';
   return `${name} <${from}>`;
 }
 
-/** Core HTML email builder — renders a clean, branded email body */
+/** Core HTML email builder - renders a clean, branded email body */
 function buildHtml(opts: {
   title: string;
   preheader?: string;
@@ -35,7 +51,7 @@ function buildHtml(opts: {
   .body { padding:32px; }
   .body h1 { font-size:22px; font-weight:700; color:#111827; margin:0 0 8px; }
   .body p { font-size:15px; color:#374151; line-height:1.6; margin:0 0 16px; }
-  .otp-box { background:${opts.accentColor ? '#f0f7ff' : '#f0f7ff'}; border:2px solid ${accent}; border-radius:10px; padding:20px; text-align:center; margin:24px 0; }
+  .otp-box { background:#f9fafb; border:2px solid ${accent}; border-radius:10px; padding:20px; text-align:center; margin:24px 0; }
   .otp-code { font-size:38px; font-weight:800; letter-spacing:8px; color:${accent}; font-family:monospace; }
   .otp-label { font-size:12px; color:#6b7280; margin-top:6px; }
   .btn { display:inline-block; background:${accent}; color:#fff !important; text-decoration:none; padding:13px 32px; border-radius:8px; font-weight:600; font-size:15px; margin:8px 0; }
@@ -43,7 +59,7 @@ function buildHtml(opts: {
   .info-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:14px; }
   .info-label { color:#6b7280; }
   .info-value { color:#111827; font-weight:500; }
-  .highlight { background:#f0f7ff; border-left:4px solid ${accent}; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#1e40af; }
+  .highlight { background:#f9fafb; border-left:4px solid ${accent}; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#111827; }
   .footer { background:#f9fafb; border-top:1px solid #e5e7eb; padding:20px 32px; text-align:center; }
   .footer p { color:#9ca3af; font-size:12px; margin:0; line-height:1.5; }
   .footer a { color:#6b7280; text-decoration:underline; }
@@ -61,7 +77,7 @@ function buildHtml(opts: {
     </div>
     <div class="footer">
       <p>Rental &nbsp;·&nbsp; <a href="#">Unsubscribe</a></p>
-      <p style="margin-top:4px">This is an automated message — please do not reply directly to this email.</p>
+      <p style="margin-top:4px">This is an automated message - please do not reply directly to this email.</p>
     </div>
   </div>
 </div>
@@ -79,7 +95,7 @@ export async function sendVerificationEmail(opts: {
 }) {
   const body = `
     <h1>Verify your email address</h1>
-    <p>Hi ${opts.name}, welcome to <strong>Rental</strong> — your property management platform. To get started, enter the verification code below.</p>
+    <p>Hi ${opts.name}, welcome to <strong>Rental</strong> - your property management platform. To get started, enter the verification code below.</p>
     <div class="otp-box">
       <div class="otp-code">${opts.code}</div>
       <div class="otp-label">This code expires in 15 minutes</div>
@@ -87,10 +103,10 @@ export async function sendVerificationEmail(opts: {
     <p style="color:#6b7280;font-size:13px">If you didn't create an account, you can safely ignore this email.</p>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `${opts.code} — Your Hi verification code`,
+    subject: `${opts.code} - your Rental verification code`,
     html: buildHtml({ title: 'Verify your email', body }),
   });
 }
@@ -106,7 +122,7 @@ export async function sendWelcomeEmail(opts: {
   const url = opts.dashboardUrl || `${process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app'}/dashboard/overview`;
   const body = `
     <h1>Welcome to Rental, ${opts.name}! 🎉</h1>
-    <p>You've successfully set up <strong>${opts.accountName}</strong> on Hi. You're now ready to manage your property portfolio in one place.</p>
+    <p>You've successfully set up <strong>${opts.accountName}</strong> on Rental. You're now ready to manage your property portfolio in one place.</p>
     <div class="highlight">
       <strong>Quick start checklist:</strong><br/>
       ✅ Add your first property<br/>
@@ -120,7 +136,7 @@ export async function sendWelcomeEmail(opts: {
     <p style="color:#6b7280;font-size:13px">You're receiving this because you registered at Rental.</p>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
     subject: `Welcome to Rental, ${opts.name}!`,
@@ -143,14 +159,14 @@ export async function sendPasswordResetEmail(opts: {
       <div class="otp-code">${opts.code}</div>
       <div class="otp-label">This code expires in 15 minutes</div>
     </div>
-    <p style="color:#6b7280;font-size:13px">If you didn't request a password reset, please ignore this email — your account is safe.</p>
+    <p style="color:#6b7280;font-size:13px">If you didn't request a password reset, please ignore this email - your account is safe.</p>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: 'Reset your Hi password',
-    html: buildHtml({ title: 'Password reset', body, accentColor: '#7c3aed' }),
+    subject: 'Reset your Rental password',
+    html: buildHtml({ title: 'Password reset', body }),
   });
 }
 
@@ -176,7 +192,7 @@ export async function sendRentReminderEmail(opts: {
     <p>This is a friendly reminder that your rent payment is due on the <strong>${opts.dueDay}${ordinal(opts.dueDay)}</strong> of this month.</p>
     <div class="info-row"><span class="info-label">Property</span><span class="info-value">${opts.propertyName}</span></div>
     <div class="info-row"><span class="info-label">Unit</span><span class="info-value">${opts.unitNumber}</span></div>
-    <div class="info-row"><span class="info-label">Amount Due</span><span class="info-value" style="font-size:18px;color:#1a56db;font-weight:700">${opts.currency} ${opts.rentAmount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
+    <div class="info-row"><span class="info-label">Amount Due</span><span class="info-value" style="font-size:18px;font-weight:700">${opts.currency} ${opts.rentAmount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
     <div class="info-row"><span class="info-label">Period</span><span class="info-value">${opts.month}</span></div>
     <hr class="divider" />
     <p>Please arrange payment and retain your receipt. If you have already paid, please disregard this notice.</p>
@@ -188,11 +204,11 @@ export async function sendRentReminderEmail(opts: {
     </div>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `Rent Reminder — ${opts.currency} ${opts.rentAmount.toLocaleString()} due ${opts.dueDay}${ordinal(opts.dueDay)}`,
-    html: buildHtml({ title: 'Rent Reminder', body, accentColor: '#d97706' }),
+    subject: `Rent Reminder - ${opts.currency} ${opts.rentAmount.toLocaleString()} due ${opts.dueDay}${ordinal(opts.dueDay)}`,
+    html: buildHtml({ title: 'Rent Reminder', body }),
   });
 }
 
@@ -211,21 +227,21 @@ export async function sendRentOverdueEmail(opts: {
   agentEmail: string;
 }) {
   const body = `
-    <h1 style="color:#dc2626">Overdue Rent Notice</h1>
+    <h1>Overdue Rent Notice</h1>
     <p>Dear ${opts.tenantName},</p>
-    <p>Our records show that your rent payment for <strong>${opts.propertyName} — ${opts.unitNumber}</strong> is now <strong>${opts.daysOverdue} day${opts.daysOverdue !== 1 ? 's' : ''} overdue</strong>.</p>
-    <div class="info-row"><span class="info-label">Amount Overdue</span><span class="info-value" style="color:#dc2626;font-weight:700;font-size:18px">${opts.currency} ${opts.rentAmount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
+    <p>Our records show that your rent payment for <strong>${opts.propertyName} - ${opts.unitNumber}</strong> is now <strong>${opts.daysOverdue} day${opts.daysOverdue !== 1 ? 's' : ''} overdue</strong>.</p>
+    <div class="info-row"><span class="info-label">Amount Overdue</span><span class="info-value" style="font-weight:700;font-size:18px">${opts.currency} ${opts.rentAmount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
     <p>Please contact your agent immediately to arrange payment and avoid further action.</p>
-    <div class="highlight" style="border-left-color:#dc2626;background:#fef2f2;color:#991b1b">
+    <div class="highlight" style="border-left-color:#111827;background:#f3f4f6;color:#111827">
       <strong>${opts.agentName}</strong><br/>📧 ${opts.agentEmail}
     </div>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `OVERDUE: Rent payment ${opts.currency} ${opts.rentAmount.toLocaleString()} — ${opts.propertyName}`,
-    html: buildHtml({ title: 'Overdue Notice', body, accentColor: '#dc2626' }),
+    subject: `OVERDUE: Rent payment ${opts.currency} ${opts.rentAmount.toLocaleString()} - ${opts.propertyName}`,
+    html: buildHtml({ title: 'Overdue Notice', body }),
   });
 }
 
@@ -247,20 +263,20 @@ export async function sendOwnerPaymentNotification(opts: {
     <h1>Payment Received</h1>
     <p>Dear ${opts.ownerName},</p>
     <p>A rent payment has been received and recorded for your property.</p>
-    <div class="info-row"><span class="info-label">Property</span><span class="info-value">${opts.propertyName} — ${opts.unitNumber}</span></div>
+    <div class="info-row"><span class="info-label">Property</span><span class="info-value">${opts.propertyName} - ${opts.unitNumber}</span></div>
     <div class="info-row"><span class="info-label">Tenant</span><span class="info-value">${opts.tenantName}</span></div>
-    <div class="info-row"><span class="info-label">Amount</span><span class="info-value" style="color:#16a34a;font-weight:700;font-size:18px">${opts.currency} ${opts.amount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
+    <div class="info-row"><span class="info-label">Amount</span><span class="info-value" style="font-weight:700;font-size:18px">${opts.currency} ${opts.amount.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}</span></div>
     <div class="info-row"><span class="info-label">Receipt</span><span class="info-value">${opts.receiptNumber}</span></div>
     <div class="info-row"><span class="info-label">Date</span><span class="info-value">${opts.paymentDate}</span></div>
     <hr class="divider" />
     <p style="color:#6b7280;font-size:13px">Your agent will include this in your monthly statement.</p>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `Payment received — ${opts.currency} ${opts.amount.toLocaleString()} for ${opts.propertyName}`,
-    html: buildHtml({ title: 'Payment Received', body, accentColor: '#16a34a' }),
+    subject: `Payment received - ${opts.currency} ${opts.amount.toLocaleString()} for ${opts.propertyName}`,
+    html: buildHtml({ title: 'Payment Received', body }),
   });
 }
 
@@ -286,10 +302,10 @@ export async function sendApplicationReceivedEmail(opts: {
     <center style="margin-top:24px"><a href="${url}" class="btn">Review Application →</a></center>
   `;
 
-  return resend.emails.send({
+  return sendEmail({
     from: getFromAddress(opts.accountName),
     to: [opts.to],
-    subject: `New application from ${opts.applicantName} — ${opts.propertyName}`,
+    subject: `New application from ${opts.applicantName} - ${opts.propertyName}`,
     html: buildHtml({ title: 'New Application', body }),
   });
 }

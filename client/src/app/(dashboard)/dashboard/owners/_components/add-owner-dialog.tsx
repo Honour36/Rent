@@ -112,7 +112,7 @@ export function AddOwnerDialog({ onSuccess }: AddOwnerDialogProps) {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
-                placeholder="e.g. John Doe"
+                placeholder="Full name"
                 className="col-span-3"
                 required
               />
@@ -128,7 +128,7 @@ export function AddOwnerDialog({ onSuccess }: AddOwnerDialogProps) {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="john@example.com"
+                placeholder="example@gmail.com"
                 className="col-span-3"
               />
             </div>
@@ -156,7 +156,7 @@ export function AddOwnerDialog({ onSuccess }: AddOwnerDialogProps) {
                 name="bankName"
                 value={formData.bankName}
                 onChange={handleChange}
-                placeholder="e.g. CABS"
+                placeholder="e.g. Your Bank"
                 className="col-span-3"
               />
             </div>

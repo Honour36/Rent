@@ -137,18 +137,18 @@ export default function PaymentDetailPage({ params }: PageProps) {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Tenant</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
-            <p className="font-semibold text-base">{tenant?.full_name ?? '—'}</p>
-            <p className="text-muted-foreground">{tenant?.email ?? '—'}</p>
-            <p className="text-muted-foreground">{tenant?.phone ?? '—'}</p>
+            <p className="font-semibold text-base">{tenant?.full_name ?? '-'}</p>
+            <p className="text-muted-foreground">{tenant?.email ?? '-'}</p>
+            <p className="text-muted-foreground">{tenant?.phone ?? '-'}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground uppercase tracking-wide">Property</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
-            <p className="font-semibold text-base">{prop?.name ?? '—'}</p>
-            <p className="text-muted-foreground">Unit: {unit?.unit_number ?? '—'}</p>
-            <p className="text-muted-foreground">Owner: {prop?.owner?.full_name ?? '—'}</p>
+            <p className="font-semibold text-base">{prop?.name ?? '-'}</p>
+            <p className="text-muted-foreground">Unit: {unit?.unit_number ?? '-'}</p>
+            <p className="text-muted-foreground">Owner: {prop?.owner?.full_name ?? '-'}</p>
           </CardContent>
         </Card>
 

@@ -46,7 +46,7 @@ export function CommunicationLogTable({ records }: CommunicationLogTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Tenant</TableHead>
+            <TableHead>Recipient</TableHead>
             <TableHead>Channel</TableHead>
             <TableHead>Subject / Preview</TableHead>
             <TableHead>Sent By</TableHead>
@@ -54,31 +54,36 @@ export function CommunicationLogTable({ records }: CommunicationLogTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {records.map((rec) => (
-            <TableRow key={rec.id}>
-              <TableCell className="font-medium">
-                {rec.tenant.full_name}
-              </TableCell>
-              <TableCell>
-                <ChannelBadge channel={rec.channel} />
-              </TableCell>
-              <TableCell className="max-w-xs">
-                {rec.subject ? (
-                  <span className="font-medium text-sm">{rec.subject}</span>
-                ) : (
-                  <span className="text-muted-foreground text-sm line-clamp-1">
-                    {rec.body ?? "—"}
-                  </span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {rec.sender?.full_name ?? "System"}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                {format(new Date(rec.sent_at), "dd MMM yyyy, HH:mm")}
-              </TableCell>
-            </TableRow>
-          ))}
+          {records.map((rec) => {
+            const recipient = rec.tenant ?? rec.owner;
+            const recipientType = rec.tenant ? "Tenant" : "Owner";
+            return (
+              <TableRow key={rec.id}>
+                <TableCell className="font-medium">
+                  {recipient?.full_name ?? "-"}
+                  <Badge variant="secondary" className="ml-2 text-xs font-normal">{recipientType}</Badge>
+                </TableCell>
+                <TableCell>
+                  <ChannelBadge channel={rec.channel} />
+                </TableCell>
+                <TableCell className="max-w-xs">
+                  {rec.subject ? (
+                    <span className="font-medium text-sm">{rec.subject}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm line-clamp-1">
+                      {rec.body ?? "-"}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {rec.sender?.full_name ?? "System"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {format(new Date(rec.sent_at), "dd MMM yyyy, HH:mm")}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

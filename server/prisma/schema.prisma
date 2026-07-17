@@ -97,6 +97,7 @@ model Owner {
   properties   Property[]
   trust_transactions TrustTransaction[]
   statements   OwnerStatement[]
+  communications Communication[]
 
   @@map("owners")
 }
@@ -127,7 +128,7 @@ model Unit {
   bedrooms    Int?
   bathrooms   Int?
   status      String
-  rent_amount Decimal   @db.Decimal
+  rent_amount Decimal?  @db.Decimal
   currency    String
   created_at  DateTime  @default(now()) @db.Timestamptz
 
@@ -288,7 +289,8 @@ model MaintenanceRequest {
 model Communication {
   id          String    @id @default(uuid()) @db.Uuid
   account_id  String    @db.Uuid
-  tenant_id   String    @db.Uuid
+  tenant_id   String?   @db.Uuid
+  owner_id    String?   @db.Uuid
   channel     String
   direction   String
   subject     String?
@@ -297,7 +299,8 @@ model Communication {
   sent_at     DateTime  @db.Timestamptz
 
   account     Account   @relation(fields: [account_id], references: [id])
-  tenant      Tenant    @relation(fields: [tenant_id], references: [id])
+  tenant      Tenant?   @relation(fields: [tenant_id], references: [id])
+  owner       Owner?    @relation(fields: [owner_id], references: [id])
   sender      User?     @relation("SentBy", fields: [sent_by], references: [id])
 
   @@map("communications")

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useCommunications, ComposeCommunicationDto } from "@/hooks/useCommunications";
 import { useTenants } from "@/hooks/useTenants";
+import { useOwners } from "@/hooks/useOwners";
 import { Mail, MessageCircle, ExternalLink, Loader2 } from "lucide-react";
 
 interface ComposeDrawerProps {
@@ -20,49 +21,69 @@ interface ComposeDrawerProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   preselectedTenantId?: string;
+  preselectedOwnerId?: string;
 }
 
-const EMAIL_TEMPLATES = [
-  { label: "Rent reminder", body: "Dear [Tenant Name],\n\nThis is a friendly reminder that your rent payment is due. Please arrange payment at your earliest convenience.\n\nThank you,\nProperty Management" },
-  { label: "Late payment notice", body: "Dear [Tenant Name],\n\nWe have not yet received your rent payment for this period. Please contact us urgently to arrange payment and avoid further action.\n\nProperty Management" },
-  { label: "Maintenance update", body: "Dear [Tenant Name],\n\nWe are writing to update you on the status of your maintenance request. Please contact us if you have any questions.\n\nProperty Management" },
+const TENANT_EMAIL_TEMPLATES = [
+  { label: "Rent reminder", body: "Dear [Name],\n\nThis is a friendly reminder that your rent payment is due. Please arrange payment at your earliest convenience.\n\nThank you,\nRental" },
+  { label: "Late payment notice", body: "Dear [Name],\n\nWe have not yet received your rent payment for this period. Please contact us urgently to arrange payment and avoid further action.\n\nRental" },
+  { label: "Maintenance update", body: "Dear [Name],\n\nWe are writing to update you on the status of your maintenance request. Please contact us if you have any questions.\n\nRental" },
 ];
 
-export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenantId }: ComposeDrawerProps) {
+const OWNER_EMAIL_TEMPLATES = [
+  { label: "Payment update", body: "Dear [Name],\n\nWe wanted to give you an update on rent collection for your property. Please let us know if you have any questions.\n\nThank you,\nRental" },
+  { label: "Maintenance approval request", body: "Dear [Name],\n\nA maintenance request has come in for your property that needs your approval before we proceed. Please get back to us at your earliest convenience.\n\nRental" },
+  { label: "Statement follow-up", body: "Dear [Name],\n\nFollowing up on your latest owner statement - please let us know if you have any questions about it.\n\nRental" },
+];
+
+export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenantId, preselectedOwnerId }: ComposeDrawerProps) {
   const { compose, loading } = useCommunications();
   const { tenants, loading: tenantsLoading } = useTenants();
+  const { owners, loading: ownersLoading } = useOwners();
 
+  const [recipientType, setRecipientType] = useState<"tenant" | "owner">(preselectedOwnerId ? "owner" : "tenant");
   const [tenantId, setTenantId] = useState(preselectedTenantId ?? "");
+  const [ownerId, setOwnerId] = useState(preselectedOwnerId ?? "");
   const [channel, setChannel] = useState<"email" | "whatsapp">("email");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState("");
   const [waLink, setWaLink] = useState<string | null>(null);
 
+  const isPreselected = !!preselectedTenantId || !!preselectedOwnerId;
+  const templates = recipientType === "owner" ? OWNER_EMAIL_TEMPLATES : TENANT_EMAIL_TEMPLATES;
+
   useEffect(() => {
     if (open) {
+      setRecipientType(preselectedOwnerId ? "owner" : "tenant");
       setTenantId(preselectedTenantId ?? "");
+      setOwnerId(preselectedOwnerId ?? "");
       setChannel("email");
       setSubject("");
       setBody("");
       setError("");
       setWaLink(null);
     }
-  }, [open, preselectedTenantId]);
+  }, [open, preselectedTenantId, preselectedOwnerId]);
 
   const applyTemplate = (templateBody: string) => {
-    const tenant = tenants.find((t) => t.id === tenantId);
-    setBody(tenant ? templateBody.replace("[Tenant Name]", tenant.full_name) : templateBody);
+    const name = recipientType === "owner"
+      ? owners.find((o) => o.id === ownerId)?.full_name
+      : tenants.find((t) => t.id === tenantId)?.full_name;
+    setBody(name ? templateBody.replace("[Name]", name) : templateBody);
   };
 
   const handleSubmit = async () => {
-    if (!tenantId) { setError("Please select a tenant."); return; }
+    if (recipientType === "tenant" && !tenantId) { setError("Please select a tenant."); return; }
+    if (recipientType === "owner" && !ownerId) { setError("Please select an owner."); return; }
     if (!body.trim()) { setError("Message body is required."); return; }
     if (channel === "email" && !subject.trim()) { setError("Subject is required for email."); return; }
     setError("");
 
     const dto: ComposeCommunicationDto = {
-      tenantId, channel, body,
+      recipientType,
+      ...(recipientType === "tenant" ? { tenantId } : { ownerId }),
+      channel, body,
       ...(channel === "email" && subject ? { subject } : {}),
     };
 
@@ -90,29 +111,60 @@ export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenant
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Compose Message</DialogTitle>
-          <DialogDescription>Send an email or WhatsApp message to a tenant.</DialogDescription>
+          <DialogDescription>Send an email or WhatsApp message to a tenant or owner.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Tenant */}
-          <div className="space-y-2">
-            <Label htmlFor="tenant-select">Tenant</Label>
-            <Select value={tenantId} onValueChange={setTenantId} disabled={tenantsLoading || !!preselectedTenantId}>
-              <SelectTrigger id="tenant-select"><SelectValue placeholder="Select a tenant…" /></SelectTrigger>
-              <SelectContent>
-                {tenants.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.full_name}
-                    {t.activeTenancy && (
-                      <span className="text-muted-foreground ml-1 text-xs">
-                        — {t.activeTenancy.unit.property.name}, {t.activeTenancy.unit.unit_number}
-                      </span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Recipient type */}
+          {!isPreselected && (
+            <div className="space-y-2">
+              <Label>Send To</Label>
+              <div className="flex gap-2">
+                <Button type="button" variant={recipientType === "tenant" ? "default" : "outline"} size="sm"
+                  onClick={() => { setRecipientType("tenant"); setOwnerId(""); }}>
+                  Tenant
+                </Button>
+                <Button type="button" variant={recipientType === "owner" ? "default" : "outline"} size="sm"
+                  onClick={() => { setRecipientType("owner"); setTenantId(""); }}>
+                  Owner
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Tenant / Owner selector */}
+          {recipientType === "tenant" ? (
+            <div className="space-y-2">
+              <Label htmlFor="tenant-select">Tenant</Label>
+              <Select value={tenantId} onValueChange={setTenantId} disabled={tenantsLoading || !!preselectedTenantId}>
+                <SelectTrigger id="tenant-select"><SelectValue placeholder="Select a tenant…" /></SelectTrigger>
+                <SelectContent>
+                  {tenants.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.full_name}
+                      {t.activeTenancy && (
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          - {t.activeTenancy.unit.property.name}, {t.activeTenancy.unit.unit_number}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="owner-select">Owner</Label>
+              <Select value={ownerId} onValueChange={setOwnerId} disabled={ownersLoading || !!preselectedOwnerId}>
+                <SelectTrigger id="owner-select"><SelectValue placeholder="Select an owner…" /></SelectTrigger>
+                <SelectContent>
+                  {owners.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Channel */}
           <div className="space-y-2">
@@ -140,7 +192,7 @@ export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenant
             <div className="space-y-2">
               <Label>Use Template</Label>
               <div className="flex flex-wrap gap-2">
-                {EMAIL_TEMPLATES.map((tpl) => (
+                {templates.map((tpl) => (
                   <Button key={tpl.label} type="button" variant="outline" size="sm" onClick={() => applyTemplate(tpl.body)}>
                     {tpl.label}
                   </Button>

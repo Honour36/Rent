@@ -41,13 +41,13 @@ export function useCurrentUser(): CurrentUser | null {
   const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
-    // 1. Try JWT first (instant — no network round trip)
+    // 1. Try JWT first (instant - no network round trip)
     const token = getTokenFromCookie();
     if (token) {
       const payload = parseJwtPayload(token);
       if (payload?.name && payload?.email) {
         setUser(buildUser(payload.name, payload.email, payload.role, payload.sub));
-        return; // JWT has what we need — done
+        return; // JWT has what we need - done
       }
     }
 

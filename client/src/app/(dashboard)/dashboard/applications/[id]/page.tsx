@@ -114,7 +114,7 @@ export default function ApplicationDetailPage() {
             {hasContent ? application.applicant_name : "Pending Submission"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Application for {application.unit.property.name} — Unit{" "}
+            Application for {application.unit.property.name} - Unit{" "}
             {application.unit.unit_number}
           </p>
         </div>
@@ -443,7 +443,7 @@ function InfoRow({
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`mt-0.5 text-sm font-medium text-foreground flex items-center gap-1 ${!value ? "text-muted-foreground" : ""}`}>
         {icon}
-        {value || "—"}
+        {value || "-"}
       </p>
     </div>
   );

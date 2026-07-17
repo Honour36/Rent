@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { sendOwnerPaymentNotification } from '../emails/email-service';
 
 export const CreatePaymentSchema = z.object({
   tenancyId: z.string().uuid(),
@@ -15,6 +16,10 @@ export const CreatePaymentSchema = z.object({
 });
 
 export type CreatePaymentDto = z.infer<typeof CreatePaymentSchema>;
+
+// Days after the due day a payment is still considered on-time. Without this,
+// almost every payment gets flagged "late" - see note in create() below.
+const RENT_GRACE_PERIOD_DAYS = 3;
 
 class AppError extends Error {
   constructor(public message: string, public statusCode: number) {
@@ -55,10 +60,22 @@ export class PaymentsService {
     let status = 'partial';
     if (data.amountPaid >= Number(tenancy.rent_amount)) {
       status = 'paid';
-      
+
       const dueDay = tenancy.rent_due_day || 1;
-      const dueDate = new Date(data.periodYear, data.periodMonth - 1, dueDay);
-      if (data.paymentDate > dueDate) {
+      // Built with Date.UTC (not the local-time constructor) so this lines up with
+      // paymentDate, which is parsed from a "yyyy-MM-dd" string and is therefore
+      // always UTC midnight. Mixing local-time and UTC dates here previously made
+      // the due date drift by a few hours depending on server timezone, which
+      // could tip same-day payments over into "late".
+      const dueDate = new Date(Date.UTC(data.periodYear, data.periodMonth - 1, dueDay));
+      // A short grace period after the due day. Rent is due on rent_due_day, but
+      // it is recorded whenever the agent gets to it - without any grace period
+      // here, virtually every payment lands after the due date and is marked
+      // "late" even when the tenant paid on time. Only flag it late once it is
+      // genuinely overdue.
+      const graceDeadline = new Date(dueDate);
+      graceDeadline.setUTCDate(graceDeadline.getUTCDate() + RENT_GRACE_PERIOD_DAYS);
+      if (data.paymentDate > graceDeadline) {
         status = 'late';
       }
     }
@@ -103,7 +120,10 @@ export class PaymentsService {
               unit: {
                 include: {
                   property: {
-                    include: { owner: { select: { id: true, full_name: true, email: true, phone: true } } },
+                    include: {
+                      owner: { select: { id: true, full_name: true, email: true, phone: true } },
+                      account: { select: { name: true } },
+                    },
                   },
                 },
               },
@@ -114,6 +134,31 @@ export class PaymentsService {
       });
 
       return { payment: enriched, receipt };
+    }).then(async (result) => {
+      // Notify the owner that a payment has come in, so it's not left waiting for
+      // the monthly statement. Fire this after the transaction commits, and never
+      // let it fail the payment-recording request itself.
+      const owner = result.payment?.tenancy.unit.property.owner;
+      const tenantForNotice = result.payment?.tenancy.tenant;
+      if (owner?.email && result.payment) {
+        try {
+          await sendOwnerPaymentNotification({
+            to: owner.email,
+            ownerName: owner.full_name,
+            tenantName: tenantForNotice?.full_name ?? 'Tenant',
+            propertyName: result.payment.tenancy.unit.property.name,
+            unitNumber: result.payment.tenancy.unit.unit_number ?? '',
+            amount: Number(result.payment.amount_paid),
+            currency: result.payment.currency,
+            receiptNumber: result.receipt.receipt_number,
+            paymentDate: new Date(result.payment.payment_date).toLocaleDateString('en-GB'),
+            accountName: result.payment.tenancy.unit.property.account?.name ?? 'Rental',
+          });
+        } catch (err) {
+          console.error('Failed to send owner payment notification email:', err);
+        }
+      }
+      return result;
     });
   }
 

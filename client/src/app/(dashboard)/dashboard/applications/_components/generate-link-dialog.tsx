@@ -84,7 +84,7 @@ export function GenerateLinkDialog({ onSuccess }: Props) {
           <DialogTitle>Generate Application Link</DialogTitle>
           <DialogDescription>
             Create a unique shareable link for a unit. Send it to the prospective
-            tenant — they fill the form without logging in.
+            tenant - they fill the form without logging in.
           </DialogDescription>
         </DialogHeader>
 
@@ -122,7 +122,7 @@ export function GenerateLinkDialog({ onSuccess }: Props) {
                 Unit
               </p>
               <p className="font-medium text-foreground">
-                {result.unit.property.name} — Unit {result.unit.unit_number}
+                {result.unit.property.name} - Unit {result.unit.unit_number}
               </p>
               <p className="text-sm text-muted-foreground">
                 {Number(result.unit.rent_amount).toLocaleString()} {result.unit.currency}

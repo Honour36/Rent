@@ -46,7 +46,7 @@ export class MaintenanceService {
     if (priority) where.priority = priority;
     if (unitId) where.unit_id = unitId;
 
-    // Filter by property via unit join — fetch matching unit ids first
+    // Filter by property via unit join - fetch matching unit ids first
     if (propertyId) {
       const units = await prisma.unit.findMany({
         where: { property_id: propertyId, account_id: user.accountId },

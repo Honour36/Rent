@@ -88,7 +88,7 @@ export default function RecordPaymentPage() {
     const property = paymentResult.payment?.tenancy?.unit?.property;
     const receipt = paymentResult.receipt;
 
-    const msg = `Dear ${owner?.full_name ?? "Owner"},\n\n${tenant?.full_name ?? "Your tenant"} has paid rent for ${property?.name ?? "the property"} — ${formData.currency} ${formData.amountPaid}. Receipt: ${receipt?.receipt_number}.\n\nPropManager`;
+    const msg = `Dear ${owner?.full_name ?? "Owner"},\n\n${tenant?.full_name ?? "Your tenant"} has paid rent for ${property?.name ?? "the property"} - ${formData.currency} ${formData.amountPaid}. Receipt: ${receipt?.receipt_number}.\n\nRental`;
 
     if (channel === "whatsapp") {
       const phone = (owner?.phone ?? "").replace(/[^0-9]/g, "");
@@ -100,7 +100,7 @@ export default function RecordPaymentPage() {
         data: {
           tenantId: tenant?.id,
           channel: "email",
-          subject: `Rent Payment Received — ${property?.name}`,
+          subject: `Rent Payment Received - ${property?.name}`,
           body: msg,
         },
       });
@@ -247,7 +247,7 @@ export default function RecordPaymentPage() {
           </DialogHeader>
 
           <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm space-y-1">
-            <p><span className="text-muted-foreground">Owner:</span> <strong>{owner?.full_name ?? "—"}</strong></p>
+            <p><span className="text-muted-foreground">Owner:</span> <strong>{owner?.full_name ?? "-"}</strong></p>
             <p><span className="text-muted-foreground">Email:</span> {owner?.email ?? "Not on record"}</p>
             <p><span className="text-muted-foreground">Phone:</span> {owner?.phone ?? "Not on record"}</p>
           </div>

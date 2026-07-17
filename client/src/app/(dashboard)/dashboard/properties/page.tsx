@@ -22,15 +22,34 @@ import { EditPropertyDialog } from "./_components/edit-property-dialog";
 import { GenerateUnitLinkButton } from "@/components/properties/GenerateUnitLinkButton";
 
 function isIncomplete(p: Property) {
+  // Every property gets a primary unit automatically now, so this should only
+  // ever be true for legacy properties saved before that fix.
   return !p.units || p.units.length === 0;
 }
 
+function primaryUnit(p: Property) {
+  return p.units?.[0];
+}
+
 function getVacancyStatus(property: Property) {
-  if (!property.units || property.units.length === 0)
-    return { label: "No units yet", variant: "secondary" as const };
-  const vacant = property.units.filter((u) => u.status === "vacant").length;
-  if (vacant === 0) return { label: "Fully Occupied", variant: "default" as const };
-  return { label: `${vacant} Vacant`, variant: "outline" as const };
+  const unit = primaryUnit(property);
+  if (!unit) return { label: "Needs setup", variant: "secondary" as const };
+  if ((property.units?.length ?? 0) > 1) {
+    const vacant = property.units!.filter((u) => u.status === "vacant").length;
+    if (vacant === 0) return { label: "Fully Occupied", variant: "default" as const };
+    return { label: `${vacant} Vacant`, variant: "outline" as const };
+  }
+  return unit.status === "occupied"
+    ? { label: "Occupied", variant: "default" as const }
+    : unit.status === "maintenance"
+    ? { label: "Maintenance", variant: "outline" as const }
+    : { label: "Vacant", variant: "outline" as const };
+}
+
+function formatRent(property: Property) {
+  const unit = primaryUnit(property);
+  if (!unit || unit.rent_amount == null) return "Not set";
+  return `${unit.currency} ${Number(unit.rent_amount).toLocaleString()}`;
 }
 
 export default function PropertiesPage() {
@@ -75,7 +94,7 @@ export default function PropertiesPage() {
         <CardHeader>
           <CardTitle>All Properties</CardTitle>
           <CardDescription>
-            Click a row to view details and add units. Properties without units cannot generate application links.
+            Click a row to view details, set the rent amount, and generate an application link.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -107,7 +126,7 @@ export default function PropertiesPage() {
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Property</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Location</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Owner</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Units</TableHead>
+                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Rent</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Status</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">App Link</TableHead>
                     <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">Actions</TableHead>
@@ -133,7 +152,7 @@ export default function PropertiesPage() {
                             {incomplete && (
                               <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
                                 <ArrowRight className="h-3 w-3" />
-                                Click to add units &amp; details
+                                Click to finish setup
                               </span>
                             )}
                           </div>
@@ -144,13 +163,18 @@ export default function PropertiesPage() {
                             <span className="text-muted-foreground">{[prop.suburb, prop.city].filter(Boolean).join(", ")}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-foreground">{prop.owner?.full_name ?? "—"}</TableCell>
-                        <TableCell className="text-sm text-foreground">{prop.units?.length ?? 0}</TableCell>
+                        <TableCell className="text-sm text-foreground">{prop.owner?.full_name ?? "-"}</TableCell>
+                        <TableCell className="text-sm text-foreground">
+                          {formatRent(prop)}
+                          {(prop.units?.length ?? 0) > 1 && (
+                            <span className="text-muted-foreground text-xs ml-1">({prop.units!.length} units)</span>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant={status.variant}>{status.label}</Badge></TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           {prop.units && prop.units[0]
                             ? <GenerateUnitLinkButton unitId={prop.units[0].id} />
-                            : <span className="text-xs text-muted-foreground">Add units first</span>}
+                            : <span className="text-xs text-muted-foreground">Open property to finish setup</span>}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">

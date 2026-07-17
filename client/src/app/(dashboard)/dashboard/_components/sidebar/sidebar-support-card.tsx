@@ -147,7 +147,7 @@ export function SidebarSupportCard() {
           const key = `notified-apps-${n.message}`;
           if (!sessionStorage.getItem(key)) {
             toast.info("New application received!", {
-              description: n.message + " — review in Applications.",
+              description: n.message + " - review in Applications.",
               duration: 8000,
               action: { label: "Review", onClick: () => window.location.assign("/dashboard/applications") },
             });

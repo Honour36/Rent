@@ -17,7 +17,7 @@ if (redisUrl) {
     console.log('[Redis] Connected successfully');
   });
 } else {
-  console.log('[Redis] No REDIS_URL set — running without cache');
+  console.log('[Redis] No REDIS_URL set - running without cache');
 }
 
 // Safe helpers that work even when Redis is unavailable

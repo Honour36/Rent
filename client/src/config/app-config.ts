@@ -8,8 +8,8 @@ export const APP_CONFIG = {
   version: packageJson.version,
   copyright: `© ${currentYear} Rental. All rights reserved.`,
   meta: {
-    title: "Rental — Property Management for Zimbabwe",
+    title: "Rental - Property Management for Zimbabwe",
     description:
-      "Rental is the modern property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements — all in one place.",
+      "Rental is the modern property management platform for Zimbabwean agents. Manage properties, tenants, payments, receipts, and owner statements - all in one place.",
   },
 };

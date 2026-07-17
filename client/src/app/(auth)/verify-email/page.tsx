@@ -55,7 +55,7 @@ function VerifyEmailForm() {
   };
 
   const submit = async (code: string) => {
-    if (!email) { toast.error("Email missing — go back and try again."); return; }
+    if (!email) { toast.error("Email missing - go back and try again."); return; }
     setLoading(true);
     const res = await apiClient<any>("/auth/verify-email", { data: { email, code } });
     setLoading(false);
@@ -65,7 +65,7 @@ function VerifyEmailForm() {
       toast.success("Email verified! Welcome to Rental 🎉");
       router.push("/dashboard/overview");
     } else {
-      toast.error((res as any).error || "Invalid code — please check and try again.");
+      toast.error((res as any).error || "Invalid code - please check and try again.");
       setDigits(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     }
@@ -77,7 +77,7 @@ function VerifyEmailForm() {
     await apiClient("/auth/resend-verification", { data: { email } });
     setResending(false);
     setCountdown(60);
-    toast.success("New code sent — check your inbox.");
+    toast.success("New code sent - check your inbox.");
   };
 
   return (

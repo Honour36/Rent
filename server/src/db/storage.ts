@@ -68,7 +68,7 @@ export async function downloadFile(bucket: Bucket, path: string): Promise<Buffer
 }
 
 /**
- * Delete a file from storage (non-throwing — best effort for cleanup).
+ * Delete a file from storage (non-throwing - best effort for cleanup).
  */
 export async function deleteFile(bucket: Bucket, path: string): Promise<void> {
   await supabase.storage.from(bucket).remove([path]);

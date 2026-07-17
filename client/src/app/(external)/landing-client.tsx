@@ -31,7 +31,7 @@ export default function RentalLandingClient() {
 
   useEffect(() => {
     const headlines = [
-      { h: "Your rent roll, finally under control.", s: "One dashboard for every property, tenant, and payment — so nothing slips through." },
+      { h: "Your rent roll, finally under control.", s: "One dashboard for every property, tenant, and payment - so nothing slips through." },
       { h: "Stop chasing tenants for rent.", s: "Reminders go out automatically, before and after a payment is due." },
       { h: "Leases that write themselves.", s: "A formatted lease PDF is ready the moment a new tenancy is added." },
       { h: "Know who's paid, at a glance.", s: "Arrears and collection rate update the instant a payment lands." },
@@ -296,7 +296,7 @@ export default function RentalLandingClient() {
           <div>
             <div className="eyebrow-row">Meet Rental</div>
             <div className="headline-stage" id="headlineStage"></div>
-            <p className="hero-sub" id="heroSub">One dashboard for every property, tenant, and payment — so nothing slips through.</p>
+            <p className="hero-sub" id="heroSub">One dashboard for every property, tenant, and payment - so nothing slips through.</p>
             <div className="hero-actions">
               <div className="hero-actions-row">
                 <Link href="/register" className="btn btn-dark btn-hero">Start free</Link>
@@ -414,7 +414,7 @@ export default function RentalLandingClient() {
             </div>
             <div className="faq-item">
               <div className="faq-q"><span>Can I cancel anytime?</span><span className="plus"></span></div>
-              <div className="faq-a"><p>Yes. Paid plans have no lock-in contract — cancel whenever you like and keep access until the end of your billing period.</p></div>
+              <div className="faq-a"><p>Yes. Paid plans have no lock-in contract - cancel whenever you like and keep access until the end of your billing period.</p></div>
             </div>
           </div>
         </div>

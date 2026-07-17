@@ -7,7 +7,7 @@ const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
 
-// Singleton pattern — reuse the same instance across hot-reloads in dev
+// Singleton pattern - reuse the same instance across hot-reloads in dev
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =

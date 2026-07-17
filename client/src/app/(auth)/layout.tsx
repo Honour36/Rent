@@ -47,7 +47,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
                 "The spreadsheet-free way to manage your portfolio."
               </p>
               <p className="text-sm text-white/70">
-                Rental — built for Zimbabwean property managers
+                Rental - built for Zimbabwean property managers
               </p>
             </blockquote>
           </div>

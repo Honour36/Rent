@@ -20,7 +20,7 @@ export interface Unit {
   bedrooms?: number;
   bathrooms?: number;
   status: "vacant" | "occupied" | "maintenance";
-  rent_amount: number;
+  rent_amount: number | null;
   currency: "ZiG" | "USD";
   tenancies?: ActiveTenancy[];
 }

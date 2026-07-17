@@ -204,7 +204,7 @@ export default function OwnerStatementPage() {
                 <div>
                   <CardTitle>Statement Preview</CardTitle>
                   <CardDescription>
-                    {format(new Date(statementData.period.year, statementData.period.month - 1, 1), "MMMM yyyy")} — {statementData.owner.full_name}
+                    {format(new Date(statementData.period.year, statementData.period.month - 1, 1), "MMMM yyyy")} - {statementData.owner.full_name}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">

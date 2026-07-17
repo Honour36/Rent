@@ -99,8 +99,8 @@ export default function OwnersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-sm">
-                          <span className="text-foreground">{owner.email ?? "—"}</span>
-                          <span className="text-muted-foreground">{owner.phone ?? "—"}</span>
+                          <span className="text-foreground">{owner.email ?? "-"}</span>
+                          <span className="text-muted-foreground">{owner.phone ?? "-"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-foreground">
