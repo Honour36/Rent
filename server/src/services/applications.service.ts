@@ -255,6 +255,10 @@ export class ApplicationsService {
 
       // 2. If approved, create Tenant and Tenancy
       if (data.status === 'approved' && existing.status !== 'approved') {
+        if (existing.unit.rent_amount == null) {
+          throw new AppError('Set a rent amount for this property before approving applications.', 400);
+        }
+
         const formData = existing.form_data as any;
 
         // Create Tenant
