@@ -10,6 +10,8 @@ export interface DashboardOverviewData {
     arrearsCount: number;
     arrearsAmount: number;
     currentMonthRate: number;
+    paymentsThisMonthCount: number;
+    paymentsThisMonthAmount: number;
   };
   chartData: Array<{ name: string; due: number; collected: number }>;
   arrearsTable: Array<{

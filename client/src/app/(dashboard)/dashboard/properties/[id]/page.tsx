@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ChevronLeft, Copy, Check, Pencil, Trash2 } from "lucide-react";
+import { Building2, ChevronLeft, Copy, Check, Pencil, Trash2, MapPin, User, DollarSign } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,16 +61,26 @@ export default function PropertyDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/properties")}>
+      <div className="flex items-start gap-4">
+        <Button variant="ghost" size="icon" className="mt-1" onClick={() => router.push("/dashboard/properties")}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{property.name}</h1>
-          <p className="text-sm text-muted-foreground">
+
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+          <Building2 className="h-7 w-7 text-primary" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold truncate">{property.name}</h1>
+            <Badge variant="outline" className="capitalize">{property.type}</Badge>
+          </div>
+          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
             {property.address}{property.suburb ? `, ${property.suburb}` : ""}{property.city ? `, ${property.city}` : ""}
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}><Pencil className="mr-2 h-4 w-4" />Edit</Button>
           <Button variant="outline" size="sm" className="text-destructive border-destructive/40 hover:bg-destructive/10"
@@ -78,50 +88,73 @@ export default function PropertyDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Info row */}
-      <div className="flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Owner:</span>
-          <span className="font-medium">{property.owner?.full_name ?? "-"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Type:</span>
-          <Badge variant="outline" className="capitalize">{property.type}</Badge>
-        </div>
-        {!hasExtraUnits && (
-          <>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Rent:</span>
-              <span className="font-medium">
-                {primaryUnit?.rent_amount != null ? `${primaryUnit.currency} ${Number(primaryUnit.rent_amount).toLocaleString()}` : "Not set"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Status:</span>
-              <Badge variant="outline" className="capitalize">{primaryUnit?.status ?? "Needs setup"}</Badge>
-            </div>
-          </>
-        )}
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Property ID:</span>
-          <code className="text-xs bg-muted px-2 py-0.5 rounded">{property.id}</code>
-          <CopyButton text={property.id} label="Copy ID" />
-        </div>
+      {/* Property ID */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground -mt-2 ml-[4.5rem]">
+        <span>Property ID:</span>
+        <code className="bg-muted px-2 py-0.5 rounded text-xs">{property.id}</code>
+        <CopyButton text={property.id} label="Copy ID" />
       </div>
 
-      {hasExtraUnits && (
-        <div className="grid gap-6 md:grid-cols-4">
-          {[
-            { label: "Total Units", value: property.units?.length || 0, color: "" },
-            { label: "Occupied", value: occupiedCount, color: "text-green-600" },
-            { label: "Vacant", value: vacantCount, color: "text-amber-500" },
-            { label: "Maintenance", value: maintenanceCount, color: "text-red-500" },
-          ].map(({ label, value, color }) => (
-            <Card key={label}>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle></CardHeader>
-              <CardContent><div className={`text-2xl font-bold ${color}`}>{value}</div></CardContent>
+      {/* Key stats - always shown, single source of truth for owner/rent/status
+          rather than the old layout that only showed rent/status for
+          single-unit properties and left multi-unit properties without them. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Owner</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-lg font-semibold truncate">{property.owner?.full_name ?? "-"}</div></CardContent>
+        </Card>
+
+        {hasExtraUnits ? (
+          <>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Units</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{property.units?.length || 0}</div></CardContent>
             </Card>
-          ))}
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Occupied</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold text-green-600">{occupiedCount}</div></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Vacant</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold text-amber-500">{vacantCount}</div></CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Rent</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-semibold">
+                  {primaryUnit?.rent_amount != null ? `${primaryUnit.currency} ${Number(primaryUnit.rent_amount).toLocaleString()}` : "Not set"}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle></CardHeader>
+              <CardContent><Badge variant="outline" className="capitalize text-sm">{primaryUnit?.status ?? "Needs setup"}</Badge></CardContent>
+            </Card>
+            {maintenanceCount > 0 && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Maintenance</CardTitle></CardHeader>
+                <CardContent><div className="text-2xl font-bold text-red-500">{maintenanceCount}</div></CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
+
+      {hasExtraUnits && maintenanceCount > 0 && (
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Maintenance</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-red-500">{maintenanceCount}</div></CardContent>
+          </Card>
         </div>
       )}
 

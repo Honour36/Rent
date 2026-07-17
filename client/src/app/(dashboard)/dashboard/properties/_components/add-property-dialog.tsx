@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +31,14 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
   const { owners, loading: loadingOwners } = useOwners();
   const { tenants, loading: loadingTenants } = useTenants();
 
+  // `loading` state above disables the submit button, but the disabled prop
+  // only takes effect on the next React render - a very fast double-click
+  // (or a click that lands right as an auth-token refresh is in flight) can
+  // still fire handleSubmit twice before that re-render happens. This ref
+  // flips synchronously on the very first call, so the second call bails out
+  // immediately regardless of render timing.
+  const isSubmittingRef = useRef(false);
+
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
     setFieldErrors((p) => ({ ...p, [e.target.name]: "" }));
@@ -54,34 +62,40 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     if (!validate()) return;
+    isSubmittingRef.current = true;
     setLoading(true);
 
-    const res = await createProperty({
-      ...form,
-      ownerId: form.ownerId || undefined,
-      rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined,
-      tenantId: form.tenantId || undefined,
-    } as any);
+    try {
+      const res = await createProperty({
+        ...form,
+        ownerId: form.ownerId || undefined,
+        rentAmount: form.rentAmount ? parseFloat(form.rentAmount) : undefined,
+        tenantId: form.tenantId || undefined,
+      } as any);
 
-    if (res.success) {
-      toast.success(`"${form.name}" added.`, {
-        description: "Open the property to add units and generate an application link.",
-        duration: 6000,
-      });
-      setOpen(false);
-      setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", tenantId: "" });
-      setFieldErrors({});
-      onSuccess?.();
-    } else {
-      const msg = (res as any).error || "Could not save the property.";
-      if ((res as any).code === "TIER_LIMIT_REACHED") {
-        toast.error("Plan limit reached", { description: msg });
+      if (res.success) {
+        toast.success(`"${form.name}" added.`, {
+          description: "Open the property to add units and generate an application link.",
+          duration: 6000,
+        });
+        setOpen(false);
+        setForm({ name: "", address: "", suburb: "", city: "", type: "residential", ownerId: "", rentAmount: "", currency: "USD", tenantId: "" });
+        setFieldErrors({});
+        onSuccess?.();
       } else {
-        toast.error("Could not save property", { description: msg });
+        const msg = (res as any).error || "Could not save the property.";
+        if ((res as any).code === "TIER_LIMIT_REACHED") {
+          toast.error("Plan limit reached", { description: msg });
+        } else {
+          toast.error("Could not save property", { description: msg });
+        }
       }
+    } finally {
+      isSubmittingRef.current = false;
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const noOwners = !loadingOwners && owners.length === 0;

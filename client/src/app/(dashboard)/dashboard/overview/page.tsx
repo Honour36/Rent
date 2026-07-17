@@ -3,7 +3,7 @@
 import { useDashboard } from "@/hooks/useDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Building2, Home, AlertTriangle, Activity, CheckCircle2, TrendingUp, DollarSign } from "lucide-react";
+import { Home, AlertTriangle, Activity, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -32,13 +32,13 @@ export default function OverviewPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Units</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Payments This Month</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.totalUnits}</div>
+            <div className="text-2xl font-bold">{kpis.paymentsThisMonthCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {kpis.occupiedUnits} Occupied · {kpis.vacantUnits} Vacant
+              {formatCurrency(kpis.paymentsThisMonthAmount, { currency: "USD" })} collected
             </p>
           </CardContent>
         </Card>

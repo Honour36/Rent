@@ -75,52 +75,66 @@ export class PropertiesService {
   }
 
   async create(data: CreatePropertyDto, user: TokenPayload) {
-    const property = await prisma.property.create({
-      data: {
-        account_id: user.accountId,
-        owner_id: data.ownerId!,
-        name: data.name,
-        address: data.address,
-        suburb: data.suburb,
-        city: data.city,
-        type: data.type,
-      },
-    });
-
-    // Most properties in this system are basic, standalone properties (a
-    // whole house, a shop) rather than a block with several sub-units - but
-    // rent/status/occupancy are still stored per-unit under the hood. So we
-    // always give a property exactly one "primary" unit representing the
-    // property itself, whether or not a rent amount was supplied yet. This
-    // is what Edit Property later updates when the agent adds/changes rent -
-    // without it, there was nothing for Edit Property to update. Agents who
-    // are genuinely managing a multi-unit building (e.g. a block of flats)
-    // can still add further units from the property page.
-    const unit = await prisma.unit.create({
-      data: {
-        account_id: user.accountId,
-        property_id: property.id,
-        unit_number: 'Main Unit',
-        rent_amount: data.rentAmount ?? null,
-        currency: data.currency ?? 'USD',
-        status: data.tenantId ? 'occupied' : 'vacant',
-      },
-    });
-
-    // Auto-assign tenant if provided (requires a rent amount to open a tenancy)
-    if (data.tenantId && data.rentAmount) {
-      await prisma.tenancy.create({
+    // IMPORTANT: property + its primary unit (+ optional tenancy) must be
+    // created atomically. Previously these were three separate awaited
+    // calls - if the unit or tenancy insert failed (a transient DB error, a
+    // dropped connection, a server restart mid-request), the property row
+    // was left committed with no unit ("Needs setup", no rent). The agent,
+    // seeing no success toast, would retry and create a second, complete
+    // property - producing the exact duplicate-row bug seen in production
+    // (two "Gray" properties, one complete and one orphaned). Wrapping all
+    // three writes in one transaction means either all of them land or none
+    // do, so an orphaned duplicate can no longer be created going forward.
+    const property = await prisma.$transaction(async (tx) => {
+      const created = await tx.property.create({
         data: {
           account_id: user.accountId,
-          unit_id: unit.id,
-          tenant_id: data.tenantId,
-          lease_start: new Date(),
-          rent_amount: data.rentAmount,
-          currency: data.currency ?? 'USD',
-          status: 'active',
-        }
+          owner_id: data.ownerId!,
+          name: data.name,
+          address: data.address,
+          suburb: data.suburb,
+          city: data.city,
+          type: data.type,
+        },
       });
-    }
+
+      // Most properties in this system are basic, standalone properties (a
+      // whole house, a shop) rather than a block with several sub-units - but
+      // rent/status/occupancy are still stored per-unit under the hood. So we
+      // always give a property exactly one "primary" unit representing the
+      // property itself, whether or not a rent amount was supplied yet. This
+      // is what Edit Property later updates when the agent adds/changes rent -
+      // without it, there was nothing for Edit Property to update. Agents who
+      // are genuinely managing a multi-unit building (e.g. a block of flats)
+      // can still add further units from the property page.
+      const unit = await tx.unit.create({
+        data: {
+          account_id: user.accountId,
+          property_id: created.id,
+          unit_number: 'Main Unit',
+          rent_amount: data.rentAmount ?? null,
+          currency: data.currency ?? 'USD',
+          status: data.tenantId ? 'occupied' : 'vacant',
+        },
+      });
+
+      // Auto-assign tenant if provided (requires a rent amount to open a tenancy)
+      if (data.tenantId && data.rentAmount) {
+        await tx.tenancy.create({
+          data: {
+            account_id: user.accountId,
+            unit_id: unit.id,
+            tenant_id: data.tenantId,
+            lease_start: new Date(),
+            rent_amount: data.rentAmount,
+            currency: data.currency ?? 'USD',
+            status: 'active',
+          }
+        });
+      }
+
+      return created;
+    });
 
     return property;
   }

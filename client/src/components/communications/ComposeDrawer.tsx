@@ -114,23 +114,42 @@ export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenant
           <DialogDescription>Send an email or WhatsApp message to a tenant or owner.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
-          {/* Recipient type */}
-          {!isPreselected && (
+        <div className="space-y-5 py-2 max-h-[65vh] overflow-y-auto pr-1">
+          {/* Send To + Channel share a row - keeps the dialog short enough
+              that it never needs to overflow past the footer on smaller
+              screens (that overflow, combined with the fixed-position
+              footer, was what made the content visually overlap). */}
+          <div className={isPreselected ? "" : "grid grid-cols-2 gap-4"}>
+            {!isPreselected && (
+              <div className="space-y-2">
+                <Label>Send To</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant={recipientType === "tenant" ? "default" : "outline"} size="sm"
+                    onClick={() => { setRecipientType("tenant"); setOwnerId(""); }}>
+                    Tenant
+                  </Button>
+                  <Button type="button" variant={recipientType === "owner" ? "default" : "outline"} size="sm"
+                    onClick={() => { setRecipientType("owner"); setTenantId(""); }}>
+                    Owner
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label>Send To</Label>
+              <Label>Channel</Label>
               <div className="flex gap-2">
-                <Button type="button" variant={recipientType === "tenant" ? "default" : "outline"} size="sm"
-                  onClick={() => { setRecipientType("tenant"); setOwnerId(""); }}>
-                  Tenant
+                <Button type="button" variant={channel === "email" ? "default" : "outline"} size="sm"
+                  className="flex items-center gap-1.5" onClick={() => setChannel("email")}>
+                  <Mail className="h-4 w-4" /> Email
                 </Button>
-                <Button type="button" variant={recipientType === "owner" ? "default" : "outline"} size="sm"
-                  onClick={() => { setRecipientType("owner"); setTenantId(""); }}>
-                  Owner
+                <Button type="button" variant={channel === "whatsapp" ? "default" : "outline"} size="sm"
+                  className="flex items-center gap-1.5" onClick={() => setChannel("whatsapp")}>
+                  <MessageCircle className="h-4 w-4" /> WhatsApp
                 </Button>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Tenant / Owner selector */}
           {recipientType === "tenant" ? (
@@ -166,37 +185,22 @@ export function ComposeDrawer({ open, onOpenChange, onSuccess, preselectedTenant
             </div>
           )}
 
-          {/* Channel */}
-          <div className="space-y-2">
-            <Label>Channel</Label>
-            <div className="flex gap-2">
-              <Button type="button" variant={channel === "email" ? "default" : "outline"} size="sm"
-                className="flex items-center gap-1.5" onClick={() => setChannel("email")}>
-                <Mail className="h-4 w-4" /> Email
-              </Button>
-              <Button type="button" variant={channel === "whatsapp" ? "default" : "outline"} size="sm"
-                className="flex items-center gap-1.5" onClick={() => setChannel("whatsapp")}>
-                <MessageCircle className="h-4 w-4" /> WhatsApp
-              </Button>
-            </div>
-          </div>
-
+          {/* Subject + Templates share a row on email */}
           {channel === "email" && (
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Payment Reminder" />
-            </div>
-          )}
-
-          {channel === "email" && (
-            <div className="space-y-2">
-              <Label>Use Template</Label>
-              <div className="flex flex-wrap gap-2">
-                {templates.map((tpl) => (
-                  <Button key={tpl.label} type="button" variant="outline" size="sm" onClick={() => applyTemplate(tpl.body)}>
-                    {tpl.label}
-                  </Button>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Payment Reminder" />
+              </div>
+              <div className="space-y-2">
+                <Label>Use Template</Label>
+                <div className="flex flex-wrap gap-2">
+                  {templates.map((tpl) => (
+                    <Button key={tpl.label} type="button" variant="outline" size="sm" onClick={() => applyTemplate(tpl.body)}>
+                      {tpl.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

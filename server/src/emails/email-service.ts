@@ -19,6 +19,25 @@ async function sendEmail(payload: Parameters<typeof resend.emails.send>[0]) {
   return result;
 }
 
+// RESEND_FROM_EMAIL must be an address on a domain that is verified inside
+// this account's Resend dashboard (Domains tab) - Resend rejects sends from
+// any other domain with a "domain is not verified" error. This code has no
+// way to know which domain is actually verified in your Resend account, so
+// rather than guessing with a hardcoded fallback (which is exactly what
+// caused emails to silently stop sending after the fallback domain was
+// changed from noreply@propmanager.app to noreply@rental.app without
+// RESEND_FROM_EMAIL being set in Render), we warn loudly on startup if the
+// env var is missing so this is caught immediately instead of discovered
+// from a user complaint days later.
+if (!process.env.RESEND_FROM_EMAIL) {
+  console.warn(
+    '[email-service] RESEND_FROM_EMAIL is not set. Falling back to noreply@rental.app, ' +
+    'which will fail to send unless "rental.app" is a verified domain in your Resend ' +
+    'account. Set RESEND_FROM_EMAIL in your server environment (Render → Environment) to ' +
+    'an address on a domain you have verified under Resend → Domains.'
+  );
+}
+
 function getFromAddress(accountName?: string): string {
   const name = accountName || 'Rental';
   const from = process.env.RESEND_FROM_EMAIL || 'noreply@rental.app';

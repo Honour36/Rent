@@ -21,6 +21,25 @@ export class DashboardService {
     const vacantUnits = units.filter(u => u.status === 'vacant').length;
     const maintenanceUnits = units.filter(u => u.status === 'maintenance').length;
 
+    // 1b. Payments recorded this calendar month (replaces the Total Units KPI
+    // card on the Overview page - "Total Units" duplicated info already
+    // shown on the Properties page, whereas payment activity is the number
+    // agents actually want to see at a glance here).
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const paymentsThisMonth = await prisma.payment.findMany({
+      where: { account_id: accountId, payment_date: { gte: monthStart, lt: monthEnd } },
+      select: { amount_paid: true, currency: true },
+    });
+    const paymentsThisMonthCount = paymentsThisMonth.length;
+    // Only USD is summed for the headline figure - ZiG payments are tracked
+    // separately elsewhere (e.g. the ZiG/USD rate on each payment) and mixing
+    // currencies into one total would be misleading.
+    const paymentsThisMonthAmount = paymentsThisMonth
+      .filter(p => p.currency === 'USD')
+      .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+
     // 2. Arrears
     const arrearsReport = await reportsService.getArrearsReport(accountId);
     const arrearsCount = arrearsReport.length;
@@ -99,6 +118,8 @@ export class DashboardService {
         arrearsCount,
         arrearsAmount,
         currentMonthRate,
+        paymentsThisMonthCount,
+        paymentsThisMonthAmount,
       },
       chartData,
       arrearsTable: arrearsReport.slice(0, 5), // top 5 arrears

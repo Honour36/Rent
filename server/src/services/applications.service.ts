@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
+import PDFDocument from 'pdfkit';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 
@@ -229,6 +230,109 @@ export class ApplicationsService {
 
     if (!application) throw new AppError('Application not found', 404);
     return application;
+  }
+
+  /**
+   * Render the full application (personal, employment, rental history,
+   * references, notes) as a downloadable PDF for vetting/record-keeping.
+   */
+  async generatePdf(id: string, user: TokenPayload): Promise<Buffer> {
+    const application = await this.getById(id, user);
+    const fd = (application.form_data ?? {}) as Record<string, any>;
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const W = doc.page.width - 100;
+      const DARK = '#111827';
+      const GRAY = '#6b7280';
+      const LINE = '#e5e7eb';
+
+      const hr = () => {
+        doc.moveTo(50, doc.y).lineTo(50 + W, doc.y).strokeColor(LINE).lineWidth(0.5).stroke();
+        doc.moveDown(0.5);
+      };
+
+      const section = (title: string) => {
+        doc.moveDown(0.4);
+        doc.fillColor(DARK).fontSize(12).font('Helvetica-Bold').text(title);
+        doc.moveDown(0.2);
+        hr();
+      };
+
+      const row = (label: string, value?: string | null) => {
+        const y = doc.y;
+        doc.fontSize(10).fillColor(GRAY).font('Helvetica').text(label, 50, y, { width: W * 0.35 });
+        doc.fontSize(10).fillColor(DARK).font('Helvetica-Bold')
+          .text(value && String(value).trim() ? String(value) : '-', 50 + W * 0.35, y, { width: W * 0.65 });
+        doc.moveDown(0.5);
+      };
+
+      // Header
+      doc.rect(50, 50, W, 60).fill('#f9fafb');
+      doc.fillColor(DARK).fontSize(18).font('Helvetica-Bold').text('RENTAL APPLICATION', 60, 65);
+      doc.fillColor(GRAY).fontSize(9).font('Helvetica')
+        .text(`Application ID: ${application.id}`, 60, 88);
+      doc.y = 120;
+
+      row('Property', application.unit.property.name);
+      row('Unit', application.unit.unit_number);
+      row('Monthly Rent', `${Number(application.unit.rent_amount).toLocaleString()} ${application.unit.currency}`);
+      row('Status', application.status.replace(/_/g, ' ').toUpperCase());
+      row('Submitted', application.submitted_at
+        ? new Date(application.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+        : 'Not submitted');
+
+      section('Personal Details');
+      row('Full Name', application.applicant_name);
+      row('National ID', fd.idNumber);
+      row('Date of Birth', fd.dateOfBirth);
+      row('Phone', application.applicant_phone);
+      row('Email', application.applicant_email);
+      row('Emergency Contact', fd.emergencyContactName);
+      row('Emergency Phone', fd.emergencyContactPhone);
+
+      section('Employment');
+      row('Status', fd.employmentStatus?.replace(/_/g, ' '));
+      row('Employer', fd.employer);
+      row('Job Title', fd.jobTitle);
+      row('Monthly Income', fd.monthlyIncome != null ? String(fd.monthlyIncome) : undefined);
+
+      section('Rental History');
+      row('Previous Address', fd.previousAddress);
+      row('Previous Landlord', fd.previousLandlord);
+      row('Previous Landlord Phone', fd.previousLandlordPhone);
+      row('Previous Rent', fd.previousRentAmount != null ? String(fd.previousRentAmount) : undefined);
+      row('Reason for Leaving', fd.reasonForLeaving);
+
+      section('References');
+      row('Reference 1 - Name', fd.reference1Name);
+      row('Reference 1 - Phone', fd.reference1Phone);
+      row('Reference 1 - Relation', fd.reference1Relation);
+      row('Reference 2 - Name', fd.reference2Name);
+      row('Reference 2 - Phone', fd.reference2Phone);
+      row('Reference 2 - Relation', fd.reference2Relation);
+
+      if (fd.additionalNotes) {
+        section('Additional Notes');
+        doc.fontSize(10).fillColor(DARK).font('Helvetica').text(String(fd.additionalNotes), { width: W });
+      }
+
+      if (application.vetting_notes) {
+        section('Vetting Notes');
+        doc.fontSize(10).fillColor(DARK).font('Helvetica').text(String(application.vetting_notes), { width: W });
+      }
+
+      doc.moveDown(1);
+      doc.fillColor(GRAY).fontSize(8).font('Helvetica')
+        .text(`Generated ${new Date().toLocaleString('en-GB')}`, { align: 'center', width: W });
+
+      doc.end();
+    });
   }
 
   /**

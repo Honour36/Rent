@@ -85,6 +85,21 @@ class ApplicationsController {
   };
 
   /**
+   * GET /api/applications/:id/pdf
+   * Authenticated - downloadable PDF of the full application for record-keeping.
+   */
+  getPdf = async (req: AuthRequest, res: Response) => {
+    try {
+      const pdfBuffer = await applicationsService.generatePdf(req.params.id, req.user!);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="application-${req.params.id}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (err: any) {
+      res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  };
+
+  /**
    * PATCH /api/applications/:id/status
    * Authenticated - update status + vetting notes.
    */

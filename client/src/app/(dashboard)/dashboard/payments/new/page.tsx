@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -54,6 +54,11 @@ export default function RecordPaymentPage() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifying, setNotifying] = useState(false);
 
+  // Synchronous guard against double-submit - see note in
+  // add-property-dialog.tsx for why the `submitting` state alone isn't
+  // enough to stop a very fast double-click.
+  const isSubmittingRef = useRef(false);
+
   const handleTenancyChange = (tenancyId: string) => {
     const sel = activeTenancies.find((t) => t.tenancyId === tenancyId);
     if (sel) {
@@ -64,19 +69,25 @@ export default function RecordPaymentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     if (!formData.tenancyId || !formData.amountPaid) {
       toast.warning("Please select a tenant and enter the amount paid.");
       return;
     }
-    const result = await createPayment(formData as CreatePaymentDto);
-    if (result.success) {
-      const data = (result as any).data as PaymentResult;
-      setPaymentResult(data);
-      toast.success("Payment recorded.", { description: `Receipt ${data.receipt?.receipt_number} generated.` });
-      // Show owner notification popup
-      setNotifyOpen(true);
-    } else {
-      toast.error("Could not record payment", { description: (result as any).error });
+    isSubmittingRef.current = true;
+    try {
+      const result = await createPayment(formData as CreatePaymentDto);
+      if (result.success) {
+        const data = (result as any).data as PaymentResult;
+        setPaymentResult(data);
+        toast.success("Payment recorded.", { description: `Receipt ${data.receipt?.receipt_number} generated.` });
+        // Show owner notification popup
+        setNotifyOpen(true);
+      } else {
+        toast.error("Could not record payment", { description: (result as any).error });
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 

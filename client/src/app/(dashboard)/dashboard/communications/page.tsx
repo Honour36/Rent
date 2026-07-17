@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useCommunications, CommunicationDto } from "@/hooks/useCommunications";
 import { CommunicationLogTable } from "@/components/communications/CommunicationLogTable";
 import { ComposeDrawer } from "@/components/communications/ComposeDrawer";
+import { CommunicationDetailsDrawer } from "@/components/communications/CommunicationDetailsDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +24,7 @@ export default function CommunicationsPage() {
   const [channelFilter, setChannelFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fetchCommunications = useCallback(async () => {
     const result = await listCommunications({ channel: channelFilter });
@@ -95,7 +97,7 @@ export default function CommunicationsPage() {
             Loading communications…
           </div>
         ) : (
-          <CommunicationLogTable records={filtered} />
+          <CommunicationLogTable records={filtered} onRowClick={setSelectedId} />
         )}
       </div>
 
@@ -103,6 +105,12 @@ export default function CommunicationsPage() {
         open={composeOpen}
         onOpenChange={setComposeOpen}
         onSuccess={fetchCommunications}
+      />
+
+      <CommunicationDetailsDrawer
+        id={selectedId}
+        onClose={() => setSelectedId(null)}
+        onUpdate={fetchCommunications}
       />
     </>
   );

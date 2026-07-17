@@ -13,6 +13,7 @@ import { CommunicationDto } from "@/hooks/useCommunications";
 
 interface CommunicationLogTableProps {
   records: CommunicationDto[];
+  onRowClick?: (id: string) => void;
 }
 
 function ChannelBadge({ channel }: { channel: string }) {
@@ -32,7 +33,7 @@ function ChannelBadge({ channel }: { channel: string }) {
   );
 }
 
-export function CommunicationLogTable({ records }: CommunicationLogTableProps) {
+export function CommunicationLogTable({ records, onRowClick }: CommunicationLogTableProps) {
   if (records.length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground border rounded-md">
@@ -58,7 +59,11 @@ export function CommunicationLogTable({ records }: CommunicationLogTableProps) {
             const recipient = rec.tenant ?? rec.owner;
             const recipientType = rec.tenant ? "Tenant" : "Owner";
             return (
-              <TableRow key={rec.id}>
+              <TableRow
+                key={rec.id}
+                className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                onClick={() => onRowClick?.(rec.id)}
+              >
                 <TableCell className="font-medium">
                   {recipient?.full_name ?? "-"}
                   <Badge variant="secondary" className="ml-2 text-xs font-normal">{recipientType}</Badge>

@@ -19,6 +19,7 @@ router.post(
 );
 router.get('/', applicationsController.list);
 router.get('/:id', applicationsController.getById);
+router.get('/:id/pdf', applicationsController.getPdf);
 router.patch('/:id/status', roleAuthorize('admin', 'senior_agent'), applicationsController.updateStatus);
 router.delete('/:id', roleAuthorize('admin', 'senior_agent'), (req, res) => applicationsController.delete(req as any, res));
 

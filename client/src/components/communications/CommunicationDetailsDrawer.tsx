@@ -137,7 +137,7 @@ export function CommunicationDetailsDrawer({
               <div className="grid grid-cols-[100px_1fr] gap-2 items-center">
                 <span className="text-muted-foreground">Recipient:</span>
                 <span className="font-medium">
-                  {data.tenant ? data.tenant.full_name : "Unknown"}
+                  {data.tenant?.full_name ?? data.owner?.full_name ?? "Unknown"}
                 </span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2 items-center">

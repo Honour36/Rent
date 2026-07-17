@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Check,
   Copy,
+  Download,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +70,11 @@ export default function ApplicationDetailPage() {
   const [vettingNotes, setVettingNotes] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+
+  const handleDownload = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    window.open(`${base}/applications/${id}/pdf`, "_blank");
+  };
 
   const handleAction = async (status: "approved" | "rejected" | "more_info") => {
     setActionLoading(status);
@@ -119,12 +125,25 @@ export default function ApplicationDetailPage() {
           </p>
         </div>
         <Badge variant={cfg.variant}>{cfg.label}</Badge>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload}>
+          <Download className="h-3.5 w-3.5" />
+          Download Application
+        </Button>
       </div>
-      {/* Application ID */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground -mt-2 ml-12">
-        <span>Application ID:</span>
-        <code className="bg-muted px-2 py-0.5 rounded text-xs">{id}</code>
-        <CopyIdButton value={id} />
+      {/* Application ID + National ID */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground -mt-2 ml-12">
+        <div className="flex items-center gap-2">
+          <span>Application ID:</span>
+          <code className="bg-muted px-2 py-0.5 rounded text-xs">{id}</code>
+          <CopyIdButton value={id} />
+        </div>
+        {hasContent && fd.idNumber && (
+          <div className="flex items-center gap-2">
+            <span>Applicant National ID:</span>
+            <code className="bg-muted px-2 py-0.5 rounded text-xs font-semibold text-foreground">{fd.idNumber}</code>
+            <CopyIdButton value={fd.idNumber} />
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
