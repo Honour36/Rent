@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   MessageSquare,
+  Receipt,
   Settings,
   ShieldCheck,
   UserCheck,
@@ -113,6 +114,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Leases",
         url: "/dashboard/leases",
         icon: FileCheck,
+      },
+      {
+        id: "levies",
+        title: "Levies",
+        url: "/dashboard/levies",
+        icon: Receipt,
       },
       {
         id: "communications",

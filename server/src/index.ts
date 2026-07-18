@@ -24,6 +24,7 @@ import depositsRoutes from './routes/deposits.routes';
 import inspectionsRoutes from './routes/inspections.routes';
 import leaseRenewalsRoutes from './routes/lease-renewals.routes';
 import noticesToVacateRoutes from './routes/notices-to-vacate.routes';
+import levyChargesRoutes from './routes/levy-charges.routes';
 import { startRentRemindersJob } from './jobs/rent-reminders.job';
 
 dotenv.config();
@@ -55,6 +56,7 @@ app.use('/api/deposits', depositsRoutes);
 app.use('/api/inspections', inspectionsRoutes);
 app.use('/api/lease-renewals', leaseRenewalsRoutes);
 app.use('/api/notices-to-vacate', noticesToVacateRoutes);
+app.use('/api/levy-charges', levyChargesRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });

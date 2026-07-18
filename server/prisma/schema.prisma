@@ -44,6 +44,7 @@ model Account {
   inspections        Inspection[]
   lease_renewals     LeaseRenewal[]
   notices_to_vacate  NoticeToVacate[]
+  levy_charges       LevyCharge[]
 
   @@map("accounts")
 }
@@ -125,6 +126,7 @@ model Property {
   account     Account   @relation(fields: [account_id], references: [id])
   owner       Owner     @relation(fields: [owner_id], references: [id])
   units       Unit[]
+  levy_charges LevyCharge[]
 
   @@map("properties")
 }
@@ -225,7 +227,7 @@ model Payment {
   id           String    @id @default(uuid()) @db.Uuid
   account_id   String    @db.Uuid
   tenancy_id   String    @db.Uuid
-  payment_type String    @default("rent") // rent | deposit | lease_fee - see Deposit model for deposit tracking
+  payment_type String    @default("rent") // rent | deposit | lease_fee | levy - see Deposit model for deposit tracking
   period_month Int
   period_year  Int
   amount_paid  Decimal   @db.Decimal
@@ -486,4 +488,22 @@ model NoticeToVacate {
   tenancy   Tenancy @relation(fields: [tenancy_id], references: [id])
 
   @@map("notices_to_vacate")
+}
+
+model LevyCharge {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  property_id String    @db.Uuid
+  name        String    // e.g. "Municipal Levy", "HOA Levy" - terms/amounts vary a lot, so this is free text, not an enum
+  amount      Decimal   @db.Decimal
+  currency    String
+  frequency   String    // one_off | monthly | quarterly | annual
+  active      Boolean   @default(true)
+  notes       String?
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  property    Property  @relation(fields: [property_id], references: [id])
+
+  @@map("levy_charges")
 }

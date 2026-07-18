@@ -79,7 +79,7 @@ export default function RecordPaymentPage() {
     }
   };
 
-  const handlePaymentTypeChange = (type: "rent" | "deposit" | "lease_fee") => {
+  const handlePaymentTypeChange = (type: "rent" | "deposit" | "lease_fee" | "levy") => {
     if (type === "deposit" && formData.tenancyId) {
       fetchDepositInfo(formData.tenancyId);
       setFormData({ ...formData, paymentType: type, amountPaid: undefined });
@@ -93,7 +93,7 @@ export default function RecordPaymentPage() {
       // agent just enters it.
       setDepositInfo(null);
       setDepositError("");
-      setFormData({ ...formData, paymentType: type, amountPaid: type === "lease_fee" ? undefined : formData.amountPaid });
+      setFormData({ ...formData, paymentType: type, amountPaid: (type === "lease_fee" || type === "levy") ? undefined : formData.amountPaid });
     }
   };
 
@@ -200,6 +200,10 @@ export default function RecordPaymentPage() {
                 <Button type="button" variant={formData.paymentType === "lease_fee" ? "default" : "outline"} size="sm"
                   onClick={() => handlePaymentTypeChange("lease_fee")}>
                   Lease Fee
+                </Button>
+                <Button type="button" variant={formData.paymentType === "levy" ? "default" : "outline"} size="sm"
+                  onClick={() => handlePaymentTypeChange("levy")}>
+                  Levy
                 </Button>
               </div>
             </div>
