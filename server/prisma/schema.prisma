@@ -41,6 +41,7 @@ model Account {
   notifications      Notification[]
   rent_collection_requests RentCollectionRequest[]
   deposits           Deposit[]
+  inspections        Inspection[]
 
   @@map("accounts")
 }
@@ -69,6 +70,7 @@ model User {
   communications_sent  Communication[] @relation("SentBy")
   statements_approved  OwnerStatement[] @relation("ApprovedBy")
   notifications        Notification[]
+  inspections_conducted Inspection[]   @relation("ConductedBy")
 
   @@map("users")
 }
@@ -210,6 +212,7 @@ model Tenancy {
   trust_transactions TrustTransaction[]
   maintenance_requests MaintenanceRequest[]
   deposit         Deposit?
+  inspections     Inspection[]
 
   @@map("tenancies")
 }
@@ -423,4 +426,24 @@ model Deposit {
   tenancy           Tenancy   @relation(fields: [tenancy_id], references: [id])
 
   @@map("deposits")
+}
+
+model Inspection {
+  id            String    @id @default(uuid()) @db.Uuid
+  account_id    String    @db.Uuid
+  tenancy_id    String    @db.Uuid
+  type          String    // move_in | periodic | move_out
+  status        String    @default("scheduled") // scheduled | completed | cancelled
+  scheduled_for DateTime? @db.Timestamptz
+  completed_at  DateTime? @db.Timestamptz
+  outcome       String?   // pass | fail - meaningful mainly for move_out
+  notes         String?
+  conducted_by  String?   @db.Uuid
+  created_at    DateTime  @default(now()) @db.Timestamptz
+
+  account       Account   @relation(fields: [account_id], references: [id])
+  tenancy       Tenancy   @relation(fields: [tenancy_id], references: [id])
+  conductor     User?     @relation("ConductedBy", fields: [conducted_by], references: [id])
+
+  @@map("inspections")
 }

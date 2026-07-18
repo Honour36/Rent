@@ -120,6 +120,26 @@ export class TenanciesService {
   }
 
   /**
+   * Ends an active tenancy and frees the unit back to vacant. This didn't
+   * exist anywhere in the codebase before - activate() (move-in) had no
+   * counterpart, so a tenant moving out had no way to actually leave the
+   * system. Called from inspections.service.ts when a move_out inspection
+   * is completed, closing the property management lifecycle (tenant
+   * leaves -> unit vacant -> ready for the next application).
+   */
+  async endTenancy(id: string, user: TokenPayload) {
+    const tenancy = await prisma.tenancy.findFirst({ where: { id, account_id: user.accountId } });
+    if (!tenancy) throw new AppError('Tenancy not found', 404);
+    if (tenancy.status === 'ended') return tenancy; // already ended - idempotent, not an error
+
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.tenancy.update({ where: { id }, data: { status: 'ended' } });
+      await tx.unit.update({ where: { id: tenancy.unit_id }, data: { status: 'vacant' } });
+      return updated;
+    });
+  }
+
+  /**
    * Retrieves pending tenancy by unit ID
    */
   async getPendingByUnitId(unitId: string, user: TokenPayload) {

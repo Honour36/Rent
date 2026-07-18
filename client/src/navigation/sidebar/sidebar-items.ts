@@ -3,6 +3,7 @@ import {
   Building2,
   Calendar,
   ChartBar,
+  ClipboardCheck,
   ClipboardList,
   LayoutDashboard,
   type LucideIcon,
@@ -99,6 +100,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Deposits",
         url: "/dashboard/deposits",
         icon: ShieldCheck,
+      },
+      {
+        id: "inspections",
+        title: "Inspections",
+        url: "/dashboard/inspections",
+        icon: ClipboardCheck,
       },
       {
         id: "communications",
