@@ -170,6 +170,7 @@ model Application {
   applicant_email String?
   applicant_phone String?
   form_data       Json
+  id_document_url String?
   vetting_notes   String?
   submitted_at    DateTime  @db.Timestamptz
   reviewed_at     DateTime? @db.Timestamptz

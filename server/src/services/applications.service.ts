@@ -39,6 +39,7 @@ export const ApplicationSubmitSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   additionalNotes: z.string().optional(),
+  idDocumentUrl: z.string().optional(),
 });
 
 export const UpdateApplicationStatusSchema = z.object({
@@ -183,10 +184,49 @@ export class ApplicationsService {
         applicant_phone: data.applicantPhone,
         submitted_at: new Date(),
         form_data: data as any,
+        id_document_url: data.idDocumentUrl ?? null,
       },
     });
 
     return { success: true, applicationId: updated.id };
+  }
+
+  /**
+   * Public: upload the applicant's ID document/photo before final submit
+   * (no auth - the applicant isn't a logged-in user). Scoped to a single,
+   * not-yet-submitted application token so it can't be used as an open file
+   * drop, and only ever writes into that application's own folder.
+   */
+  async uploadPublicIdDocument(token: string, buffer: Buffer, filename: string, mimeType: string): Promise<string> {
+    const application = await prisma.application.findUnique({ where: { token } });
+    if (!application) throw new AppError('Application link not found', 404);
+
+    const alreadyFilled =
+      application.applicant_name && application.applicant_name.length > 0 &&
+      Object.keys(application.form_data as object).length > 0;
+    if (alreadyFilled) throw new AppError('This application has already been submitted', 409);
+
+    const { uploadFile, BUCKETS } = await import('../db/storage');
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `applications/${token}/id-${Date.now()}-${safeName}`;
+    return uploadFile(BUCKETS.documents, path, buffer, mimeType);
+  }
+
+  /**
+   * Signed URL for the vetting page to render the applicant's uploaded ID
+   * photo/document inline (private bucket, so it can't be viewed without
+   * going through this authenticated, account-scoped lookup).
+   */
+  async getIdDocumentSignedUrl(id: string, user: TokenPayload): Promise<string | null> {
+    const application = await prisma.application.findFirst({
+      where: { id, account_id: user.accountId },
+      select: { id_document_url: true },
+    });
+    if (!application) throw new AppError('Application not found', 404);
+    if (!application.id_document_url) return null;
+
+    const { getSignedUrl, BUCKETS } = await import('../db/storage');
+    return getSignedUrl(BUCKETS.documents, application.id_document_url, 3600);
   }
 
   /**
@@ -239,6 +279,21 @@ export class ApplicationsService {
   async generatePdf(id: string, user: TokenPayload): Promise<Buffer> {
     const application = await this.getById(id, user);
     const fd = (application.form_data ?? {}) as Record<string, any>;
+
+    // Fetch the ID image buffer *before* entering PDFKit's synchronous
+    // render callback below - `doc.image()` needs the bytes already in
+    // hand, and the Promise executor PDFKit streams through isn't async.
+    let idImageBuffer: Buffer | null = null;
+    if (application.id_document_url) {
+      try {
+        const { downloadFile, BUCKETS } = await import('../db/storage');
+        idImageBuffer = await downloadFile(BUCKETS.documents, application.id_document_url);
+      } catch {
+        // Stored file might be a PDF (not embeddable as an image) or
+        // otherwise unavailable - don't fail the whole download over it.
+        idImageBuffer = null;
+      }
+    }
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -317,15 +372,22 @@ export class ApplicationsService {
       row('Reference 2 - Phone', fd.reference2Phone);
       row('Reference 2 - Relation', fd.reference2Relation);
 
-      if (fd.additionalNotes) {
-        section('Additional Notes');
-        doc.fontSize(10).fillColor(DARK).font('Helvetica').text(String(fd.additionalNotes), { width: W });
+      if (idImageBuffer) {
+        section('ID Document');
+        const maxWidth = W;
+        const maxHeight = 260;
+        try {
+          doc.image(idImageBuffer, 50, doc.y, { fit: [maxWidth, maxHeight] });
+          doc.y += maxHeight + 10;
+        } catch {
+          // Not a renderable image format - skip rather than break the PDF.
+        }
       }
 
-      if (application.vetting_notes) {
-        section('Vetting Notes');
-        doc.fontSize(10).fillColor(DARK).font('Helvetica').text(String(application.vetting_notes), { width: W });
-      }
+      // Deliberately no "Additional Notes" or "Vetting Notes" section here:
+      // this PDF is also handed to the applicant as their own copy, and
+      // vetting_notes in particular is internal agent commentary that
+      // shouldn't be shared with them.
 
       doc.moveDown(1);
       doc.fillColor(GRAY).fontSize(8).font('Helvetica')

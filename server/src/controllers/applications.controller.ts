@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import Busboy from 'busboy';
 import {
   applicationsService,
   GenerateLinkSchema,
@@ -52,6 +53,57 @@ class ApplicationsController {
     try {
       const result = await applicationsService.submitPublic(req.params.token, parsed.data);
       res.status(201).json({ success: true, data: result });
+    } catch (err: any) {
+      res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  };
+
+  /**
+   * POST /api/applications/public/:token/id-document
+   * No auth (applicant isn't logged in) - but scoped to a single,
+   * not-yet-submitted application token, unlike the generic authenticated
+   * /storage/upload endpoint this used to (silently, since it required a
+   * login the applicant never has) fail against.
+   */
+  uploadPublicIdDocument = (req: Request, res: Response) => {
+    const bb = Busboy({ headers: req.headers, limits: { fileSize: 10 * 1024 * 1024 } });
+    let fileBuffer: Buffer | null = null;
+    let filename = 'id-document';
+    let mimeType = 'application/octet-stream';
+
+    bb.on('file', (_field, stream, info) => {
+      filename = info.filename;
+      mimeType = info.mimeType;
+      const chunks: Buffer[] = [];
+      stream.on('data', (d: Buffer) => chunks.push(d));
+      stream.on('end', () => { fileBuffer = Buffer.concat(chunks); });
+    });
+
+    bb.on('finish', async () => {
+      if (!fileBuffer) {
+        res.status(400).json({ success: false, error: 'No file received' });
+        return;
+      }
+      try {
+        const path = await applicationsService.uploadPublicIdDocument(req.params.token, fileBuffer, filename, mimeType);
+        res.json({ success: true, data: { path } });
+      } catch (err: any) {
+        res.status(err.statusCode || 500).json({ success: false, error: err.message });
+      }
+    });
+
+    req.pipe(bb);
+  };
+
+  /**
+   * GET /api/applications/:id/id-document
+   * Authenticated - signed URL for the vetting page to display the
+   * applicant's uploaded ID photo/document.
+   */
+  getIdDocumentUrl = async (req: AuthRequest, res: Response) => {
+    try {
+      const url = await applicationsService.getIdDocumentSignedUrl(req.params.id, req.user!);
+      res.json({ success: true, data: { url } });
     } catch (err: any) {
       res.status(err.statusCode || 500).json({ success: false, error: err.message });
     }

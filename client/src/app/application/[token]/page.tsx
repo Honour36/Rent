@@ -118,21 +118,23 @@ export default function ApplicationPage() {
     setSubmitting(true);
     setSubmitError("");
 
-    // Upload ID document first if provided
+    // Upload ID document first if provided. This goes through a dedicated
+    // public, token-scoped endpoint - /storage/upload requires a logged-in
+    // session, which applicants filling out this public form never have, so
+    // that upload was silently failing 100% of the time before this fix.
     let idDocumentUrl: string | undefined;
     if (idFile) {
       const formData = new FormData();
       formData.append("file", idFile);
-      formData.append("bucket", "documents");
-      formData.append("path", `applications/${token}/id-${idFile.name}`);
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/storage/upload`, {
+      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/applications/public/${token}/id-document`, {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
       if (uploadRes.ok) {
         const uploadData = await uploadRes.json();
         idDocumentUrl = uploadData.data?.path;
+      } else {
+        toast.warning("Your ID document couldn't be uploaded, but the rest of your application will still be submitted.");
       }
     }
 
@@ -152,13 +154,13 @@ export default function ApplicationPage() {
       reasonForLeaving: form.reasonForVacating || undefined,
       reference1Name: form.reference1Name || undefined,
       reference1Phone: form.reference1AccountTel || undefined,
+      idDocumentUrl,
       additionalNotes: [
         form.spouseName ? `Spouse: ${form.spouseName}` : "",
         form.numberOfDependants ? `Dependants: ${form.numberOfDependants}` : "",
         form.guarantorName ? `Guarantor: ${form.guarantorName} (${form.guarantorContact})` : "",
         form.workNo ? `Work No: ${form.workNo}` : "",
         form.yearsEmployed ? `Years employed: ${form.yearsEmployed}` : "",
-        idDocumentUrl ? `ID document uploaded: ${idDocumentUrl}` : "",
       ].filter(Boolean).join(" | ") || undefined,
     };
 

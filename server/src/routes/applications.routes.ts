@@ -8,6 +8,7 @@ const router = Router();
 // ─── Public routes (no auth) ──────────────────────────────────────────────────
 router.get('/public/:token', applicationsController.getPublic);
 router.post('/public/:token', applicationsController.submitPublic);
+router.post('/public/:token/id-document', applicationsController.uploadPublicIdDocument);
 
 // ─── Authenticated routes ─────────────────────────────────────────────────────
 router.use(authenticate);
@@ -20,6 +21,7 @@ router.post(
 router.get('/', applicationsController.list);
 router.get('/:id', applicationsController.getById);
 router.get('/:id/pdf', applicationsController.getPdf);
+router.get('/:id/id-document', applicationsController.getIdDocumentUrl);
 router.patch('/:id/status', roleAuthorize('admin', 'senior_agent'), applicationsController.updateStatus);
 router.delete('/:id', roleAuthorize('admin', 'senior_agent'), (req, res) => applicationsController.delete(req as any, res));
 

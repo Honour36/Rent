@@ -1,7 +1,7 @@
 'use client';
 import React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -70,6 +70,16 @@ export default function ApplicationDetailPage() {
   const [vettingNotes, setVettingNotes] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [idDocUrl, setIdDocUrl] = useState<string | null>(null);
+  const [idDocLoading, setIdDocLoading] = useState(false);
+
+  useEffect(() => {
+    if (!application?.id_document_url) return;
+    setIdDocLoading(true);
+    apiClient<{ url: string | null }>(`/applications/${id}/id-document`)
+      .then((res) => { if (res.success) setIdDocUrl((res as any).data?.url ?? null); })
+      .finally(() => setIdDocLoading(false));
+  }, [application?.id_document_url, id]);
 
   const handleDownload = () => {
     const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -210,6 +220,29 @@ export default function ApplicationDetailPage() {
                       icon={<Phone className="h-3.5 w-3.5" />}
                     />
                   </div>
+
+                  {/* Applicant's uploaded ID photo/document, for verification. */}
+                  {application.id_document_url && (
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">ID Document</p>
+                      {idDocLoading ? (
+                        <p className="text-sm text-muted-foreground">Loading…</p>
+                      ) : idDocUrl ? (
+                        /\.pdf($|\?)/i.test(idDocUrl) ? (
+                          <a href={idDocUrl} target="_blank" rel="noreferrer" className="text-sm text-primary underline flex items-center gap-1">
+                            <FileText className="h-3.5 w-3.5" /> View uploaded PDF
+                          </a>
+                        ) : (
+                          <a href={idDocUrl} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={idDocUrl} alt="Applicant ID document" className="max-h-64 rounded-md border object-contain" />
+                          </a>
+                        )
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Could not load the ID document.</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

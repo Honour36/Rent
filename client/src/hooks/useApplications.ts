@@ -26,6 +26,7 @@ export interface ApplicationListItem {
 
 export interface ApplicationDetail extends ApplicationListItem {
   form_data: ApplicationFormData;
+  id_document_url: string | null;
 }
 
 export interface ApplicationFormData {
