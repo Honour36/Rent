@@ -3,6 +3,7 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { depositsService } from './deposits.service';
 import { tenanciesService } from './tenancies.service';
+import { noticesToVacateService } from './notices-to-vacate.service';
 
 class AppError extends Error {
   constructor(public message: string, public statusCode: number) {
@@ -114,6 +115,12 @@ class InspectionsService {
     }
 
     const tenancy = await tenanciesService.endTenancy(inspection.tenancy_id, user);
+
+    try {
+      await noticesToVacateService.fulfilActiveForTenancy(inspection.tenancy_id);
+    } catch (err) {
+      console.error('Failed to mark notice to vacate as fulfilled:', err);
+    }
 
     return { inspection: updated, deposit: depositResult, tenancy };
   }

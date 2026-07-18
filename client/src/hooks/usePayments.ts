@@ -30,7 +30,7 @@ export interface PaymentDto {
 
 export interface CreatePaymentDto {
   tenancyId: string;
-  paymentType?: "rent" | "deposit";
+  paymentType?: "rent" | "deposit" | "lease_fee";
   periodMonth: number;
   periodYear: number;
   amountPaid: number;

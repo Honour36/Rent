@@ -5,6 +5,7 @@ import {
   ChartBar,
   ClipboardCheck,
   ClipboardList,
+  FileCheck,
   LayoutDashboard,
   type LucideIcon,
   MessageSquare,
@@ -106,6 +107,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Inspections",
         url: "/dashboard/inspections",
         icon: ClipboardCheck,
+      },
+      {
+        id: "leases",
+        title: "Leases",
+        url: "/dashboard/leases",
+        icon: FileCheck,
       },
       {
         id: "communications",

@@ -42,6 +42,8 @@ model Account {
   rent_collection_requests RentCollectionRequest[]
   deposits           Deposit[]
   inspections        Inspection[]
+  lease_renewals     LeaseRenewal[]
+  notices_to_vacate  NoticeToVacate[]
 
   @@map("accounts")
 }
@@ -213,6 +215,8 @@ model Tenancy {
   maintenance_requests MaintenanceRequest[]
   deposit         Deposit?
   inspections     Inspection[]
+  lease_renewals  LeaseRenewal[]
+  notices_to_vacate NoticeToVacate[]
 
   @@map("tenancies")
 }
@@ -221,7 +225,7 @@ model Payment {
   id           String    @id @default(uuid()) @db.Uuid
   account_id   String    @db.Uuid
   tenancy_id   String    @db.Uuid
-  payment_type String    @default("rent") // rent | deposit - see Deposit model for deposit tracking
+  payment_type String    @default("rent") // rent | deposit | lease_fee - see Deposit model for deposit tracking
   period_month Int
   period_year  Int
   amount_paid  Decimal   @db.Decimal
@@ -446,4 +450,40 @@ model Inspection {
   conductor     User?     @relation("ConductedBy", fields: [conducted_by], references: [id])
 
   @@map("inspections")
+}
+
+model LeaseRenewal {
+  id                 String    @id @default(uuid()) @db.Uuid
+  account_id         String    @db.Uuid
+  tenancy_id         String    @db.Uuid
+  previous_lease_end DateTime? @db.Date
+  new_lease_end      DateTime  @db.Date // agent-chosen renewal period - no fixed duration
+  lease_fee_amount   Decimal?  @db.Decimal
+  currency           String?
+  notes              String?
+  created_by         String?   @db.Uuid
+  created_at         DateTime  @default(now()) @db.Timestamptz
+
+  account   Account @relation(fields: [account_id], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancy_id], references: [id])
+
+  @@map("lease_renewals")
+}
+
+model NoticeToVacate {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  tenancy_id  String    @db.Uuid
+  reason      String    // eviction | sale | tenant_request | other
+  notice_date DateTime  @db.Date
+  vacate_by   DateTime  @db.Date // agent-chosen date - notice duration isn't fixed
+  notes       String?
+  status      String    @default("active") // active | withdrawn | fulfilled
+  created_by  String?   @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account   Account @relation(fields: [account_id], references: [id])
+  tenancy   Tenancy @relation(fields: [tenancy_id], references: [id])
+
+  @@map("notices_to_vacate")
 }

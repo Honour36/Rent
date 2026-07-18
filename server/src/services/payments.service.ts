@@ -7,7 +7,7 @@ import { depositsService } from './deposits.service';
 
 export const CreatePaymentSchema = z.object({
   tenancyId: z.string().uuid(),
-  paymentType: z.enum(['rent', 'deposit']).default('rent'),
+  paymentType: z.enum(['rent', 'deposit', 'lease_fee']).default('rent'),
   periodMonth: z.number().min(1).max(12),
   periodYear: z.number().min(2000).max(2100),
   amountPaid: z.number().positive(),
@@ -61,10 +61,9 @@ export class PaymentsService {
     if (!tenancy) throw new AppError('Tenancy not found', 404);
 
     let status = 'partial';
-    if (data.paymentType === 'deposit') {
-      // Deposit installments aren't "late" against a rent due date - whether
-      // the deposit as a whole is fully paid is tracked on the Deposit
-      // record itself (see recalcStatus below), not per-payment here.
+    if (data.paymentType === 'deposit' || data.paymentType === 'lease_fee') {
+      // Neither a deposit installment nor a lease fee is "late" against a
+      // rent due date.
       status = 'paid';
     } else if (data.amountPaid >= Number(tenancy.rent_amount)) {
       status = 'paid';
@@ -153,6 +152,12 @@ export class PaymentsService {
         } catch (err) {
           console.error('Failed to update deposit status:', err);
         }
+        return { ...result, collectionLink: null };
+      }
+
+      if (data.paymentType === 'lease_fee') {
+        // Same reasoning as deposit - a lease fee payment isn't "rent
+        // collected" and shouldn't prompt the owner about collection timing.
         return { ...result, collectionLink: null };
       }
 
