@@ -38,6 +38,8 @@ model Account {
   owner_statements   OwnerStatement[]
   message_templates  MessageTemplate[]
   agent_invites      AgentInvite[]
+  notifications      Notification[]
+  rent_collection_requests RentCollectionRequest[]
 
   @@map("accounts")
 }
@@ -65,6 +67,7 @@ model User {
   maintenance_logged   MaintenanceRequest[] @relation("LoggedBy")
   communications_sent  Communication[] @relation("SentBy")
   statements_approved  OwnerStatement[] @relation("ApprovedBy")
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -98,6 +101,7 @@ model Owner {
   trust_transactions TrustTransaction[]
   statements   OwnerStatement[]
   communications Communication[]
+  rent_collection_requests RentCollectionRequest[]
 
   @@map("owners")
 }
@@ -228,6 +232,7 @@ model Payment {
   tenancy      Tenancy   @relation(fields: [tenancy_id], references: [id])
   recorder     User      @relation("RecordedBy", fields: [recorded_by], references: [id])
   receipts     Receipt[]
+  rent_collection_request RentCollectionRequest?
 
   @@map("payments")
 }
@@ -355,4 +360,44 @@ model AgentInvite {
   account     Account   @relation(fields: [account_id], references: [id])
 
   @@map("agent_invites")
+}
+
+model Notification {
+  id          String    @id @default(uuid()) @db.Uuid
+  account_id  String    @db.Uuid
+  user_id     String?   @db.Uuid // null = broadcast to all agents on the account
+  type        String
+  title       String
+  body        String
+  entity_type String?
+  entity_id   String?   @db.Uuid
+  is_read     Boolean   @default(false)
+  read_at     DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  account     Account   @relation(fields: [account_id], references: [id])
+  user        User?     @relation(fields: [user_id], references: [id])
+
+  @@index([account_id, is_read])
+  @@index([user_id, is_read])
+  @@map("notifications")
+}
+
+model RentCollectionRequest {
+  id            String    @id @default(uuid()) @db.Uuid
+  account_id    String    @db.Uuid
+  payment_id    String    @unique @db.Uuid
+  owner_id      String    @db.Uuid
+  token         String    @unique
+  status        String    @default("pending") // pending | scheduled
+  scheduled_for DateTime? @db.Timestamptz // owner-chosen collection date+time
+  notes         String?
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  responded_at  DateTime? @db.Timestamptz
+
+  account       Account   @relation(fields: [account_id], references: [id])
+  payment       Payment   @relation(fields: [payment_id], references: [id])
+  owner         Owner     @relation(fields: [owner_id], references: [id])
+
+  @@map("rent_collection_requests")
 }

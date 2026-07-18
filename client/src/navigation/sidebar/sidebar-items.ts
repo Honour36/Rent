@@ -1,6 +1,7 @@
 import {
   Banknote,
   Building2,
+  Calendar,
   ChartBar,
   ClipboardList,
   LayoutDashboard,
@@ -85,6 +86,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Payments",
         url: "/dashboard/payments",
         icon: Banknote,
+      },
+      {
+        id: "rent-collections",
+        title: "Rent Collections",
+        url: "/dashboard/rent-collections",
+        icon: Calendar,
       },
       {
         id: "communications",

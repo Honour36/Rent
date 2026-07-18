@@ -68,7 +68,7 @@ export function usePayments() {
   const createPayment = async (data: CreatePaymentDto) => {
     setLoading(true);
     setError("");
-    const res = await apiClient<{ payment: PaymentDto, receipt: any }>(`/payments`, {
+    const res = await apiClient<{ payment: PaymentDto, receipt: any, collectionLink: string | null }>(`/payments`, {
       method: "POST",
       data,
     });

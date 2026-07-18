@@ -270,6 +270,7 @@ export async function sendOwnerPaymentNotification(opts: {
   receiptNumber: string;
   paymentDate: string;
   accountName: string;
+  collectionLink?: string;
 }) {
   const body = `
     <h1>Payment Received</h1>
@@ -281,6 +282,14 @@ export async function sendOwnerPaymentNotification(opts: {
     <div class="info-row"><span class="info-label">Receipt</span><span class="info-value">${opts.receiptNumber}</span></div>
     <div class="info-row"><span class="info-label">Date</span><span class="info-value">${opts.paymentDate}</span></div>
     <hr class="divider" />
+    ${opts.collectionLink ? `
+    <p>When would you like to collect this rent?</p>
+    <p style="text-align:center;margin:20px 0">
+      <a href="${opts.collectionLink}" style="background:#111827;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">Choose collection date &amp; time</a>
+    </p>
+    <p style="color:#6b7280;font-size:13px">This link can only be used once, and expires as soon as you submit a date.</p>
+    <hr class="divider" />
+    ` : ''}
     <p style="color:#6b7280;font-size:13px">Your agent will include this in your monthly statement.</p>
   `;
 

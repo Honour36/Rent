@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, Mail, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "lucide-react";
 
 import { usePayments, CreatePaymentDto } from "@/hooks/usePayments";
 import { useTenants } from "@/hooks/useTenants";
-import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +22,7 @@ import {
 interface PaymentResult {
   payment: any;
   receipt: any;
+  collectionLink: string | null;
 }
 
 export default function RecordPaymentPage() {
@@ -91,7 +91,7 @@ export default function RecordPaymentPage() {
     }
   };
 
-  const handleNotify = async (channel: "email" | "whatsapp") => {
+  const handleNotify = async () => {
     if (!paymentResult) return;
     setNotifying(true);
     const owner = paymentResult.payment?.tenancy?.unit?.property?.owner;
@@ -99,25 +99,14 @@ export default function RecordPaymentPage() {
     const property = paymentResult.payment?.tenancy?.unit?.property;
     const receipt = paymentResult.receipt;
 
-    const msg = `Dear ${owner?.full_name ?? "Owner"},\n\n${tenant?.full_name ?? "Your tenant"} has paid rent for ${property?.name ?? "the property"} - ${formData.currency} ${formData.amountPaid}. Receipt: ${receipt?.receipt_number}.\n\nRental`;
+    const msg = `Dear ${owner?.full_name ?? "Owner"},\n\n${tenant?.full_name ?? "Your tenant"} has paid rent for ${property?.name ?? "the property"} - ${formData.currency} ${formData.amountPaid}. Receipt: ${receipt?.receipt_number}.` +
+      (paymentResult.collectionLink ? `\n\nWhen would you like to collect this rent? Choose a date and time here: ${paymentResult.collectionLink}` : "") +
+      `\n\nRental`;
 
-    if (channel === "whatsapp") {
-      const phone = (owner?.phone ?? "").replace(/[^0-9]/g, "");
-      if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-      else toast.warning("Owner has no phone number on record.");
-    } else {
-      const res = await apiClient("/communications", {
-        method: "POST",
-        data: {
-          tenantId: tenant?.id,
-          channel: "email",
-          subject: `Rent Payment Received - ${property?.name}`,
-          body: msg,
-        },
-      });
-      if (res.success) toast.success("Email sent to owner.");
-      else toast.error("Could not send email", { description: (res as any).error });
-    }
+    const phone = (owner?.phone ?? "").replace(/[^0-9]/g, "");
+    if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    else toast.warning("Owner has no phone number on record.");
+
     setNotifying(false);
     setNotifyOpen(false);
     router.push(`/dashboard/receipts/${paymentResult.payment?.id}`);
@@ -264,17 +253,14 @@ export default function RecordPaymentPage() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Would you like to notify the owner now?
+            {owner?.email
+              ? "An email has been sent to the owner automatically, with a link to choose when they'll collect this rent. You can also notify them on WhatsApp:"
+              : "The owner has no email on record, so no automatic notification was sent. You can still notify them on WhatsApp:"}
           </p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => handleNotify("email")} disabled={notifying || !owner?.email}>
-              <Mail className="mr-2 h-4 w-4" />Send Email
-            </Button>
-            <Button variant="outline" onClick={() => handleNotify("whatsapp")} disabled={notifying || !owner?.phone}>
-              <MessageCircle className="mr-2 h-4 w-4 text-green-600" />WhatsApp
-            </Button>
-          </div>
+          <Button variant="outline" className="w-full" onClick={handleNotify} disabled={notifying || !owner?.phone}>
+            <MessageCircle className="mr-2 h-4 w-4 text-green-600" />WhatsApp Owner
+          </Button>
 
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             {paymentResult && (

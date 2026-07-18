@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { sendOwnerPaymentNotification } from '../emails/email-service';
+import { rentCollectionService } from './rent-collection.service';
 
 export const CreatePaymentSchema = z.object({
   tenancyId: z.string().uuid(),
@@ -140,6 +141,19 @@ export class PaymentsService {
       // let it fail the payment-recording request itself.
       const owner = result.payment?.tenancy.unit.property.owner;
       const tenantForNotice = result.payment?.tenancy.tenant;
+      let collectionLink: string | null = null;
+
+      if (owner?.id && result.payment) {
+        // One scheduling link per payment, generated regardless of whether
+        // the owner has an email (WhatsApp notify on the frontend needs it too).
+        try {
+          const { url } = await rentCollectionService.createForPayment(result.payment.id, result.payment.account_id, owner.id);
+          collectionLink = url;
+        } catch (err) {
+          console.error('Failed to create rent collection request:', err);
+        }
+      }
+
       if (owner?.email && result.payment) {
         try {
           await sendOwnerPaymentNotification({
@@ -153,12 +167,13 @@ export class PaymentsService {
             receiptNumber: result.receipt.receipt_number,
             paymentDate: new Date(result.payment.payment_date).toLocaleDateString('en-GB'),
             accountName: result.payment.tenancy.unit.property.account?.name ?? 'Rental',
+            collectionLink: collectionLink ?? undefined,
           });
         } catch (err) {
           console.error('Failed to send owner payment notification email:', err);
         }
       }
-      return result;
+      return { ...result, collectionLink };
     });
   }
 
