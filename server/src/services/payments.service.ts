@@ -3,9 +3,11 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { sendOwnerPaymentNotification } from '../emails/email-service';
 import { rentCollectionService } from './rent-collection.service';
+import { depositsService } from './deposits.service';
 
 export const CreatePaymentSchema = z.object({
   tenancyId: z.string().uuid(),
+  paymentType: z.enum(['rent', 'deposit']).default('rent'),
   periodMonth: z.number().min(1).max(12),
   periodYear: z.number().min(2000).max(2100),
   amountPaid: z.number().positive(),
@@ -59,7 +61,12 @@ export class PaymentsService {
     if (!tenancy) throw new AppError('Tenancy not found', 404);
 
     let status = 'partial';
-    if (data.amountPaid >= Number(tenancy.rent_amount)) {
+    if (data.paymentType === 'deposit') {
+      // Deposit installments aren't "late" against a rent due date - whether
+      // the deposit as a whole is fully paid is tracked on the Deposit
+      // record itself (see recalcStatus below), not per-payment here.
+      status = 'paid';
+    } else if (data.amountPaid >= Number(tenancy.rent_amount)) {
       status = 'paid';
 
       const dueDay = tenancy.rent_due_day || 1;
@@ -86,6 +93,7 @@ export class PaymentsService {
         data: {
           account_id: user.accountId,
           tenancy_id: data.tenancyId,
+          payment_type: data.paymentType,
           period_month: data.periodMonth,
           period_year: data.periodYear,
           amount_paid: data.amountPaid,
@@ -136,6 +144,18 @@ export class PaymentsService {
 
       return { payment: enriched, receipt };
     }).then(async (result) => {
+      if (data.paymentType === 'deposit') {
+        // No "when will you collect the rent" prompt for a deposit - that
+        // question only makes sense for rent. Just roll the Deposit
+        // record's status forward (pending -> partial -> paid_in_full).
+        try {
+          await depositsService.recalcStatus(data.tenancyId);
+        } catch (err) {
+          console.error('Failed to update deposit status:', err);
+        }
+        return { ...result, collectionLink: null };
+      }
+
       // Notify the owner that a payment has come in, so it's not left waiting for
       // the monthly statement. Fire this after the transaction commits, and never
       // let it fail the payment-recording request itself.

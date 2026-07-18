@@ -29,7 +29,7 @@ export class DashboardService {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const paymentsThisMonth = await prisma.payment.findMany({
-      where: { account_id: accountId, payment_date: { gte: monthStart, lt: monthEnd } },
+      where: { account_id: accountId, payment_type: 'rent', payment_date: { gte: monthStart, lt: monthEnd } },
       select: { amount_paid: true, currency: true },
     });
     const paymentsThisMonthCount = paymentsThisMonth.length;

@@ -9,6 +9,7 @@ import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "
 
 import { usePayments, CreatePaymentDto } from "@/hooks/usePayments";
 import { useTenants } from "@/hooks/useTenants";
+import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,17 +54,43 @@ export default function RecordPaymentPage() {
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifying, setNotifying] = useState(false);
+  const [depositInfo, setDepositInfo] = useState<{ required_amount: number; paid_amount: number; balance: number; currency: string } | null>(null);
+  const [depositError, setDepositError] = useState("");
 
   // Synchronous guard against double-submit - see note in
   // add-property-dialog.tsx for why the `submitting` state alone isn't
   // enough to stop a very fast double-click.
   const isSubmittingRef = useRef(false);
 
+  const fetchDepositInfo = async (tenancyId: string) => {
+    setDepositError("");
+    setDepositInfo(null);
+    const res = await apiClient<{ required_amount: number; paid_amount: number; balance: number; currency: string }>(`/deposits/tenancy/${tenancyId}`);
+    if (res.success) setDepositInfo((res as any).data);
+    else setDepositError((res as any).error || "Could not load deposit info for this tenancy.");
+  };
+
   const handleTenancyChange = (tenancyId: string) => {
     const sel = activeTenancies.find((t) => t.tenancyId === tenancyId);
     if (sel) {
       setSelectedTenancy(sel);
       setFormData({ ...formData, tenancyId, currency: sel.currency, amountPaid: Number(sel.rentAmount) });
+      if (formData.paymentType === "deposit") fetchDepositInfo(tenancyId);
+    }
+  };
+
+  const handlePaymentTypeChange = (type: "rent" | "deposit") => {
+    if (type === "deposit" && formData.tenancyId) {
+      fetchDepositInfo(formData.tenancyId);
+      setFormData({ ...formData, paymentType: type, amountPaid: undefined });
+    } else if (type === "rent" && selectedTenancy) {
+      setDepositInfo(null);
+      setDepositError("");
+      setFormData({ ...formData, paymentType: type, amountPaid: Number(selectedTenancy.rentAmount) });
+    } else {
+      setDepositInfo(null);
+      setDepositError("");
+      setFormData({ ...formData, paymentType: type });
     }
   };
 
@@ -155,6 +182,36 @@ export default function RecordPaymentPage() {
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label>Payment Type</Label>
+              <div className="flex gap-2">
+                <Button type="button" variant={(formData.paymentType ?? "rent") === "rent" ? "default" : "outline"} size="sm"
+                  onClick={() => handlePaymentTypeChange("rent")}>
+                  Rent
+                </Button>
+                <Button type="button" variant={formData.paymentType === "deposit" ? "default" : "outline"} size="sm"
+                  onClick={() => handlePaymentTypeChange("deposit")}>
+                  Deposit
+                </Button>
+              </div>
+            </div>
+
+            {formData.paymentType === "deposit" && (
+              depositError ? (
+                <p className="text-sm text-destructive">{depositError}</p>
+              ) : depositInfo ? (
+                <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
+                  <p>Required: {depositInfo.currency} {Number(depositInfo.required_amount).toLocaleString()}</p>
+                  <p>Paid so far: {depositInfo.currency} {Number(depositInfo.paid_amount).toLocaleString()}</p>
+                  <p className="font-medium">Balance: {depositInfo.currency} {Number(depositInfo.balance).toLocaleString()}</p>
+                </div>
+              ) : formData.tenancyId ? (
+                <p className="text-sm text-muted-foreground">Loading deposit info…</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Select a tenant first.</p>
+              )
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

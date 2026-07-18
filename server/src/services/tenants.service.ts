@@ -41,7 +41,7 @@ export class TenantsService {
           include: {
             unit: { include: { property: true } },
             payments: {
-              where: { period_month: currentMonth, period_year: currentYear },
+              where: { payment_type: 'rent', period_month: currentMonth, period_year: currentYear },
               select: { amount_paid: true, status: true, period_month: true, period_year: true },
               take: 1,
               orderBy: { created_at: 'desc' },

@@ -20,6 +20,7 @@ import { settingsRoutes } from './routes/settings.routes';
 import storageRoutes from './routes/storage.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import rentCollectionRoutes from './routes/rent-collection.routes';
+import depositsRoutes from './routes/deposits.routes';
 import { startRentRemindersJob } from './jobs/rent-reminders.job';
 
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/rent-collection', rentCollectionRoutes);
+app.use('/api/deposits', depositsRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });

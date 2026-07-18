@@ -40,6 +40,7 @@ model Account {
   agent_invites      AgentInvite[]
   notifications      Notification[]
   rent_collection_requests RentCollectionRequest[]
+  deposits           Deposit[]
 
   @@map("accounts")
 }
@@ -208,6 +209,7 @@ model Tenancy {
   payments        Payment[]
   trust_transactions TrustTransaction[]
   maintenance_requests MaintenanceRequest[]
+  deposit         Deposit?
 
   @@map("tenancies")
 }
@@ -216,6 +218,7 @@ model Payment {
   id           String    @id @default(uuid()) @db.Uuid
   account_id   String    @db.Uuid
   tenancy_id   String    @db.Uuid
+  payment_type String    @default("rent") // rent | deposit - see Deposit model for deposit tracking
   period_month Int
   period_year  Int
   amount_paid  Decimal   @db.Decimal
@@ -400,4 +403,24 @@ model RentCollectionRequest {
   owner         Owner     @relation(fields: [owner_id], references: [id])
 
   @@map("rent_collection_requests")
+}
+
+model Deposit {
+  id                String    @id @default(uuid()) @db.Uuid
+  account_id        String    @db.Uuid
+  tenancy_id        String    @unique @db.Uuid
+  required_amount   Decimal   @db.Decimal
+  currency          String
+  // pending (nothing paid) | partial | paid_in_full | released (returned to
+  // tenant at move-out) | forfeited (kept, fully or partially, against damage)
+  status            String    @default("pending")
+  resolved_amount   Decimal?  @db.Decimal // amount actually returned/kept at resolution
+  resolution_notes  String?
+  resolved_at       DateTime? @db.Timestamptz
+  created_at        DateTime  @default(now()) @db.Timestamptz
+
+  account           Account   @relation(fields: [account_id], references: [id])
+  tenancy           Tenancy   @relation(fields: [tenancy_id], references: [id])
+
+  @@map("deposits")
 }

@@ -111,6 +111,7 @@ export class ReportsService {
         const payment = await prisma.payment.findFirst({
           where: {
             tenancy_id: activeTenancy.id,
+            payment_type: 'rent',
             period_month: data.periodMonth,
             period_year: data.periodYear,
             account_id: user.accountId,
@@ -416,7 +417,9 @@ export class ReportsService {
       if (monthsActive < 0) monthsActive = 0;
       
       const totalDue = monthsActive * Number(t.rent_amount);
-      const totalPaid = t.payments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      const totalPaid = t.payments
+        .filter(p => p.payment_type === 'rent')
+        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
       const balance = totalDue - totalPaid;
       
       if (balance > 0) {
@@ -516,6 +519,7 @@ export class ReportsService {
       const payments = await prisma.payment.findMany({
         where: {
           account_id: accountId,
+          payment_type: 'rent',
           period_month: m,
           period_year: y,
           ...(propertyId && { tenancy: { unit: { property_id: propertyId } } })

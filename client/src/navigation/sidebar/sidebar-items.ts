@@ -8,6 +8,7 @@ import {
   type LucideIcon,
   MessageSquare,
   Settings,
+  ShieldCheck,
   UserCheck,
   UserCog,
   Users,
@@ -92,6 +93,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Rent Collections",
         url: "/dashboard/rent-collections",
         icon: Calendar,
+      },
+      {
+        id: "deposits",
+        title: "Deposits",
+        url: "/dashboard/deposits",
+        icon: ShieldCheck,
       },
       {
         id: "communications",
