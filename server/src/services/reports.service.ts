@@ -4,6 +4,7 @@ import { TokenPayload } from '../middleware/auth.middleware';
 import PDFDocument from 'pdfkit';
 import { Resend } from 'resend';
 import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
+import { getFromAddress } from '../emails/email-service';
 
 export const GenerateStatementSchema = z.object({
   ownerId: z.string().uuid(),
@@ -350,9 +351,12 @@ export class ReportsService {
       month: 'long',
     });
 
+    const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, email: true } });
+
     try {
       const result = await this.resend.emails.send({
-        from: 'Rental <onboarding@resend.dev>',
+        from: getFromAddress(account?.name),
+        reply_to: account?.email || undefined,
         to: [statement.owner.email],
         subject: `Owner Statement - ${monthName} ${statement.period_year}`,
         html: `<p>Dear ${statement.owner.full_name},</p><p>Please find attached your owner statement for ${monthName} ${statement.period_year}.</p>`,

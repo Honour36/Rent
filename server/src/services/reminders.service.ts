@@ -1,5 +1,6 @@
 import { prisma } from '../db/prisma';
 import { Resend } from 'resend';
+import { getFromAddress } from '../emails/email-service';
 
 export class RemindersService {
   private resend: Resend;
@@ -47,9 +48,11 @@ export class RemindersService {
       <p>Rental</p>
     `;
 
+    const account = await prisma.account.findUnique({ where: { id: tenancy.account_id }, select: { name: true } });
+
     try {
       const result = await this.resend.emails.send({
-        from: 'Rental <onboarding@resend.dev>',
+        from: getFromAddress(account?.name),
         to: [tenant.email as string],
         subject,
         html,

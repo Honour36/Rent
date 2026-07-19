@@ -48,3 +48,22 @@ export async function deleteUnitsCascade(tx: any, unitIds: string[]) {
   await tx.application.deleteMany({ where: { unit_id: { in: unitIds } } });
   await tx.unit.deleteMany({ where: { id: { in: unitIds } } });
 }
+
+/**
+ * Deletes everything that hangs off a set of properties - levy charges,
+ * and (via deleteUnitsCascade) every unit and everything under them -
+ * ending with the properties themselves. Used by both properties.service.ts
+ * (deleting one property) and owners.service.ts (deleting an owner's
+ * properties), so this is the one place that needs updating when a new
+ * property-scoped table shows up, instead of two.
+ */
+export async function deletePropertiesCascade(tx: any, propertyIds: string[]) {
+  if (propertyIds.length === 0) return;
+
+  const units = await tx.unit.findMany({ where: { property_id: { in: propertyIds } }, select: { id: true } });
+  const unitIds = units.map((u: { id: string }) => u.id);
+
+  await tx.levyCharge.deleteMany({ where: { property_id: { in: propertyIds } } });
+  await deleteUnitsCascade(tx, unitIds);
+  await tx.property.deleteMany({ where: { id: { in: propertyIds } } });
+}

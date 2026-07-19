@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
-import { deleteUnitsCascade } from './cascade-delete.helper';
+import { deletePropertiesCascade } from './cascade-delete.helper';
 
 export const CreatePropertySchema = z.object({
   ownerId: z.string({ required_error: 'An owner must be selected before saving a property.' })
@@ -203,12 +203,8 @@ export class PropertiesService {
     });
     if (!existing) throw new AppError('Property not found', 404);
 
-    const units = await prisma.unit.findMany({ where: { property_id: id }, select: { id: true } });
-    const unitIds = units.map(u => u.id);
-
     await prisma.$transaction(async (tx) => {
-      await deleteUnitsCascade(tx, unitIds);
-      await tx.property.delete({ where: { id } });
+      await deletePropertiesCascade(tx, [id]);
     });
 
     return { deleted: true };

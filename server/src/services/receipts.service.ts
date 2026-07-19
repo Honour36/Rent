@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import { Resend } from 'resend';
 import { z } from 'zod';
 import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
+import { getFromAddress } from '../emails/email-service';
 
 export const SendReceiptSchema = z.object({
   channel: z.enum(['email', 'whatsapp']),
@@ -254,7 +255,8 @@ export class ReceiptsService {
       try {
         const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, email: true } });
         const result = await this.resend.emails.send({
-          from: account?.email ? `${account.name} <${account.email}>` : `Rental <onboarding@resend.dev>`,
+          from: getFromAddress(account?.name),
+          reply_to: account?.email || undefined,
           to: [tenant.email],
           subject: `Payment Receipt ${receipt.receipt_number}`,
           html: `<p>Dear ${tenant.full_name},</p><p>Please find attached your payment receipt for ${receipt.payment.period_month}/${receipt.payment.period_year}.</p><p>Thank you for your payment.</p>`,
