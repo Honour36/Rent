@@ -110,6 +110,12 @@ export const sidebarItems: NavGroup[] = [
         icon: ClipboardCheck,
       },
       {
+        id: "checklists",
+        title: "Checklists",
+        url: "/dashboard/checklists",
+        icon: ClipboardList,
+      },
+      {
         id: "leases",
         title: "Leases",
         url: "/dashboard/leases",

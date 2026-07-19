@@ -45,6 +45,7 @@ model Account {
   lease_renewals     LeaseRenewal[]
   notices_to_vacate  NoticeToVacate[]
   levy_charges       LevyCharge[]
+  checklist_templates ChecklistTemplate[]
 
   @@map("accounts")
 }
@@ -458,6 +459,7 @@ model Inspection {
 model InspectionItem {
   id             String    @id @default(uuid()) @db.Uuid
   inspection_id  String    @db.Uuid
+  section        String?   // e.g. "Bedrooms", "Kitchen" - groups items for display, matches the template it came from
   label          String    // e.g. "Doors", "Lights working", "Windows fitted"
   checked        Boolean   @default(false) // in the same condition/working as expected
   disputed       Boolean   @default(false) // manager disagrees with the recorded condition of this item
@@ -468,6 +470,31 @@ model InspectionItem {
   inspection     Inspection @relation(fields: [inspection_id], references: [id])
 
   @@map("inspection_items")
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  account_id  String   @db.Uuid
+  name        String   // e.g. "Standard Move-In/Move-Out Checklist"
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  account     Account  @relation(fields: [account_id], references: [id])
+  items       ChecklistTemplateItem[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistTemplateItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  template_id String   @db.Uuid
+  section     String?  // e.g. "Bedrooms", "Kitchen", "Living Areas" - groups items, matching the reference layout
+  label       String
+  sort_order  Int      @default(0)
+
+  template    ChecklistTemplate @relation(fields: [template_id], references: [id])
+
+  @@map("checklist_template_items")
 }
 
 model LeaseRenewal {

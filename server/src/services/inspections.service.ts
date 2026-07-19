@@ -87,7 +87,7 @@ class InspectionsService {
     });
 
     if (!last || last.items.length === 0) return [];
-    return last.items.map((i) => ({ label: i.label }));
+    return last.items.map((i) => ({ label: i.label, section: i.section }));
   }
 
   async cancel(id: string, user: TokenPayload) {

@@ -3,6 +3,7 @@ import { apiClient } from "@/lib/api-client";
 
 export interface InspectionItemDto {
   id?: string;
+  section?: string | null;
   label: string;
   checked: boolean;
   disputed?: boolean;
@@ -56,8 +57,8 @@ export function useInspections() {
   };
 
   const fetchSuggestedItems = async (tenancyId: string): Promise<InspectionItemDto[]> => {
-    const res = await apiClient<{ label: string }[]>(`/inspections/tenancy/${tenancyId}/suggested-items`);
-    if (res.success) return ((res as any).data ?? []).map((i: { label: string }) => ({ label: i.label, checked: false }));
+    const res = await apiClient<{ label: string; section?: string | null }[]>(`/inspections/tenancy/${tenancyId}/suggested-items`);
+    if (res.success) return ((res as any).data ?? []).map((i: { label: string; section?: string | null }) => ({ label: i.label, section: i.section, checked: false }));
     return [];
   };
 

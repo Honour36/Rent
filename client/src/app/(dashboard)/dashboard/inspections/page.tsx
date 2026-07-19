@@ -6,6 +6,7 @@ import { ClipboardCheck, Loader2, Plus, X, AlertTriangle } from "lucide-react";
 
 import { useInspections, InspectionDto, InspectionItemDto } from "@/hooks/useInspections";
 import { useTenants } from "@/hooks/useTenants";
+import { useChecklistTemplates } from "@/hooks/useChecklistTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 export default function InspectionsPage() {
   const { inspections, loading, error, scheduleInspection, completeInspection, cancelInspection, fetchSuggestedItems } = useInspections();
   const { tenants } = useTenants();
+  const { templates, getTemplateItems } = useChecklistTemplates();
 
   const activeTenancies = tenants
     .filter((t) => t.activeTenancy)
@@ -90,6 +92,12 @@ export default function InspectionsPage() {
   };
 
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
+
+  const loadTemplate = async (templateId: string) => {
+    if (!templateId) return;
+    const templateItems = await getTemplateItems(templateId);
+    setItems(templateItems.map(i => ({ section: i.section, label: i.label, checked: false, disputed: false })));
+  };
 
   const toggleChecked = (idx: number) => setItems(items.map((it, i) => i === idx ? { ...it, checked: !it.checked } : it));
 
@@ -275,6 +283,16 @@ export default function InspectionsPage() {
 
               <div className="space-y-2">
                 <Label>Checklist</Label>
+                {templates.length > 0 && (
+                  <Select onValueChange={loadTemplate}>
+                    <SelectTrigger><SelectValue placeholder="Load from a saved checklist…" /></SelectTrigger>
+                    <SelectContent>
+                      {templates.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name} ({t.items.length} items)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {itemsLoading ? (
                   <p className="text-sm text-muted-foreground">Loading checklist…</p>
                 ) : (
@@ -284,7 +302,10 @@ export default function InspectionsPage() {
                         {items.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2 rounded-md border px-2 py-1.5">
                             <Checkbox checked={item.checked} onCheckedChange={() => toggleChecked(idx)} />
-                            <span className={`flex-1 text-sm ${item.disputed ? "text-destructive" : ""}`}>{item.label}</span>
+                            <span className={`flex-1 text-sm ${item.disputed ? "text-destructive" : ""}`}>
+                              {item.section && <span className="text-xs text-muted-foreground mr-1.5">[{item.section}]</span>}
+                              {item.label}
+                            </span>
                             <Button type="button" size="sm" variant={item.disputed ? "destructive" : "ghost"}
                               className="h-7 px-2" title="Mark disagreement about this item's condition"
                               onClick={() => toggleDisputed(idx)}>
