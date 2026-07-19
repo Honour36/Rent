@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 
+export interface InspectionItemDto {
+  id?: string;
+  label: string;
+  checked: boolean;
+  disputed?: boolean;
+  notes?: string;
+}
+
 export interface InspectionDto {
   id: string;
   tenancy_id: string;
@@ -10,6 +18,7 @@ export interface InspectionDto {
   completed_at: string | null;
   outcome: "pass" | "fail" | null;
   notes: string | null;
+  items: InspectionItemDto[];
   tenancy: {
     tenant: { full_name: string };
     unit: { unit_number: string; property: { name: string } };
@@ -40,10 +49,16 @@ export function useInspections() {
     return res;
   };
 
-  const completeInspection = async (id: string, data: { outcome: "pass" | "fail"; notes?: string; depositResolvedAmount?: number }) => {
+  const completeInspection = async (id: string, data: { outcome: "pass" | "fail"; notes?: string; items?: InspectionItemDto[]; depositResolvedAmount?: number }) => {
     const res = await apiClient(`/inspections/${id}/complete`, { method: "POST", data });
     if (res.success) await fetchInspections();
     return res;
+  };
+
+  const fetchSuggestedItems = async (tenancyId: string): Promise<InspectionItemDto[]> => {
+    const res = await apiClient<{ label: string }[]>(`/inspections/tenancy/${tenancyId}/suggested-items`);
+    if (res.success) return ((res as any).data ?? []).map((i: { label: string }) => ({ label: i.label, checked: false }));
+    return [];
   };
 
   const cancelInspection = async (id: string) => {
@@ -52,5 +67,5 @@ export function useInspections() {
     return res;
   };
 
-  return { inspections, loading, error, refetch: fetchInspections, scheduleInspection, completeInspection, cancelInspection };
+  return { inspections, loading, error, refetch: fetchInspections, scheduleInspection, completeInspection, cancelInspection, fetchSuggestedItems };
 }

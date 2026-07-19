@@ -33,6 +33,18 @@ class InspectionsController {
   };
 
   /**
+   * GET /api/inspections/tenancy/:tenancyId/suggested-items
+   */
+  getSuggestedItems = async (req: AuthRequest, res: Response) => {
+    try {
+      const data = await inspectionsService.getSuggestedItems(req.params.tenancyId, req.user!);
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  };
+
+  /**
    * POST /api/inspections/:id/complete
    */
   complete = async (req: AuthRequest, res: Response) => {

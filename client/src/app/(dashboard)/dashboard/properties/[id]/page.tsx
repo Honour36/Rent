@@ -57,7 +57,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
   const vacantCount = property.units?.filter(u => u.status === "vacant").length || 0;
   const occupiedCount = property.units?.filter(u => u.status === "occupied").length || 0;
   const maintenanceCount = property.units?.filter(u => u.status === "maintenance").length || 0;
-  const appBase = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appBase = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div className="flex flex-col gap-6">

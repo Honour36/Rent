@@ -450,8 +450,24 @@ model Inspection {
   account       Account   @relation(fields: [account_id], references: [id])
   tenancy       Tenancy   @relation(fields: [tenancy_id], references: [id])
   conductor     User?     @relation("ConductedBy", fields: [conducted_by], references: [id])
+  items         InspectionItem[]
 
   @@map("inspections")
+}
+
+model InspectionItem {
+  id             String    @id @default(uuid()) @db.Uuid
+  inspection_id  String    @db.Uuid
+  label          String    // e.g. "Doors", "Lights working", "Windows fitted"
+  checked        Boolean   @default(false) // in the same condition/working as expected
+  disputed       Boolean   @default(false) // manager disagrees with the recorded condition of this item
+  notes          String?
+  sort_order     Int       @default(0)
+  created_at     DateTime  @default(now()) @db.Timestamptz
+
+  inspection     Inspection @relation(fields: [inspection_id], references: [id])
+
+  @@map("inspection_items")
 }
 
 model LeaseRenewal {

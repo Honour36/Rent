@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { deleteUnitsCascade } from './cascade-delete.helper';
 
 export const CreateOwnerSchema = z.object({
   fullName: z.string({ required_error: 'Full name is required.' }).min(2, 'Name must be at least 2 characters.'),
@@ -98,7 +99,26 @@ export class OwnersService {
       select: { id: true },
     });
     if (!existing) throw new AppError('Owner not found', 404);
-    await prisma.owner.delete({ where: { id } });
+
+    const properties = await prisma.property.findMany({ where: { owner_id: id }, select: { id: true } });
+    const propertyIds = properties.map(p => p.id);
+    const units = await prisma.unit.findMany({ where: { property_id: { in: propertyIds } }, select: { id: true } });
+    const unitIds = units.map(u => u.id);
+
+    await prisma.$transaction(async (tx) => {
+      await deleteUnitsCascade(tx, unitIds);
+      // rent_collection_requests tied to this owner's own payments are
+      // already gone via deleteUnitsCascade -> deleteTenanciesCascade, but
+      // deposit isn't linked to owner_id directly so this covers any that
+      // somehow weren't (defensive, not expected to hit anything left).
+      await tx.rentCollectionRequest.deleteMany({ where: { owner_id: id } });
+      await tx.trustTransaction.deleteMany({ where: { owner_id: id } });
+      await tx.communication.deleteMany({ where: { owner_id: id } });
+      await tx.ownerStatement.deleteMany({ where: { owner_id: id } });
+      await tx.property.deleteMany({ where: { id: { in: propertyIds } } });
+      await tx.owner.delete({ where: { id } });
+    });
+
     return { deleted: true };
   }
 }

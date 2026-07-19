@@ -3,6 +3,7 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { getFromAddress } from '../emails/email-service';
 
 export const InviteAgentSchema = z.object({
   email: z.string().email(),
@@ -74,10 +75,12 @@ export class AgentsService {
       }
     });
 
-    const setupLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/register?token=${token}`;
+    const setupLink = `${process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app'}/register?token=${token}`;
+
+    const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true } });
 
     const result = await this.resend.emails.send({
-      from: 'Rental <onboarding@resend.dev>',
+      from: getFromAddress(account?.name),
       to: data.email,
       subject: 'You have been invited to join Rental',
       html: `<p>You have been invited to join as an agent.</p><p><a href="${setupLink}">Click here to set up your account</a></p>`

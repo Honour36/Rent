@@ -2,6 +2,7 @@ import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { Resend } from 'resend';
 import { z } from 'zod';
+import { getFromAddress } from '../emails/email-service';
 
 class AppError extends Error {
   constructor(public message: string, public statusCode: number) {
@@ -102,7 +103,8 @@ export class CommunicationsService {
 
       try {
         const result = await this.resend.emails.send({
-          from: account?.email ? `${account.name} <${account.email}>` : 'Rental <onboarding@resend.dev>',
+          from: getFromAddress(account?.name),
+          reply_to: account?.email || undefined,
           to: [recipient.email],
           subject: data.subject || '(no subject)',
           html: data.body.replace(/\n/g, '<br>'),

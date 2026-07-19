@@ -21,6 +21,12 @@ export type ScheduleInspectionDto = z.infer<typeof ScheduleInspectionSchema>;
 export const CompleteInspectionSchema = z.object({
   outcome: z.enum(['pass', 'fail']),
   notes: z.string().max(2000).optional(),
+  items: z.array(z.object({
+    label: z.string().min(1),
+    checked: z.boolean(),
+    disputed: z.boolean().optional(),
+    notes: z.string().max(500).optional(),
+  })).optional(),
   // Only meaningful for type === 'move_out' - resolves the deposit and ends
   // the tenancy in the same step, since that's the defined lifecycle: a
   // completed move-out inspection is what actually frees the unit.
@@ -58,8 +64,30 @@ class InspectionsService {
           },
         },
         conductor: { select: { full_name: true } },
+        items: { orderBy: { sort_order: 'asc' } },
       },
     });
+  }
+
+  /**
+   * The checklist "carries forward" - a move-out inspection should start
+   * from the same list of items the move-in inspection used, so the
+   * manager is re-checking the same things rather than starting from a
+   * blank list. Returns item labels (reset to unchecked/undisputed) from
+   * the most recently completed inspection for this tenancy, if any.
+   */
+  async getSuggestedItems(tenancyId: string, user: TokenPayload) {
+    const tenancy = await prisma.tenancy.findFirst({ where: { id: tenancyId, account_id: user.accountId } });
+    if (!tenancy) throw new AppError('Tenancy not found', 404);
+
+    const last = await prisma.inspection.findFirst({
+      where: { tenancy_id: tenancyId, status: 'completed' },
+      orderBy: { completed_at: 'desc' },
+      include: { items: { orderBy: { sort_order: 'asc' } } },
+    });
+
+    if (!last || last.items.length === 0) return [];
+    return last.items.map((i) => ({ label: i.label }));
   }
 
   async cancel(id: string, user: TokenPayload) {
@@ -84,15 +112,32 @@ class InspectionsService {
     if (!inspection) throw new AppError('Inspection not found', 404);
     if (inspection.status === 'completed') throw new AppError('This inspection has already been completed.', 409);
 
-    const updated = await prisma.inspection.update({
-      where: { id },
-      data: {
-        status: 'completed',
-        outcome: data.outcome,
-        notes: data.notes ?? null,
-        completed_at: new Date(),
-        conducted_by: user.sub,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const insp = await tx.inspection.update({
+        where: { id },
+        data: {
+          status: 'completed',
+          outcome: data.outcome,
+          notes: data.notes ?? null,
+          completed_at: new Date(),
+          conducted_by: user.sub,
+        },
+      });
+
+      if (data.items && data.items.length > 0) {
+        await tx.inspectionItem.createMany({
+          data: data.items.map((item, idx) => ({
+            inspection_id: id,
+            label: item.label,
+            checked: item.checked,
+            disputed: item.disputed ?? false,
+            notes: item.notes ?? null,
+            sort_order: idx,
+          })),
+        });
+      }
+
+      return insp;
     });
 
     if (inspection.type !== 'move_out') return { inspection: updated };

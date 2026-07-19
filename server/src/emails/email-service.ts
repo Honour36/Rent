@@ -31,7 +31,7 @@ if (!process.env.RESEND_FROM_EMAIL) {
   );
 }
 
-function getFromAddress(accountName?: string): string {
+export function getFromAddress(accountName?: string): string {
   const name = accountName || 'Rental';
   const from = process.env.RESEND_FROM_EMAIL || 'noreply@hiprop.me';
   return `${name} <${from}>`;

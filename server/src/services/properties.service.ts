@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { deleteUnitsCascade } from './cascade-delete.helper';
 
 export const CreatePropertySchema = z.object({
   ownerId: z.string({ required_error: 'An owner must be selected before saving a property.' })
@@ -201,26 +202,14 @@ export class PropertiesService {
       select: { id: true },
     });
     if (!existing) throw new AppError('Property not found', 404);
-    
+
     const units = await prisma.unit.findMany({ where: { property_id: id }, select: { id: true } });
     const unitIds = units.map(u => u.id);
 
-    const tenancies = await prisma.tenancy.findMany({ where: { unit_id: { in: unitIds } }, select: { id: true } });
-    const tenancyIds = tenancies.map(t => t.id);
-
-    const payments = await prisma.payment.findMany({ where: { tenancy_id: { in: tenancyIds } }, select: { id: true } });
-    const paymentIds = payments.map(p => p.id);
-
-    await prisma.$transaction([
-      prisma.receipt.deleteMany({ where: { payment_id: { in: paymentIds } } }),
-      prisma.payment.deleteMany({ where: { tenancy_id: { in: tenancyIds } } }),
-      prisma.trustTransaction.deleteMany({ where: { tenancy_id: { in: tenancyIds } } }),
-      prisma.maintenanceRequest.deleteMany({ where: { unit_id: { in: unitIds } } }),
-      prisma.application.deleteMany({ where: { unit_id: { in: unitIds } } }),
-      prisma.tenancy.deleteMany({ where: { unit_id: { in: unitIds } } }),
-      prisma.unit.deleteMany({ where: { property_id: id } }),
-      prisma.property.delete({ where: { id } }),
-    ]);
+    await prisma.$transaction(async (tx) => {
+      await deleteUnitsCascade(tx, unitIds);
+      await tx.property.delete({ where: { id } });
+    });
 
     return { deleted: true };
   }

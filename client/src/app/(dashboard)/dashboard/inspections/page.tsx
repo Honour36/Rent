@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ClipboardCheck, Loader2, Plus } from "lucide-react";
+import { ClipboardCheck, Loader2, Plus, X, AlertTriangle } from "lucide-react";
 
-import { useInspections, InspectionDto } from "@/hooks/useInspections";
+import { useInspections, InspectionDto, InspectionItemDto } from "@/hooks/useInspections";
 import { useTenants } from "@/hooks/useTenants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 };
 
 export default function InspectionsPage() {
-  const { inspections, loading, error, scheduleInspection, completeInspection, cancelInspection } = useInspections();
+  const { inspections, loading, error, scheduleInspection, completeInspection, cancelInspection, fetchSuggestedItems } = useInspections();
   const { tenants } = useTenants();
 
   const activeTenancies = tenants
@@ -48,6 +49,9 @@ export default function InspectionsPage() {
   const [notes, setNotes] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [completing, setCompleting] = useState(false);
+  const [items, setItems] = useState<InspectionItemDto[]>([]);
+  const [newItemLabel, setNewItemLabel] = useState("");
+  const [itemsLoading, setItemsLoading] = useState(false);
 
   const handleSchedule = async () => {
     if (!tenancyId || !date || !time) {
@@ -67,12 +71,29 @@ export default function InspectionsPage() {
     }
   };
 
-  const openComplete = (i: InspectionDto) => {
+  const openComplete = async (i: InspectionDto) => {
     setCompleteTarget(i);
     setOutcome("pass");
     setNotes("");
     setDepositAmount("");
+    setNewItemLabel("");
+    setItemsLoading(true);
+    const suggested = await fetchSuggestedItems(i.tenancy_id);
+    setItems(suggested);
+    setItemsLoading(false);
   };
+
+  const addItem = () => {
+    if (!newItemLabel.trim()) return;
+    setItems([...items, { label: newItemLabel.trim(), checked: false, disputed: false }]);
+    setNewItemLabel("");
+  };
+
+  const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
+
+  const toggleChecked = (idx: number) => setItems(items.map((it, i) => i === idx ? { ...it, checked: !it.checked } : it));
+
+  const toggleDisputed = (idx: number) => setItems(items.map((it, i) => i === idx ? { ...it, disputed: !it.disputed } : it));
 
   const handleComplete = async () => {
     if (!completeTarget) return;
@@ -80,6 +101,7 @@ export default function InspectionsPage() {
     const res = await completeInspection(completeTarget.id, {
       outcome,
       notes: notes || undefined,
+      items: items.length > 0 ? items : undefined,
       depositResolvedAmount: depositAmount ? Number(depositAmount) : undefined,
     });
     setCompleting(false);
@@ -158,6 +180,14 @@ export default function InspectionsPage() {
                         <p className="font-medium text-sm">{i.tenancy.unit.property.name} - {i.tenancy.unit.unit_number}</p>
                         <p className="text-xs text-muted-foreground">{i.tenancy.tenant.full_name}</p>
                         {i.notes && <p className="text-xs text-muted-foreground mt-1">"{i.notes}"</p>}
+                        {i.items.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Checklist: {i.items.filter(it => it.checked).length}/{i.items.length} OK
+                            {i.items.some(it => it.disputed) && (
+                              <span className="text-destructive"> - {i.items.filter(it => it.disputed).length} disputed</span>
+                            )}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{TYPE_LABEL[i.type]}</Badge>
@@ -242,6 +272,44 @@ export default function InspectionsPage() {
                   </p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label>Checklist</Label>
+                {itemsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading checklist…</p>
+                ) : (
+                  <>
+                    {items.length > 0 && (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2 rounded-md border px-2 py-1.5">
+                            <Checkbox checked={item.checked} onCheckedChange={() => toggleChecked(idx)} />
+                            <span className={`flex-1 text-sm ${item.disputed ? "text-destructive" : ""}`}>{item.label}</span>
+                            <Button type="button" size="sm" variant={item.disputed ? "destructive" : "ghost"}
+                              className="h-7 px-2" title="Mark disagreement about this item's condition"
+                              onClick={() => toggleDisputed(idx)}>
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => removeItem(idx)}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input value={newItemLabel} onChange={(e) => setNewItemLabel(e.target.value)}
+                        placeholder="e.g. Doors, Lights working, Windows fitted"
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItem(); } }} />
+                      <Button type="button" variant="outline" onClick={addItem}><Plus className="h-4 w-4" /></Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Tick each item still in good condition. Use the warning icon to flag disagreement about an item's state.
+                    </p>
+                  </>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label>Notes</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}

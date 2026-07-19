@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', inspectionsController.list);
+router.get('/tenancy/:tenancyId/suggested-items', inspectionsController.getSuggestedItems);
 router.post('/', inspectionsController.schedule);
 router.post('/:id/complete', inspectionsController.complete);
 router.post('/:id/cancel', inspectionsController.cancel);

@@ -245,9 +245,11 @@ export class PaymentsService {
   async delete(id: string, user: TokenPayload) {
     const existing = await prisma.payment.findFirst({ where: { id, account_id: user.accountId }, select: { id: true } });
     if (!existing) throw new Error('Payment not found');
-    // Cascade delete receipt first
-    await prisma.receipt.deleteMany({ where: { payment_id: id } });
-    await prisma.payment.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.rentCollectionRequest.deleteMany({ where: { payment_id: id } }),
+      prisma.receipt.deleteMany({ where: { payment_id: id } }),
+      prisma.payment.delete({ where: { id } }),
+    ]);
     return { deleted: true };
   }
 }

@@ -29,7 +29,7 @@ class RentCollectionService {
     await prisma.rentCollectionRequest.create({
       data: { account_id: accountId, payment_id: paymentId, owner_id: ownerId, token, status: 'pending' },
     });
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const baseUrl = process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app';
     return { token, url: `${baseUrl}/rent-collection/${token}` };
   }
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { deleteTenanciesCascade } from './cascade-delete.helper';
 
 export const CreateTenantSchema = z.object({
   fullName: z.string().min(2),
@@ -138,7 +139,16 @@ export class TenantsService {
       select: { id: true },
     });
     if (!existing) throw new AppError('Tenant not found', 404);
-    await prisma.tenant.delete({ where: { id } });
+
+    const tenancies = await prisma.tenancy.findMany({ where: { tenant_id: id }, select: { id: true } });
+    const tenancyIds = tenancies.map(t => t.id);
+
+    await prisma.$transaction(async (tx) => {
+      await deleteTenanciesCascade(tx, tenancyIds);
+      await tx.communication.deleteMany({ where: { tenant_id: id } });
+      await tx.tenant.delete({ where: { id } });
+    });
+
     return { deleted: true };
   }
 }
