@@ -1,4 +1,4 @@
-import { Archive, CircleHelp, File, Inbox, Keyboard, type LucideIcon, Send, Star, Trash2 } from "lucide-react";
+import { Archive, CircleHelp, File, Inbox, Keyboard, type IconComponent, Send, Star, Trash2 } from "@/components/icons";
 import { siFigma, siGoogledocs, siGooglephotos } from "simple-icons";
 
 const arhamKhan = {
@@ -49,7 +49,7 @@ export type MailNavItem = {
   id: string;
   title: string;
   label?: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   isActive: boolean;
 };
 

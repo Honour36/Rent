@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Plus, CheckCircle2, Zap } from "lucide-react";
+import { Pencil, Trash2, Plus, CheckCircle2, Zap } from "@/components/icons";
 import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
 import { Badge } from "@/components/ui/badge";
 

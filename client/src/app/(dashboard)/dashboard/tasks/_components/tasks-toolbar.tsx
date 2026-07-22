@@ -2,7 +2,7 @@
 "use no memo";
 
 import type { Table } from "@tanstack/react-table";
-import { Settings2, X } from "lucide-react";
+import { Settings2, X } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

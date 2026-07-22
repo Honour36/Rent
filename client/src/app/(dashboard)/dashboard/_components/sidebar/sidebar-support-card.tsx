@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Building2, Users, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Building2, Users, AlertTriangle, CheckCircle } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

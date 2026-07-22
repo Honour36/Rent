@@ -15,7 +15,7 @@ import {
   Tag,
   UserRound,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

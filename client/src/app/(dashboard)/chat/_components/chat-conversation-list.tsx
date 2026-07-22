@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Filter, PanelRightClose, PanelRightOpen, Pin } from "lucide-react";
+import { ChevronDown, Filter, PanelRightClose, PanelRightOpen, Pin } from "@/components/icons";
 
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

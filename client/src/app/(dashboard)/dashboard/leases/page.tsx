@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileCheck, Loader2, Plus, AlertTriangle } from "lucide-react";
+import { FileCheck, Loader2, Plus, AlertTriangle } from "@/components/icons";
 
 import { useLeaseLifecycle } from "@/hooks/useLeaseLifecycle";
 import { useTenants } from "@/hooks/useTenants";

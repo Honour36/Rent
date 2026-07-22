@@ -1,4 +1,4 @@
-import { Ellipsis, FileDown, FileUp, RefreshCw, Share2 } from "lucide-react";
+import { Ellipsis, FileDown, FileUp, RefreshCw, Share2 } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

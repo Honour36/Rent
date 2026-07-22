@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { BriefcaseBusiness, ShieldCheck, SquareUserRound, UserCog, UserRound } from "lucide-react";
+import type { IconComponent } from "@/components/icons";
+import { BriefcaseBusiness, ShieldCheck, SquareUserRound, UserCog, UserRound } from "@/components/icons";
 
 export type UserStatus = "Active" | "Pending invite" | "Deactivated" | "Locked" | "Suspended";
 
@@ -297,7 +297,7 @@ export const filters = {
   workspace: ["All", "Weblabs Studio", "Sandbox", "Internal Tools", "Acme Inc."],
 };
 
-export const roleMeta: Record<string, { className: string; icon: LucideIcon }> = {
+export const roleMeta: Record<string, { className: string; icon: IconComponent }> = {
   "Workspace Owner": { className: "text-emerald-300", icon: SquareUserRound },
   Admin: { className: "text-amber-300", icon: UserCog },
   "Billing Admin": { className: "text-violet-300", icon: BriefcaseBusiness },

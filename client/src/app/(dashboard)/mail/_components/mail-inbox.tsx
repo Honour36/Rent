@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { Ellipsis, RotateCcw, Search, SlidersHorizontal } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";

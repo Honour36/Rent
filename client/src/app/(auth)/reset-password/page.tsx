@@ -2,7 +2,7 @@
 
 import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

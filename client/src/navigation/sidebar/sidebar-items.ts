@@ -7,7 +7,7 @@ import {
   ClipboardList,
   FileCheck,
   LayoutDashboard,
-  type LucideIcon,
+  type IconComponent,
   MessageSquare,
   Receipt,
   Settings,
@@ -16,7 +16,7 @@ import {
   UserCog,
   Users,
   Wrench,
-} from "lucide-react";
+} from "@/components/icons";
 
 export type NavBadge = "new" | "soon";
 
@@ -24,7 +24,7 @@ export interface NavSubItem {
   id: string;
   title: string;
   url: string;
-  icon?: LucideIcon;
+  icon?: IconComponent;
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
@@ -33,7 +33,7 @@ export interface NavSubItem {
 interface NavItemBase {
   id: string;
   title: string;
-  icon?: LucideIcon;
+  icon?: IconComponent;
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;

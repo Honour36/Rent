@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ClipboardCheck, Loader2, Plus, X, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, Loader2, Plus, X, AlertTriangle } from "@/components/icons";
 
 import { useInspections, InspectionDto, InspectionItemDto } from "@/hooks/useInspections";
 import { useTenants } from "@/hooks/useTenants";

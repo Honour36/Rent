@@ -1,4 +1,4 @@
-import { CheckSquare, FileText, Focus, Orbit, Upload } from "lucide-react";
+import { CheckSquare, FileText, Focus, Orbit, Upload } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 

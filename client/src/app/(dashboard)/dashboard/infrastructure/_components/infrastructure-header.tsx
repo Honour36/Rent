@@ -1,4 +1,4 @@
-import { Box, Container, Filter, PlusCircle, RefreshCw, Search, Server, Settings } from "lucide-react";
+import { Box, Container, Filter, PlusCircle, RefreshCw, Search, Server, Settings } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

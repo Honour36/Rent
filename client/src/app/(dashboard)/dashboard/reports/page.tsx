@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeAlert, CalendarOff, LineChart, Wrench, Building, BookText, FileText } from "lucide-react";
+import { BadgeAlert, CalendarOff, LineChart, Wrench, Building, BookText, FileText } from "@/components/icons";
 import Link from "next/link";
 
 const reports = [

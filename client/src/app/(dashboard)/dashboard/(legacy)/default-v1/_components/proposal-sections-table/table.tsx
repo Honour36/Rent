@@ -37,7 +37,7 @@ import {
   ChevronsRightIcon,
   PlusIcon,
   Settings2,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

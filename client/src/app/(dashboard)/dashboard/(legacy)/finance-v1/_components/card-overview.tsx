@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays, format } from "date-fns";
-import { Home, Receipt, Sparkles, Zap } from "lucide-react";
+import { Home, Receipt, Sparkles, Zap } from "@/components/icons";
 import { siApple, siMastercard } from "simple-icons";
 
 import { SimpleIcon } from "@/components/simple-icon";

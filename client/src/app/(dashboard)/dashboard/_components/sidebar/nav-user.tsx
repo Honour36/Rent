@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CircleUser, CreditCard, Bell, EllipsisVertical, LogOut } from "lucide-react";
+import { CircleUser, CreditCard, Bell, EllipsisVertical, LogOut } from "@/components/icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

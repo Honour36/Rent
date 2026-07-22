@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, ChevronLeft, Copy, Check, Pencil, Trash2, MapPin, User, DollarSign } from "lucide-react";
+import { Building2, ChevronLeft, Copy, Check, Pencil, Trash2, MapPin, User, DollarSign } from "@/components/icons";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

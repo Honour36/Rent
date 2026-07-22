@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays, format, set } from "date-fns";
-import { ChevronRight, Zap } from "lucide-react";
+import { ChevronRight, Zap } from "@/components/icons";
 import { siClaude, siLinear, siResend } from "simple-icons";
 
 import { SimpleIcon } from "@/components/simple-icon";

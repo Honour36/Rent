@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ClipboardList, Clock, CheckCircle2, XCircle, MessageSquare,
   Search, ExternalLink, Building2, Trash2,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

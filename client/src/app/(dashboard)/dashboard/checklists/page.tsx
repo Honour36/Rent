@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ClipboardList, Download, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ClipboardList, Download, Loader2, Pencil, Plus, Trash2, X } from "@/components/icons";
 
 import { useChecklistTemplates, ChecklistTemplateDto, ChecklistTemplateItemDto } from "@/hooks/useChecklistTemplates";
 import { Button } from "@/components/ui/button";

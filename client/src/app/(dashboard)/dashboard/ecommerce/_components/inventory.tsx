@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, PackageCheck, PackageX, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, PackageCheck, PackageX, TriangleAlert } from "@/components/icons";
 import { Label, Pie, PieChart } from "recharts";
 
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

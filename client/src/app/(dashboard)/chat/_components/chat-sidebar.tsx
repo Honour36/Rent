@@ -1,6 +1,6 @@
 "use client";
 
-import { EllipsisVertical, LogOut, Settings, UserRound } from "lucide-react";
+import { EllipsisVertical, LogOut, Settings, UserRound } from "@/components/icons";
 import { siFacebook, siInstagram, siWhatsapp } from "simple-icons";
 
 import { SimpleIcon } from "@/components/simple-icon";

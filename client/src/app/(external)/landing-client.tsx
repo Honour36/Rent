@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 
 export default function RentalLandingClient() {
   const heroImages = [
@@ -278,7 +279,7 @@ export default function RentalLandingClient() {
 
       <header>
         <nav className="wrap">
-          <div className="logo"><span className="sq"></span>Rental</div>
+          <div className="logo"><Logo height={22} /></div>
           <div className="nav-links">
             <Link href="#">Platform</Link>
             <Link href="#pricing">Pricing</Link>
@@ -424,7 +425,7 @@ export default function RentalLandingClient() {
         <div className="wrap">
           <div className="foot-top">
             <div className="foot-brand">
-              <div className="logo"><span className="sq"></span>Rental</div>
+              <div className="logo"><Logo height={22} /></div>
               <p>Property management software for landlords and letting agents.</p>
             </div>
             <div className="foot-cols">

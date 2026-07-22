@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Search, UserCheck, Pencil, Trash2 } from "lucide-react";
+import { Search, UserCheck, Pencil, Trash2 } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

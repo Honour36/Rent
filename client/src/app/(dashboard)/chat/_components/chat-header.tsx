@@ -1,4 +1,4 @@
-import { Bell, MessageSquarePlus, Search, Settings } from "lucide-react";
+import { Bell, MessageSquarePlus, Search, Settings } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";

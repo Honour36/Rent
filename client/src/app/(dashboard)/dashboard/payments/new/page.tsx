@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "@/components/icons";
 
 import { usePayments, CreatePaymentDto } from "@/hooks/usePayments";
 import { useTenants } from "@/hooks/useTenants";

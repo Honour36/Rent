@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { KeyRound, ArrowLeft, MailCheck } from "lucide-react";
+import { KeyRound, ArrowLeft, MailCheck } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

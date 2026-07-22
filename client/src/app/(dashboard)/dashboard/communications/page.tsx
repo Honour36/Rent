@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PenSquare, Search } from "lucide-react";
+import { PenSquare, Search } from "@/components/icons";
 
 export default function CommunicationsPage() {
   const { listCommunications, loading } = useCommunications();

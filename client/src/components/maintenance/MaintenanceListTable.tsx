@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Plus, Search, Filter, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, Pencil, Trash2 } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

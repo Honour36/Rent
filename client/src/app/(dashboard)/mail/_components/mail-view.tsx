@@ -18,7 +18,7 @@ import {
   Tag,
   Trash2,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { SimpleIcon } from "@/components/simple-icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

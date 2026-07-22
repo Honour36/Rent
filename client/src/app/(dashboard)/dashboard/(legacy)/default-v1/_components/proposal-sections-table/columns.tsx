@@ -4,7 +4,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { CircleCheckIcon, EllipsisVerticalIcon, GripVerticalIcon, LoaderIcon, TrendingUpIcon } from "lucide-react";
+import { CircleCheckIcon, EllipsisVerticalIcon, GripVerticalIcon, LoaderIcon, TrendingUpIcon } from "@/components/icons";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { toast } from "sonner";
 

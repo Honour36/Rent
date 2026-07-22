@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2 } from "@/components/icons";
 import { useShallow } from "zustand/react/shallow";
+
+import { Logo } from "@/components/logo";
 
 import {
   Sidebar,
@@ -13,7 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { APP_CONFIG } from "@/config/app-config";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -45,7 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link prefetch={false} href="/dashboard/overview">
-                <span className="font-black text-base tracking-tight">{APP_CONFIG.name}</span>
+                <Logo height={20} />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

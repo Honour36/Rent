@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "@/components/icons";
 import { Input } from "./input";
 import { validatePhone } from "@/lib/phone-validation";
 import { cn } from "@/lib/utils";

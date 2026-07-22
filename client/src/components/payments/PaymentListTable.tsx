@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Pencil, Trash2, FileText } from 'lucide-react';
+import { Pencil, Trash2, FileText } from "@/components/icons";
 import { toast } from 'sonner';
 
 import { PaymentDto } from '@/hooks/usePayments';

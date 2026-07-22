@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { Building2, UserCheck, Phone, Mail, Landmark, ArrowLeft, Download } from "lucide-react";
+import { Building2, UserCheck, Phone, Mail, Landmark, ArrowLeft, Download } from "@/components/icons";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";

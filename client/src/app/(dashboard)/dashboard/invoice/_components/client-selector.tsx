@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/icons";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

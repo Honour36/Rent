@@ -3,7 +3,8 @@ import { toast } from "sonner";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Building2, CheckCircle2, Loader2, Upload, X, AlertCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Upload, X, AlertCircle } from "@/components/icons";
+import { Logo } from "@/components/logo";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -223,9 +224,8 @@ export default function ApplicationPage() {
 
         {/* Header */}
         <div className="mb-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Building2 className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold text-primary">Rental</span>
+          <div className="flex items-center justify-center mb-3">
+            <Logo height={24} />
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-wide">Tenancy Application Form</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-xl mx-auto">

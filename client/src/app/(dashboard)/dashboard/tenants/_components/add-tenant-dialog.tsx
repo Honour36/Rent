@@ -2,7 +2,7 @@
 import { toast } from "sonner";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

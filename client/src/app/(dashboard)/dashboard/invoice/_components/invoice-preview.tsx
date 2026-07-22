@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Download, Printer } from "lucide-react";
+import { Download, Printer } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";

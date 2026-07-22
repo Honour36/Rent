@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePayments, PaymentDto } from "@/hooks/usePayments";
 import { PaymentListTable } from "@/components/payments/PaymentListTable";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search } from "@/components/icons";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

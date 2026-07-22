@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar as CalendarIcon, Clock, DollarSign, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, DollarSign, Loader2 } from "@/components/icons";
 
 import { useRentCollections } from "@/hooks/useRentCollections";
 import { Badge } from "@/components/ui/badge";

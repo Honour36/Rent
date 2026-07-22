@@ -8,7 +8,7 @@ import {
   QrCode,
   SendHorizontal,
   Smartphone,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

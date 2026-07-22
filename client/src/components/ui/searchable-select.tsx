@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, Check, ChevronDown } from "lucide-react";
+import { Search, Check, ChevronDown } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export interface SelectOption {

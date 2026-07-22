@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "@/components/icons";
 
 import { useDeposits, DepositDto } from "@/hooks/useDeposits";
 import { Badge } from "@/components/ui/badge";

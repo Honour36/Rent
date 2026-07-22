@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Check, EllipsisVertical, LogOut, PenLine, Settings2, UserPlus, UsersRound } from "lucide-react";
+import { Check, EllipsisVertical, LogOut, PenLine, Settings2, UserPlus, UsersRound } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

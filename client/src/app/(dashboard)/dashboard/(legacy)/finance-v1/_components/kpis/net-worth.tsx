@@ -1,6 +1,6 @@
 "use client";
 
-import { SaudiRiyal } from "lucide-react";
+import { SaudiRiyal } from "@/components/icons";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";

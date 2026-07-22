@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, FileText, Mail, MessageCircle, Pencil, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Mail, MessageCircle, Pencil, Trash2, Loader2 } from "@/components/icons";
 import { toast } from "sonner";
 import Link from "next/link";
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { fetchPexelsPhotos } from "@/lib/pexels";
+import { Logo } from "@/components/logo";
 import { AuthSlideshow } from "./_components/auth-slideshow";
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
@@ -23,9 +24,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
         {/* Logo */}
         <div className="absolute top-6 left-6">
           <Link href="/" className="flex items-center group">
-            <span className="text-lg font-black tracking-tight text-foreground group-hover:text-primary transition-colors">
-              Rental
-            </span>
+            <Logo height={20} />
           </Link>
         </div>
 

@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Download, RotateCw, Settings2 } from "lucide-react";
+import { Download, RotateCw, Settings2 } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

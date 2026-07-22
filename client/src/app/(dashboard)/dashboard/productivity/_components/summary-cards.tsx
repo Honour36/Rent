@@ -1,4 +1,4 @@
-import { ArrowRight, Clock3, Focus, TrendingUp } from "lucide-react";
+import { ArrowRight, Clock3, Focus, TrendingUp } from "@/components/icons";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

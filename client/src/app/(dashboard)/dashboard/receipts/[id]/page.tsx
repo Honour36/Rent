@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 import { useReceipts } from '../_hooks/useReceipts';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, MessageCircle, ArrowLeft, Printer, ExternalLink } from 'lucide-react';
+import { Loader2, Mail, MessageCircle, ArrowLeft, Printer, ExternalLink } from "@/components/icons";
 
 export default function ReceiptPreviewPage() {
   const params = useParams();

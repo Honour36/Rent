@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Search } from "lucide-react";
+import { Search } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

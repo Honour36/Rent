@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, CheckCircle, Circle, CircleOff, HelpCircle, Timer } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, CheckCircle, Circle, CircleOff, HelpCircle, Timer } from "@/components/icons";
 import { z } from "zod";
 
 export const taskSchema = z.object({

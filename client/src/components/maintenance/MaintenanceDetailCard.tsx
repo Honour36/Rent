@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save } from "@/components/icons";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";

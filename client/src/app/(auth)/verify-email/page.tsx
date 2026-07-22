@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MailCheck, RefreshCw } from "lucide-react";
+import { MailCheck, RefreshCw } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

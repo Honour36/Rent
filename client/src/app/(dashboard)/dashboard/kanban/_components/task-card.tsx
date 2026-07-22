@@ -6,11 +6,11 @@ import {
   CalendarDays,
   FileText,
   Flame,
-  type LucideIcon,
+  type IconComponent,
   MessageSquare,
   Minus,
   Paperclip,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { tagTones } from "./data";
 import type { ColumnId, Task, TaskInsightLabel, TaskPriority } from "./types";
 
-const taskInsightIcons: Record<TaskInsightLabel, LucideIcon> = {
+const taskInsightIcons: Record<TaskInsightLabel, IconComponent> = {
   Attachments: Paperclip,
   Comments: MessageSquare,
   Documents: FileText,
@@ -29,7 +29,7 @@ const taskInsightIcons: Record<TaskInsightLabel, LucideIcon> = {
 
 const priorityBadgeConfig: Record<
   TaskPriority,
-  { icon: LucideIcon; variant: "destructive" | "secondary"; className: string }
+  { icon: IconComponent; variant: "destructive" | "secondary"; className: string }
 > = {
   High: {
     icon: Flame,

@@ -1,4 +1,4 @@
-import { Wrench } from "lucide-react";
+import { Wrench } from "@/components/icons";
 
 import { MaintenanceListTable } from "@/components/maintenance/MaintenanceListTable";
 

@@ -7,7 +7,7 @@ import {
   Droplets,
   Flame,
   Forklift,
-  type LucideIcon,
+  type IconComponent,
   Package,
   PackageCheck,
   PenLine,
@@ -18,7 +18,7 @@ import {
   ThermometerSun,
   Truck,
   Weight,
-} from "lucide-react";
+} from "@/components/icons";
 
 export type ShipmentStatus =
   | "Scheduled"
@@ -52,7 +52,7 @@ export type ShipmentCustomer = {
 
 export type HandlingTag = {
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
 };
 
 export type ShipmentHandling = {

@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Mail, MessageCircle } from "lucide-react";
+import { Mail, MessageCircle } from "@/components/icons";
 import { CommunicationDto } from "@/hooks/useCommunications";
 
 interface CommunicationLogTableProps {

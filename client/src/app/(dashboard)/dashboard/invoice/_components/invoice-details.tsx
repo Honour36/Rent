@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Hash } from "lucide-react";
+import { CalendarIcon, Hash } from "@/components/icons";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";

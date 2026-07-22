@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Globe } from "lucide-react";
+import { Globe } from "@/components/icons";
 
 import { APP_CONFIG } from "@/config/app-config";
 

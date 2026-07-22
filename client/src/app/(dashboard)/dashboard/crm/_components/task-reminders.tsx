@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange } from "lucide-react";
+import { CalendarDays, CalendarRange } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

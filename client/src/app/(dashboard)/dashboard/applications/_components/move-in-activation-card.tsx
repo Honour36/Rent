@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Loader2, CheckCircle } from "lucide-react";
+import { FileText, Loader2, CheckCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

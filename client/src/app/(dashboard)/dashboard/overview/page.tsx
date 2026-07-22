@@ -3,7 +3,7 @@
 import { useDashboard } from "@/hooks/useDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Home, AlertTriangle, Activity, DollarSign } from "lucide-react";
+import { Home, AlertTriangle, Activity, DollarSign } from "@/components/icons";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";

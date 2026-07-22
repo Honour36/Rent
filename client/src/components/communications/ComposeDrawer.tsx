@@ -14,7 +14,7 @@ import {
 import { useCommunications, ComposeCommunicationDto } from "@/hooks/useCommunications";
 import { useTenants } from "@/hooks/useTenants";
 import { useOwners } from "@/hooks/useOwners";
-import { Mail, MessageCircle, ExternalLink, Loader2 } from "lucide-react";
+import { Mail, MessageCircle, ExternalLink, Loader2 } from "@/components/icons";
 
 interface ComposeDrawerProps {
   open: boolean;

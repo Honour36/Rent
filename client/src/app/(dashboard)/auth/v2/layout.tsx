@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Command } from "lucide-react";
+import { Command } from "@/components/icons";
 
 import { Separator } from "@/components/ui/separator";
 import { APP_CONFIG } from "@/config/app-config";

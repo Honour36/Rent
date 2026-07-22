@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Building2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Building2, CheckCircle2, Loader2, AlertCircle } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

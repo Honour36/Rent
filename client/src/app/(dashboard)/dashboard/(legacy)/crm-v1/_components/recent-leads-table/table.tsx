@@ -21,7 +21,7 @@ import {
   ChevronsRightIcon,
   Download,
   Settings2,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

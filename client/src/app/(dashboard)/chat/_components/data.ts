@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { Clock3, Inbox, Mail, MessageCircle, Phone, Send, Star, User } from "lucide-react";
+import type { IconComponent } from "@/components/icons";
+import { Clock3, Inbox, Mail, MessageCircle, Phone, Send, Star, User } from "@/components/icons";
 
 export type Conversation = {
   id: number;
@@ -40,7 +40,7 @@ export type NavItem = {
   id: string;
   title: string;
   label?: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   isActive: boolean;
 };
 

@@ -1,4 +1,4 @@
-import { Save, Send } from "lucide-react";
+import { Save, Send } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 

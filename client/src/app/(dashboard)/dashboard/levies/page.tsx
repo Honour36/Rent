@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Receipt } from "lucide-react";
+import { Loader2, Plus, Receipt } from "@/components/icons";
 
 import { useLevyCharges } from "@/hooks/useLevyCharges";
 import { useProperties } from "@/hooks/useProperties";

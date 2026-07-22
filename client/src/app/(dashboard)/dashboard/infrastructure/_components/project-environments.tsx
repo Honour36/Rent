@@ -13,7 +13,7 @@ import {
   Settings,
   SquareTerminal,
   Terminal,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { SimpleIcon } from "@/components/simple-icon";
 import { Badge } from "@/components/ui/badge";

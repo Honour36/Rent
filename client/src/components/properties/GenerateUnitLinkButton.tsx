@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Link2, Loader2 } from "lucide-react";
+import { Copy, Check, Link2, Loader2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { HandCoins } from "lucide-react";
+import { HandCoins } from "@/components/icons";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";

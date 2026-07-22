@@ -1,7 +1,7 @@
 "use client";
 
 import { format, subMonths } from "date-fns";
-import { BadgeDollarSign, Wallet } from "lucide-react";
+import { BadgeDollarSign, Wallet } from "@/components/icons";
 import { Area, AreaChart, Bar, BarChart, Line, LineChart, XAxis } from "recharts";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";

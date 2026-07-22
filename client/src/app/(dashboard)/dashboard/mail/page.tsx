@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 

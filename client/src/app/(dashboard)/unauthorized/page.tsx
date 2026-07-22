@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Lock } from "lucide-react";
+import { Lock } from "@/components/icons";
 
 export default function page() {
   return (

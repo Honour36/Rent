@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Edit2, Check, X, Mail, MessageCircle } from "lucide-react";
+import { Trash2, Edit2, Check, X, Mail, MessageCircle } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 
 interface CommunicationDetailsDrawerProps {

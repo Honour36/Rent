@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Plus, MoreHorizontal, UserCog, Mail } from "lucide-react";
+import { Plus, MoreHorizontal, UserCog, Mail } from "@/components/icons";
 import { useAgents, Agent, AgentInvite } from "@/hooks/useAgents";
 
 import { Button } from "@/components/ui/button";

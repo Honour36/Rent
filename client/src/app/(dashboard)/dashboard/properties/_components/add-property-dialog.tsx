@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

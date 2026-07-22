@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Search, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { Building2, Search, Pencil, Trash2, ArrowRight } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";

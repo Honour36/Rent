@@ -11,7 +11,7 @@ import {
   type PaginationState,
   useReactTable,
 } from "@tanstack/react-table";
-import { AlertTriangle, ChevronRight, FileUp, Search } from "lucide-react";
+import { AlertTriangle, ChevronRight, FileUp, Search } from "@/components/icons";
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

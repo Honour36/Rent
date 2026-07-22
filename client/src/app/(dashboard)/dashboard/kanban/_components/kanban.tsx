@@ -33,7 +33,7 @@ import {
   SlidersHorizontal,
   Table2,
   Upload,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";

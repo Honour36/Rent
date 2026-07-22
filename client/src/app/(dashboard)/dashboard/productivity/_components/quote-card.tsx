@@ -1,4 +1,4 @@
-import { Quote } from "lucide-react";
+import { Quote } from "@/components/icons";
 
 export function QuoteCard() {
   return (

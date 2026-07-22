@@ -1,7 +1,7 @@
 "use client";
 
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Plus } from "lucide-react";
+import { GripVertical, MoreVertical, Plus } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
