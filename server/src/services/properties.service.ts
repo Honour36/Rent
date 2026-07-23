@@ -76,6 +76,21 @@ export class PropertiesService {
   }
 
   async create(data: CreatePropertyDto, user: TokenPayload) {
+    // Same name + same address in this account is the same property - block
+    // it up front rather than silently creating a second row. Case/whitespace
+    // insensitive so "Gray House" and "gray house " are still caught.
+    const duplicate = await prisma.property.findFirst({
+      where: {
+        account_id: user.accountId,
+        name: { equals: data.name.trim(), mode: 'insensitive' },
+        address: { equals: data.address.trim(), mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new AppError(`A property named "${data.name}" already exists at this address.`, 409);
+    }
+
     // IMPORTANT: property + its primary unit (+ optional tenancy) must be
     // created atomically. Previously these were three separate awaited
     // calls - if the unit or tenancy insert failed (a transient DB error, a
@@ -152,6 +167,23 @@ export class PropertiesService {
       },
     });
     if (!existing) throw new Error('Property not found');
+
+    if (data.name || data.address) {
+      const nextName = (data.name ?? existing.name).trim();
+      const nextAddress = (data.address ?? existing.address).trim();
+      const duplicate = await prisma.property.findFirst({
+        where: {
+          account_id: user.accountId,
+          id: { not: id },
+          name: { equals: nextName, mode: 'insensitive' },
+          address: { equals: nextAddress, mode: 'insensitive' },
+        },
+        select: { id: true },
+      });
+      if (duplicate) {
+        throw new AppError(`A property named "${nextName}" already exists at this address.`, 409);
+      }
+    }
 
     const property = await prisma.property.update({
       where: { id },

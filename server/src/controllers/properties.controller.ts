@@ -39,6 +39,8 @@ export const propertiesController = {
         res.status(422).json({ success: false, error: zodMessage(error), code: 'VALIDATION_ERROR' });
       } else if (error.code === 'TIER_LIMIT_REACHED') {
         res.status(403).json({ success: false, error: error.message, code: 'TIER_LIMIT_REACHED' });
+      } else if (error.statusCode === 409) {
+        res.status(409).json({ success: false, error: error.message });
       } else {
         res.status(400).json({ success: false, error: 'Could not save the property. Please check your inputs.' });
       }
@@ -51,7 +53,7 @@ export const propertiesController = {
       res.json({ success: true, data });
     } catch (error: any) {
       const status = error.statusCode || 400;
-      const msg = status === 404 ? 'Property not found.' : 'Could not update property. Please check your inputs.';
+      const msg = status === 404 ? 'Property not found.' : status === 409 ? error.message : 'Could not update property. Please check your inputs.';
       res.status(status).json({ success: false, error: msg });
     }
   },

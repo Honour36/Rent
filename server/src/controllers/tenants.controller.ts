@@ -38,6 +38,8 @@ export const tenantsController = {
         res.status(422).json({ success: false, error: zodMessage(error), code: 'VALIDATION_ERROR' });
       } else if (error.code === 'TIER_LIMIT_REACHED') {
         res.status(403).json({ success: false, error: error.message, code: 'TIER_LIMIT_REACHED' });
+      } else if (error.statusCode === 409) {
+        res.status(409).json({ success: false, error: error.message });
       } else {
         res.status(400).json({ success: false, error: 'Could not save tenant. Please check your inputs.' });
       }
@@ -54,7 +56,7 @@ export const tenantsController = {
         res.status(422).json({ success: false, error: zodMessage(error) });
       } else {
         const status = error.statusCode || 400;
-        const msg = status === 404 ? 'Tenant not found.' : 'Could not update tenant.';
+        const msg = status === 404 ? 'Tenant not found.' : status === 409 ? error.message : 'Could not update tenant.';
         res.status(status).json({ success: false, error: msg });
       }
     }

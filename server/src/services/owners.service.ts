@@ -25,6 +25,30 @@ class AppError extends Error {
 }
 
 export class OwnersService {
+  /**
+   * Same email or phone within an account means the same owner - block it
+   * before it becomes two rows. Falls back to an exact name match when
+   * neither contact field was given.
+   */
+  private async assertNoDuplicate(data: { fullName: string; email?: string; phone?: string }, user: TokenPayload, excludeId?: string) {
+    const or: any[] = [];
+    if (data.email?.trim()) or.push({ email: { equals: data.email.trim(), mode: 'insensitive' } });
+    if (data.phone?.trim()) or.push({ phone: data.phone.trim() });
+    if (or.length === 0) or.push({ full_name: { equals: data.fullName.trim(), mode: 'insensitive' } });
+
+    const existing = await prisma.owner.findFirst({
+      where: { account_id: user.accountId, ...(excludeId ? { id: { not: excludeId } } : {}), OR: or },
+      select: { full_name: true, email: true, phone: true },
+    });
+    if (!existing) return;
+
+    const field =
+      data.email?.trim() && existing.email?.toLowerCase() === data.email.trim().toLowerCase() ? 'email address' :
+      data.phone?.trim() && existing.phone === data.phone.trim() ? 'phone number' :
+      'name';
+    throw new AppError(`An owner with this ${field} already exists (${existing.full_name}).`, 409);
+  }
+
   async list(user: TokenPayload) {
     const owners = await prisma.owner.findMany({
       where: { account_id: user.accountId },
@@ -58,6 +82,8 @@ export class OwnersService {
   }
 
   async create(data: CreateOwnerDto, user: TokenPayload) {
+    await this.assertNoDuplicate(data, user);
+
     const owner = await prisma.owner.create({
       data: {
         account_id: user.accountId,
@@ -76,9 +102,14 @@ export class OwnersService {
     // Verify ownership before updating
     const existing = await prisma.owner.findFirst({
       where: { id, account_id: user.accountId },
-      select: { id: true },
     });
     if (!existing) throw new AppError('Owner not found', 404);
+
+    await this.assertNoDuplicate({
+      fullName: data.fullName ?? existing.full_name,
+      email: data.email ?? existing.email ?? undefined,
+      phone: data.phone ?? existing.phone ?? undefined,
+    }, user, id);
 
     const owner = await prisma.owner.update({
       where: { id },

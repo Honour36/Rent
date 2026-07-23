@@ -25,6 +25,33 @@ class AppError extends Error {
 }
 
 export class TenantsService {
+  /**
+   * Same ID number, email, or phone within an account means the same
+   * person - block it before it becomes two rows. If none of those
+   * identifying fields were given (name only), fall back to an exact name
+   * match, since that's the only thing distinguishing the record at all.
+   */
+  private async assertNoDuplicate(data: { fullName: string; email?: string; phone?: string; idNumber?: string }, user: TokenPayload, excludeId?: string) {
+    const or: any[] = [];
+    if (data.idNumber?.trim()) or.push({ id_number: { equals: data.idNumber.trim(), mode: 'insensitive' } });
+    if (data.email?.trim()) or.push({ email: { equals: data.email.trim(), mode: 'insensitive' } });
+    if (data.phone?.trim()) or.push({ phone: data.phone.trim() });
+    if (or.length === 0) or.push({ full_name: { equals: data.fullName.trim(), mode: 'insensitive' } });
+
+    const existing = await prisma.tenant.findFirst({
+      where: { account_id: user.accountId, ...(excludeId ? { id: { not: excludeId } } : {}), OR: or },
+      select: { full_name: true, id_number: true, email: true, phone: true },
+    });
+    if (!existing) return;
+
+    const field =
+      data.idNumber?.trim() && existing.id_number?.toLowerCase() === data.idNumber.trim().toLowerCase() ? 'ID number' :
+      data.email?.trim() && existing.email?.toLowerCase() === data.email.trim().toLowerCase() ? 'email address' :
+      data.phone?.trim() && existing.phone === data.phone.trim() ? 'phone number' :
+      'name';
+    throw new AppError(`A tenant with this ${field} already exists (${existing.full_name}).`, 409);
+  }
+
   async list(user: TokenPayload) {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
@@ -102,6 +129,8 @@ export class TenantsService {
   }
 
   async create(data: CreateTenantDto, user: TokenPayload) {
+    await this.assertNoDuplicate(data, user);
+
     const tenant = await prisma.tenant.create({
       data: {
         account_id: user.accountId,
@@ -121,9 +150,15 @@ export class TenantsService {
     // Verify ownership before updating
     const existing = await prisma.tenant.findFirst({
       where: { id, account_id: user.accountId },
-      select: { id: true },
     });
     if (!existing) throw new AppError('Tenant not found', 404);
+
+    await this.assertNoDuplicate({
+      fullName: data.fullName ?? existing.full_name,
+      email: data.email ?? existing.email ?? undefined,
+      phone: data.phone ?? existing.phone ?? undefined,
+      idNumber: data.idNumber ?? existing.id_number ?? undefined,
+    }, user, id);
 
     const tenant = await prisma.tenant.update({
       where: { id },
