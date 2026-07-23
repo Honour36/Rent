@@ -8,13 +8,24 @@ import { apiClient } from "@/lib/api-client";
 interface Props {
   unitId: string;
   size?: "sm" | "default";
+  /** Only vacant units can have an application link generated. */
+  unitStatus?: string;
 }
 
-export function GenerateUnitLinkButton({ unitId, size = "sm" }: Props) {
+export function GenerateUnitLinkButton({ unitId, size = "sm", unitStatus }: Props) {
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+
+  if (unitStatus && unitStatus !== "vacant") {
+    return (
+      <Button variant="outline" size={size} className="gap-1.5" disabled title="Only vacant units can get an application link">
+        <Link2 className="h-3 w-3" />
+        Unit Occupied
+      </Button>
+    );
+  }
 
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();

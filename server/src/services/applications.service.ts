@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import PDFDocument from 'pdfkit';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { sendApplicationMoreInfoEmail } from '../emails/email-service';
 
 // ─── Validation Schemas ──────────────────────────────────────────────────────
 
@@ -40,6 +41,26 @@ export const ApplicationSubmitSchema = z.object({
   emergencyContactPhone: z.string().optional(),
   additionalNotes: z.string().optional(),
   idDocumentUrl: z.string().optional(),
+  // Commercial / business premises application only - stored in the same
+  // flexible form_data JSON blob, no schema migration needed. Left optional
+  // and unused for residential submissions.
+  businessName: z.string().optional(),
+  businessBoxNumber: z.string().optional(),
+  physicalAddress: z.string().optional(),
+  faxNumber: z.string().optional(),
+  dateIncorporated: z.string().optional(),
+  operatingFromLastPremisesFor: z.string().optional(),
+  intendedUse: z.string().optional(),
+  numberOfEmployees: z.number().int().positive().optional(),
+  bankersName: z.string().optional(),
+  bankersBranch: z.string().optional(),
+  bankersAccountNumber: z.string().optional(),
+  directors: z.array(z.object({
+    name: z.string(),
+    residentialAddress: z.string().optional(),
+    idNumber: z.string().optional(),
+    telephone: z.string().optional(),
+  })).optional(),
 });
 
 export const UpdateApplicationStatusSchema = z.object({
@@ -73,6 +94,9 @@ export class ApplicationsService {
       include: { property: { select: { name: true, address: true } } },
     });
     if (!unit) throw new AppError('Unit not found', 404);
+    if (unit.status !== 'vacant') {
+      throw new AppError('Application links can only be generated for vacant units.', 400);
+    }
     if (unit.rent_amount == null) {
       throw new AppError('Set a rent amount for this property before generating an application link.', 400);
     }
@@ -117,7 +141,7 @@ export class ApplicationsService {
         unit: {
           include: {
             property: {
-              select: { name: true, address: true, suburb: true, city: true },
+              select: { name: true, address: true, suburb: true, city: true, type: true },
             },
           },
         },
@@ -261,7 +285,7 @@ export class ApplicationsService {
       include: {
         unit: {
           include: {
-            property: { select: { name: true, address: true, suburb: true, city: true } },
+            property: { select: { name: true, address: true, suburb: true, city: true, type: true } },
           },
         },
         reviewer: { select: { id: true, full_name: true } },
@@ -279,6 +303,12 @@ export class ApplicationsService {
   async generatePdf(id: string, user: TokenPayload): Promise<Buffer> {
     const application = await this.getById(id, user);
     const fd = (application.form_data ?? {}) as Record<string, any>;
+    const isCommercial = application.unit.property.type === 'commercial';
+
+    const account = await prisma.account.findUnique({
+      where: { id: user.accountId },
+      select: { name: true, logo_url: true, address: true, suburb: true, city: true, phone: true, email: true },
+    });
 
     // Fetch the ID image buffer *before* entering PDFKit's synchronous
     // render callback below - `doc.image()` needs the bytes already in
@@ -292,6 +322,18 @@ export class ApplicationsService {
         // Stored file might be a PDF (not embeddable as an image) or
         // otherwise unavailable - don't fail the whole download over it.
         idImageBuffer = null;
+      }
+    }
+
+    // Same best-effort fetch as the management agreement PDF - a broken
+    // logo URL shouldn't block the applicant's form from downloading.
+    let logoBuffer: Buffer | null = null;
+    if (account?.logo_url) {
+      try {
+        const res = await fetch(account.logo_url);
+        if (res.ok) logoBuffer = Buffer.from(await res.arrayBuffer());
+      } catch {
+        logoBuffer = null;
       }
     }
 
@@ -327,53 +369,121 @@ export class ApplicationsService {
         doc.moveDown(0.5);
       };
 
-      // Header
-      doc.rect(50, 50, W, 60).fill('#f9fafb');
-      doc.fillColor(DARK).fontSize(18).font('Helvetica-Bold').text('RENTAL APPLICATION', 60, 65);
-      doc.fillColor(GRAY).fontSize(9).font('Helvetica')
-        .text(`Application ID: ${application.id}`, 60, 88);
-      doc.y = 120;
+      // ── LETTERHEAD - mirrors the agency's own paper application form:
+      // logo, agency name/contact centered, then the form title. ──────────
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, doc.page.width / 2 - 25, doc.y, { fit: [50, 50], align: 'center' });
+          doc.moveDown(3);
+        } catch {
+          // Not a renderable image format - fall through without it.
+        }
+      }
+      doc.fillColor(DARK).fontSize(15).font('Helvetica-Bold').text((account?.name ?? 'Rental').toUpperCase(), { align: 'center' });
+      doc.font('Helvetica').fillColor(GRAY).fontSize(9);
+      const addressParts = [account?.address, account?.suburb, account?.city].filter(Boolean);
+      if (addressParts.length) doc.text(addressParts.join(', '), { align: 'center' });
+      const contactLine = [account?.phone, account?.email].filter(Boolean).join('  |  ');
+      if (contactLine) doc.text(contactLine, { align: 'center' });
+      doc.moveDown(0.8);
+      doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold')
+        .text(isCommercial ? 'COMMERCIAL / BUSINESS PREMISES APPLICATION FORM' : 'TENANCY APPLICATION FORM', { align: 'center', underline: true });
+      doc.moveDown(0.6);
+      doc.fontSize(9).fillColor(GRAY).font('Helvetica')
+        .text('This property is leased in its present condition unless the owner agrees in writing to carry out the necessary repairs.', { align: 'center' });
+      doc.moveDown(0.8);
+      hr();
 
       row('Property', application.unit.property.name);
       row('Unit', application.unit.unit_number);
-      row('Monthly Rent', `${Number(application.unit.rent_amount).toLocaleString()} ${application.unit.currency}`);
+      row(isCommercial ? 'Rent' : 'Monthly Rent', `${Number(application.unit.rent_amount).toLocaleString()} ${application.unit.currency}`);
       row('Status', application.status.replace(/_/g, ' ').toUpperCase());
       row('Submitted', application.submitted_at
         ? new Date(application.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
         : 'Not submitted');
 
-      section('Personal Details');
-      row('Full Name', application.applicant_name);
-      row('National ID', fd.idNumber);
-      row('Date of Birth', fd.dateOfBirth);
-      row('Phone', application.applicant_phone);
-      row('Email', application.applicant_email);
-      row('Emergency Contact', fd.emergencyContactName);
-      row('Emergency Phone', fd.emergencyContactPhone);
+      if (isCommercial) {
+        section('Business Details');
+        row('Applicant / Business Name', application.applicant_name);
+        row('Business Address / Box No.', fd.businessBoxNumber);
+        row('Physical Address', fd.physicalAddress);
+        row('Telephone', application.applicant_phone);
+        row('Fax No.', fd.faxNumber);
+        row('Email', application.applicant_email);
+        row('Date Incorporated', fd.dateIncorporated);
+        row('Operating From Last Premises For', fd.operatingFromLastPremisesFor);
+        row('Intended Use of Premises', fd.intendedUse);
+        row('Number of Employees', fd.numberOfEmployees != null ? String(fd.numberOfEmployees) : undefined);
 
-      section('Employment');
-      row('Status', fd.employmentStatus?.replace(/_/g, ' '));
-      row('Employer', fd.employer);
-      row('Job Title', fd.jobTitle);
-      row('Monthly Income', fd.monthlyIncome != null ? String(fd.monthlyIncome) : undefined);
+        if (Array.isArray(fd.directors) && fd.directors.length > 0) {
+          section('Directors');
+          const col = [50, 50 + W * 0.28, 50 + W * 0.58, 50 + W * 0.8];
+          doc.fillColor(GRAY).fontSize(8).font('Helvetica-Bold')
+            .text('Full Name', col[0], doc.y, { width: W * 0.28 })
+            .text('Residential Address', col[1], doc.y - doc.currentLineHeight(), { width: W * 0.3 })
+            .text('ID Number', col[2], doc.y - doc.currentLineHeight(), { width: W * 0.22 })
+            .text('Telephone', col[3], doc.y - doc.currentLineHeight(), { width: W * 0.2 });
+          doc.moveDown(0.4);
+          hr();
+          doc.font('Helvetica').fontSize(9).fillColor(DARK);
+          for (const d of fd.directors as Array<Record<string, string>>) {
+            const y = doc.y;
+            doc.text(d.name || '-', col[0], y, { width: W * 0.28 });
+            doc.text(d.residentialAddress || '-', col[1], y, { width: W * 0.3 });
+            doc.text(d.idNumber || '-', col[2], y, { width: W * 0.22 });
+            doc.text(d.telephone || '-', col[3], y, { width: W * 0.2 });
+            doc.moveDown(0.5);
+          }
+        }
 
-      section('Rental History');
-      row('Previous Address', fd.previousAddress);
-      row('Previous Landlord', fd.previousLandlord);
-      row('Previous Landlord Phone', fd.previousLandlordPhone);
-      row('Previous Rent', fd.previousRentAmount != null ? String(fd.previousRentAmount) : undefined);
-      row('Reason for Leaving', fd.reasonForLeaving);
+        section('Rental History');
+        row('Present Estate Agent / Lessor', fd.previousLandlord);
+        row('Reasons for Vacating', fd.reasonForLeaving);
 
-      section('References');
-      row('Reference 1 - Name', fd.reference1Name);
-      row('Reference 1 - Phone', fd.reference1Phone);
-      row('Reference 1 - Relation', fd.reference1Relation);
-      row('Reference 2 - Name', fd.reference2Name);
-      row('Reference 2 - Phone', fd.reference2Phone);
-      row('Reference 2 - Relation', fd.reference2Relation);
+        section('Credit References');
+        row('Reference 1 - Name', fd.reference1Name);
+        row('Reference 1 - Phone', fd.reference1Phone);
+        row('Reference 2 - Name', fd.reference2Name);
+        row('Reference 2 - Phone', fd.reference2Phone);
+
+        section('Bankers');
+        row('Bank', fd.bankersName);
+        row('Branch', fd.bankersBranch);
+        row('A/C No.', fd.bankersAccountNumber);
+      } else {
+        section('Personal Details');
+        row('Full Name', application.applicant_name);
+        row('National ID', fd.idNumber);
+        row('Date of Birth', fd.dateOfBirth);
+        row('Phone', application.applicant_phone);
+        row('Email', application.applicant_email);
+        row('Emergency Contact', fd.emergencyContactName);
+        row('Emergency Phone', fd.emergencyContactPhone);
+
+        section('Employment');
+        row('Status', fd.employmentStatus?.replace(/_/g, ' '));
+        row('Employer', fd.employer);
+        row('Job Title', fd.jobTitle);
+        row('Monthly Income', fd.monthlyIncome != null ? String(fd.monthlyIncome) : undefined);
+
+        section('Rental History');
+        row('Previous Address', fd.previousAddress);
+        row('Previous Landlord', fd.previousLandlord);
+        row('Previous Landlord Phone', fd.previousLandlordPhone);
+        row('Previous Rent', fd.previousRentAmount != null ? String(fd.previousRentAmount) : undefined);
+        row('Reason for Leaving', fd.reasonForLeaving);
+
+        section('References');
+        row('Reference 1 - Name', fd.reference1Name);
+        row('Reference 1 - Phone', fd.reference1Phone);
+        row('Reference 1 - Relation', fd.reference1Relation);
+        row('Reference 2 - Name', fd.reference2Name);
+        row('Reference 2 - Phone', fd.reference2Phone);
+        row('Reference 2 - Relation', fd.reference2Relation);
+      }
 
       if (idImageBuffer) {
-        section('ID Document');
+        section(isCommercial ? 'Supporting Document' : 'ID Document');
         const maxWidth = W;
         const maxHeight = 260;
         try {
@@ -458,6 +568,53 @@ export class ApplicationsService {
 
       return updatedApp;
     });
+  }
+
+  /**
+   * Sets the application to "more_info" and reaches out to the applicant
+   * using the contact details captured on their own submission (there's no
+   * Tenant record yet at this stage, so this can't go through the
+   * communications.service tenant/owner-scoped flow). Email is sent
+   * server-side; a WhatsApp deep link is handed back for the frontend to
+   * open, matching the existing wa.me pattern used for receipts.
+   */
+  async requestMoreInfo(id: string, notes: string | undefined, user: TokenPayload) {
+    const application = await this.updateStatus(id, { status: 'more_info', vettingNotes: notes }, user);
+
+    const [account, full] = await Promise.all([
+      prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, email: true, phone: true } }),
+      this.getById(id, user),
+    ]);
+
+    const message = `Hi ${full.applicant_name}, we need a bit more information to process your application for ${full.unit.property.name} - ${full.unit.unit_number}. Please get in touch or fill in any blank spaces left on your form. Thank you.`;
+
+    let emailSent = false;
+    if (full.applicant_email && account) {
+      try {
+        await sendApplicationMoreInfoEmail({
+          to: full.applicant_email,
+          applicantName: full.applicant_name,
+          propertyName: full.unit.property.name,
+          unitNumber: full.unit.unit_number,
+          notes,
+          accountName: account.name,
+          agentEmail: account.email ?? '',
+          agentPhone: account.phone ?? undefined,
+        });
+        emailSent = true;
+      } catch {
+        // Don't fail the status update over a flaky email provider - the
+        // WhatsApp link (if a phone is on file) still gives the agent a way
+        // to reach the applicant.
+        emailSent = false;
+      }
+    }
+
+    const waLink = full.applicant_phone
+      ? `https://wa.me/${full.applicant_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
+      : null;
+
+    return { application, emailSent, waLink };
   }
 
   async delete(id: string, user: TokenPayload) {

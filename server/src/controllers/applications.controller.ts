@@ -177,6 +177,21 @@ class ApplicationsController {
       res.status(status).json({ success: false, error: err.message || 'Could not delete application.' });
     }
   };
+
+  /**
+   * POST /api/applications/:id/request-more-info
+   * Authenticated - moves the application to "more_info" and messages the
+   * applicant using the contact details on their own submission.
+   */
+  requestMoreInfo = async (req: AuthRequest, res: Response) => {
+    try {
+      const notes = typeof req.body?.notes === 'string' ? req.body.notes : undefined;
+      const result = await applicationsService.requestMoreInfo(req.params.id, notes, req.user!);
+      res.json({ success: true, data: result });
+    } catch (err: any) {
+      res.status(err.statusCode || 500).json({ success: false, error: err.message });
+    }
+  };
 }
 
 export const applicationsController = new ApplicationsController();

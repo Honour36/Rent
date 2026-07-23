@@ -57,9 +57,15 @@ export class TenantsService {
       const currentPayment = activeTenancy?.payments[0] ?? null;
       const rentDueDay = activeTenancy?.rent_due_day ?? 1;
 
-      // Overdue = past due day this month, no paid/late payment recorded
+      // Overdue = lease has actually started, we're past the due day this
+      // month, and no paid/late payment has been recorded. Without the
+      // lease_start check, a tenancy approved with a future move-in date
+      // showed as overdue the moment it was created - the tenant hadn't
+      // even moved in yet.
+      const leaseHasStarted = activeTenancy ? new Date(activeTenancy.lease_start) <= now : false;
       const isOverdue = activeTenancy
-        ? dayOfMonth > rentDueDay &&
+        ? leaseHasStarted &&
+          dayOfMonth > rentDueDay &&
           (!currentPayment || currentPayment.status === 'unpaid' || currentPayment.status === 'partial')
         : false;
 

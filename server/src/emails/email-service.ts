@@ -339,6 +339,39 @@ function ordinal(n: number): string {
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
+// ─── APPLICATION - MORE INFO REQUESTED ──────────────────────────────────────
+
+export async function sendApplicationMoreInfoEmail(opts: {
+  to: string;
+  applicantName: string;
+  propertyName: string;
+  unitNumber: string;
+  notes?: string;
+  accountName: string;
+  agentEmail: string;
+  agentPhone?: string;
+}) {
+  const body = `
+    <h1>More Information Needed</h1>
+    <p>Dear ${opts.applicantName},</p>
+    <p>Thank you for your application for <strong>${opts.propertyName} - ${opts.unitNumber}</strong>. Before we can continue processing it, we need a bit more information or for you to fill in some blank spaces you may have left on the form.</p>
+    ${opts.notes ? `<div class="highlight">${opts.notes}</div>` : ''}
+    <p>Please get in touch with us as soon as possible so we can keep your application moving.</p>
+    <div class="highlight">
+      <strong>${opts.accountName}</strong><br/>
+      📧 ${opts.agentEmail}<br/>
+      ${opts.agentPhone ? `📱 ${opts.agentPhone}` : ''}
+    </div>
+  `;
+
+  return sendEmail({
+    from: getFromAddress(opts.accountName),
+    to: [opts.to],
+    subject: `Action needed on your application - ${opts.propertyName}`,
+    html: buildHtml({ title: 'More Information Needed', body }),
+  });
+}
+
 export function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }

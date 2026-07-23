@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import PDFDocument from 'pdfkit';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { deletePropertiesCascade } from './cascade-delete.helper';
@@ -91,6 +92,118 @@ export class OwnersService {
       },
     });
     return owner;
+  }
+
+  /**
+   * Renders the Property Management Agreement as a downloadable PDF, branded
+   * with the account's own logo/name/address/contact details rather than a
+   * fixed template - each agency's agreement carries their own identity.
+   * Generated on demand (not persisted to storage) so it always reflects the
+   * account's current branding and management fee, same as the application
+   * PDF in applications.service.ts.
+   */
+  async generateManagementAgreementPdf(id: string, user: TokenPayload): Promise<Buffer> {
+    const owner = await prisma.owner.findFirst({
+      where: { id, account_id: user.accountId },
+      include: { properties: { select: { name: true, address: true, suburb: true, city: true } } },
+    });
+    if (!owner) throw new AppError('Owner not found', 404);
+
+    const account = await prisma.account.findUnique({
+      where: { id: user.accountId },
+      select: {
+        name: true, logo_url: true, address: true, suburb: true, city: true,
+        phone: true, email: true, management_fee_pct: true,
+      },
+    });
+
+    const agentName = account?.name ?? 'the Agent';
+    const feePct = account?.management_fee_pct != null ? Number(account.management_fee_pct) : 15;
+    const addressParts = [account?.address, account?.suburb, account?.city].filter(Boolean);
+
+    // Best-effort logo fetch - a missing/unreachable logo shouldn't block the
+    // agreement from being generated (same reasoning as the applicant ID
+    // image embed in applications.service.ts).
+    let logoBuffer: Buffer | null = null;
+    if (account?.logo_url) {
+      try {
+        const res = await fetch(account.logo_url);
+        if (res.ok) logoBuffer = Buffer.from(await res.arrayBuffer());
+      } catch {
+        logoBuffer = null;
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const W = doc.page.width - 100;
+      const DARK = '#111827';
+      const GRAY = '#6b7280';
+
+      // ── LETTERHEAD ──────────────────────────────────────────────────────
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, doc.page.width / 2 - 30, doc.y, { fit: [60, 60], align: 'center' });
+          doc.moveDown(3.5);
+        } catch {
+          // Not a renderable image format - fall through without it.
+        }
+      }
+      doc.fillColor(DARK).fontSize(16).font('Helvetica-Bold').text(agentName.toUpperCase(), { align: 'center' });
+      doc.font('Helvetica').fillColor(GRAY).fontSize(9);
+      if (addressParts.length) doc.text(addressParts.join(', '), { align: 'center' });
+      const contactLine = [account?.phone, account?.email].filter(Boolean).join('  |  ');
+      if (contactLine) doc.text(contactLine, { align: 'center' });
+      doc.moveDown(1);
+      doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold')
+        .text('PROPERTY MANAGEMENT AGREEMENT', { align: 'center', underline: true });
+      doc.moveDown(1.2);
+
+      // ── RE: PROPERTIES ──────────────────────────────────────────────────
+      const propertyLine = owner.properties.length
+        ? owner.properties.map(p => [p.name, p.address, p.suburb, p.city].filter(Boolean).join(', ')).join('; ')
+        : '_______________________________________________';
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text('Re: ', { continued: true }).font('Helvetica').text(propertyLine);
+      doc.moveDown(1);
+
+      // ── CLAUSES ─────────────────────────────────────────────────────────
+      const clause = (text: string) => {
+        doc.font('Helvetica').fontSize(10).fillColor(DARK).text(text, { align: 'justify', lineGap: 2 });
+        doc.moveDown(0.6);
+      };
+
+      clause(`1. I/we do hereby appoint ${agentName} as the PROPERTY MANAGING AGENT in respect of the above mentioned property and I/we authorise the following:`);
+      clause(`2. I/we agree to give ${agentName} a sole mandate to find a suitable tenant.`);
+      clause('3. Length of tenancy and date available to be agreed between the parties and recorded on the lease agreement.');
+      clause(`4. Proposed rental and minimum acceptable rental to be agreed between the parties and recorded on the lease agreement.`);
+      clause('5. I/we agree to clear electricity, water and telephone bills which the previous tenant may have left unpaid before the new recommended tenant moves in.');
+      clause(`6. I/we agree to pay ${agentName} management fees of ${feePct}% of the gross rental every month as per recommended Institute Tariff.`);
+      clause(`7. Should the tenant(s) give notice to vacate the property, I/we authorise ${agentName} to relet or advise me, as I direct.`);
+      clause(`8. I/we do hereby confirm that in the event of either party wishing to terminate this contract, notice will be given in writing (subject to any existing lease agreement).`);
+      clause(`9. Should I decide to withdraw my instructions after signing this form, I/we agree to pay ${agentName} any proven expenses for advertising, transport and inspection fees.`);
+      clause(`10. I/we do hereby authorise ${agentName} to spend a reasonable amount on any necessary and essential repairs without my prior consent. In the event of being unobtainable, ${agentName} is authorised to contact an alternative representative for consent on my behalf.`);
+      clause(`11. I/we agree that ${agentName} must request that the tenant pay an equivalent of one month's rental to safeguard against loss of rental, outstanding water, electricity, telephone charges and related accounts.`);
+      clause('12. Should the parties agree that a telephone line remain on the property, the relevant temporary transfer forms will be completed to ensure the account is changed into the name of the tenant.');
+
+      doc.moveDown(1.5);
+      doc.fontSize(10).fillColor(DARK);
+      doc.text(`OWNER(S): ${owner.full_name}`);
+      doc.moveDown(1.5);
+      doc.text('SIGNATURE: _____________________________', { continued: true }).text('   DATE: _______________', { align: 'right' });
+      doc.moveDown(2);
+      doc.text(`FOR ${agentName.toUpperCase()}: _____________________________`);
+
+      doc.moveDown(2);
+      doc.fillColor(GRAY).fontSize(8).font('Helvetica')
+        .text(`Generated ${new Date().toLocaleString('en-GB')}`, { align: 'center', width: W });
+
+      doc.end();
+    });
   }
 
   async delete(id: string, user: TokenPayload) {

@@ -1,7 +1,6 @@
 import {
   Banknote,
   Building2,
-  Calendar,
   ChartBar,
   ClipboardCheck,
   ClipboardList,
@@ -9,9 +8,7 @@ import {
   LayoutDashboard,
   type IconComponent,
   MessageSquare,
-  Receipt,
   Settings,
-  ShieldCheck,
   UserCheck,
   UserCog,
   Users,
@@ -88,44 +85,28 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "payments",
         title: "Payments",
-        url: "/dashboard/payments",
         icon: Banknote,
-      },
-      {
-        id: "rent-collections",
-        title: "Rent Collections",
-        url: "/dashboard/rent-collections",
-        icon: Calendar,
-      },
-      {
-        id: "deposits",
-        title: "Deposits",
-        url: "/dashboard/deposits",
-        icon: ShieldCheck,
+        subItems: [
+          { id: "payments-all", title: "Payments", url: "/dashboard/payments" },
+          { id: "payments-deposits", title: "Deposits", url: "/dashboard/deposits" },
+          { id: "payments-rent-collections", title: "Rent Collections", url: "/dashboard/rent-collections" },
+          { id: "payments-levies", title: "Levies", url: "/dashboard/levies" },
+        ],
       },
       {
         id: "inspections",
         title: "Inspections",
-        url: "/dashboard/inspections",
         icon: ClipboardCheck,
-      },
-      {
-        id: "checklists",
-        title: "Checklists",
-        url: "/dashboard/checklists",
-        icon: ClipboardList,
+        subItems: [
+          { id: "inspections-all", title: "Inspections", url: "/dashboard/inspections" },
+          { id: "inspections-checklists", title: "Checklists", url: "/dashboard/checklists" },
+        ],
       },
       {
         id: "leases",
         title: "Leases",
         url: "/dashboard/leases",
         icon: FileCheck,
-      },
-      {
-        id: "levies",
-        title: "Levies",
-        url: "/dashboard/levies",
-        icon: Receipt,
       },
       {
         id: "communications",

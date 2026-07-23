@@ -170,7 +170,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
                     <UnitCard unit={unit} />
                     <div className="flex items-center gap-2 px-1">
                       <code className="text-xs text-muted-foreground truncate flex-1">ID: {unit.id}</code>
-                      <GenerateUnitLinkButton unitId={unit.id} />
+                      <GenerateUnitLinkButton unitId={unit.id} unitStatus={unit.status} />
                     </div>
                   </div>
                 );
@@ -184,7 +184,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
               <UnitCard unit={primaryUnit} />
               <div className="flex items-center gap-2 px-1">
                 <code className="text-xs text-muted-foreground truncate flex-1">ID: {primaryUnit.id}</code>
-                <GenerateUnitLinkButton unitId={primaryUnit.id} />
+                <GenerateUnitLinkButton unitId={primaryUnit.id} unitStatus={primaryUnit.status} />
               </div>
             </div>
           </>

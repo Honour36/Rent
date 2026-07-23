@@ -55,6 +55,17 @@ export async function getSignedUrl(
 }
 
 /**
+ * Public URL for a file in a public bucket (all buckets in BUCKETS are
+ * created with `public: true` - see scripts/setup-storage.ts). Unlike
+ * getSignedUrl, this never expires - used for branding assets (logos) that
+ * get embedded directly in account records and rendered on every page load.
+ */
+export function getPublicUrl(bucket: Bucket, path: string): string {
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/**
  * Download a file from storage as a Buffer.
  */
 export async function downloadFile(bucket: Bucket, path: string): Promise<Buffer> {

@@ -86,9 +86,32 @@ export default function ApplicationDetailPage() {
     window.open(`${base}/applications/${id}/pdf`, "_blank");
   };
 
+  const [waLink, setWaLink] = useState<string | null>(null);
+
   const handleAction = async (status: "approved" | "rejected" | "more_info") => {
     setActionLoading(status);
     setActionError("");
+    setWaLink(null);
+
+    if (status === "more_info") {
+      const res = await apiClient<{ waLink: string | null; emailSent: boolean }>(`/applications/${id}/request-more-info`, {
+        method: "POST",
+        data: { notes: vettingNotes || undefined },
+      });
+      if (res.success) {
+        await refetch();
+        setVettingNotes("");
+        if (res.data.waLink) {
+          setWaLink(res.data.waLink);
+          window.open(res.data.waLink, "_blank");
+        }
+      } else {
+        setActionError(res.error);
+      }
+      setActionLoading(null);
+      return;
+    }
+
     const res = await apiClient(`/applications/${id}/status`, {
       method: "PATCH",
       data: { status, vettingNotes: vettingNotes || undefined },
@@ -246,26 +269,73 @@ export default function ApplicationDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Employment */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Briefcase className="h-4 w-4" />
-                    Employment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <InfoRow label="Status" value={fd.employmentStatus?.replace(/_/g, " ")} />
-                    <InfoRow label="Employer" value={fd.employer} />
-                    <InfoRow label="Job Title" value={fd.jobTitle} />
-                    <InfoRow
-                      label="Monthly Income"
-                      value={fd.monthlyIncome != null ? `USD ${Number(fd.monthlyIncome).toLocaleString()}` : undefined}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Employment - residential applications only */}
+              {application.unit.property.type !== "commercial" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Briefcase className="h-4 w-4" />
+                      Employment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <InfoRow label="Status" value={fd.employmentStatus?.replace(/_/g, " ")} />
+                      <InfoRow label="Employer" value={fd.employer} />
+                      <InfoRow label="Job Title" value={fd.jobTitle} />
+                      <InfoRow
+                        label="Monthly Income"
+                        value={fd.monthlyIncome != null ? `USD ${Number(fd.monthlyIncome).toLocaleString()}` : undefined}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Business Details - commercial applications only */}
+              {application.unit.property.type === "commercial" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Briefcase className="h-4 w-4" />
+                      Business Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <InfoRow label="Business Address / Box No." value={fd.businessBoxNumber} />
+                      <InfoRow label="Physical Address" value={fd.physicalAddress} />
+                      <InfoRow label="Fax No." value={fd.faxNumber} />
+                      <InfoRow label="Date Incorporated" value={fd.dateIncorporated} />
+                      <InfoRow label="Operating From Last Premises For" value={fd.operatingFromLastPremisesFor} />
+                      <InfoRow label="Intended Use of Premises" value={fd.intendedUse} />
+                      <InfoRow label="Number of Employees" value={fd.numberOfEmployees != null ? String(fd.numberOfEmployees) : undefined} />
+                    </div>
+                    {Array.isArray(fd.directors) && fd.directors.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Directors</p>
+                        <div className="flex flex-col gap-2">
+                          {fd.directors.map((d, i) => (
+                            <div key={i} className="grid grid-cols-4 gap-2 text-sm rounded-md border border-border p-2">
+                              <span className="font-medium">{d.name}</span>
+                              <span className="text-muted-foreground">{d.residentialAddress || "-"}</span>
+                              <span className="text-muted-foreground">{d.idNumber || "-"}</span>
+                              <span className="text-muted-foreground">{d.telephone || "-"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(fd.bankersName || fd.bankersBranch || fd.bankersAccountNumber) && (
+                      <div className="pt-2 border-t grid grid-cols-3 gap-4 text-sm">
+                        <InfoRow label="Bank" value={fd.bankersName} />
+                        <InfoRow label="Branch" value={fd.bankersBranch} />
+                        <InfoRow label="A/C No." value={fd.bankersAccountNumber} />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Rental History */}
               <Card>
@@ -277,14 +347,27 @@ export default function ApplicationDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <InfoRow label="Previous Address" value={fd.previousAddress} colSpan />
-                    <InfoRow label="Previous Landlord" value={fd.previousLandlord} />
-                    <InfoRow label="Landlord Phone" value={fd.previousLandlordPhone} />
+                    {application.unit.property.type !== "commercial" && (
+                      <>
+                        <InfoRow label="Previous Address" value={fd.previousAddress} colSpan />
+                        <InfoRow
+                          label="Previous Rent"
+                          value={fd.previousRentAmount != null ? `USD ${Number(fd.previousRentAmount).toLocaleString()}` : undefined}
+                        />
+                      </>
+                    )}
                     <InfoRow
-                      label="Previous Rent"
-                      value={fd.previousRentAmount != null ? `USD ${Number(fd.previousRentAmount).toLocaleString()}` : undefined}
+                      label={application.unit.property.type === "commercial" ? "Present Estate Agent / Lessor" : "Previous Landlord"}
+                      value={fd.previousLandlord}
                     />
-                    <InfoRow label="Reason for Leaving" value={fd.reasonForLeaving} colSpan />
+                    {application.unit.property.type !== "commercial" && (
+                      <InfoRow label="Landlord Phone" value={fd.previousLandlordPhone} />
+                    )}
+                    <InfoRow
+                      label={application.unit.property.type === "commercial" ? "Reasons for Vacating" : "Reason for Leaving"}
+                      value={fd.reasonForLeaving}
+                      colSpan
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -294,7 +377,7 @@ export default function ApplicationDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-4 w-4" />
-                    References
+                    {application.unit.property.type === "commercial" ? "Credit References" : "References"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -305,7 +388,9 @@ export default function ApplicationDetailPage() {
                       </p>
                       <InfoRow label="Name" value={fd.reference1Name} />
                       <InfoRow label="Phone" value={fd.reference1Phone} />
-                      <InfoRow label="Relation" value={fd.reference1Relation} />
+                      {application.unit.property.type !== "commercial" && (
+                        <InfoRow label="Relation" value={fd.reference1Relation} />
+                      )}
                     </div>
                     <div className="flex flex-col gap-3">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -313,7 +398,9 @@ export default function ApplicationDetailPage() {
                       </p>
                       <InfoRow label="Name" value={fd.reference2Name} />
                       <InfoRow label="Phone" value={fd.reference2Phone} />
-                      <InfoRow label="Relation" value={fd.reference2Relation} />
+                      {application.unit.property.type !== "commercial" && (
+                        <InfoRow label="Relation" value={fd.reference2Relation} />
+                      )}
                     </div>
                   </div>
                   {fd.additionalNotes && (
@@ -409,6 +496,14 @@ export default function ApplicationDetailPage() {
 
               {actionError && (
                 <p className="text-sm text-destructive">{actionError}</p>
+              )}
+              {waLink && (
+                <p className="text-sm text-muted-foreground">
+                  Status updated. We emailed the applicant if they had one on file, and opened WhatsApp{" "}
+                  <a href={waLink} target="_blank" rel="noreferrer" className="text-primary underline">
+                    (reopen)
+                  </a>.
+                </p>
               )}
 
               {/* Action buttons */}

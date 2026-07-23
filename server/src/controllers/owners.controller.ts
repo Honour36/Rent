@@ -71,4 +71,17 @@ export const ownersController = {
       res.status(status).json({ success: false, error: msg });
     }
   },
+
+  async getManagementAgreementPdf(req: AuthRequest, res: Response) {
+    try {
+      const pdfBuffer = await ownersService.generateManagementAgreementPdf(req.params.id, req.user!);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="management-agreement-${req.params.id}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      const msg = status === 404 ? 'Owner not found.' : 'Could not generate management agreement.';
+      res.status(status).json({ success: false, error: msg });
+    }
+  },
 };

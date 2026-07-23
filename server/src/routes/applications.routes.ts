@@ -23,6 +23,7 @@ router.get('/:id', applicationsController.getById);
 router.get('/:id/pdf', applicationsController.getPdf);
 router.get('/:id/id-document', applicationsController.getIdDocumentUrl);
 router.patch('/:id/status', roleAuthorize('admin', 'senior_agent'), applicationsController.updateStatus);
+router.post('/:id/request-more-info', roleAuthorize('admin', 'senior_agent'), applicationsController.requestMoreInfo);
 router.delete('/:id', roleAuthorize('admin', 'senior_agent'), (req, res) => applicationsController.delete(req as any, res));
 
 export default router;

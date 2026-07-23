@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, useRef, Suspense, useEffect } from "react";
 import { toast } from "sonner";
 import { useSettings, Template } from "@/hooks/useSettings";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Plus, CheckCircle2, Zap } from "@/components/icons";
+import { Pencil, Trash2, Plus, CheckCircle2, Zap, Upload, Loader2 } from "@/components/icons";
 import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
 import { Badge } from "@/components/ui/badge";
 
@@ -57,7 +57,12 @@ function SettingsPageInner() {
   const [vatNumber, setVatNumber] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
-  
+
+  // Logo Upload State
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   // Template Dialog State
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
@@ -96,6 +101,40 @@ function SettingsPageInner() {
       bank_name: bankName,
       bank_account: bankAccount,
     });
+  };
+
+  const handleLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file || !account) return;
+
+    setLogoError("");
+    setLogoUploading(true);
+    try {
+      // Multipart uploads must bypass apiClient - it always JSON.stringifies
+      // `data`, which would corrupt a FormData body (see api-client.ts and
+      // the same workaround in app/application/[token]/page.tsx).
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "branding");
+      formData.append("path", `branding/${account.id}/logo-${Date.now()}-${file.name}`);
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/storage/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setLogoError(json.error || "Logo upload failed.");
+        return;
+      }
+      await updateAccount({ logo_url: json.data.publicUrl });
+    } catch {
+      setLogoError("Network error while uploading logo.");
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   const handleOpenTemplateDialog = (template?: Template) => {
@@ -151,7 +190,6 @@ function SettingsPageInner() {
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="subscription">Billing</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
@@ -167,6 +205,36 @@ function SettingsPageInner() {
 
                 <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
                   ⚠ Receipts cannot be printed until Address, Phone and Email are filled in.
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Branding</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/40">
+                      {account?.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={account.logo_url} alt="Company logo" className="h-full w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No logo</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        className="hidden"
+                        onChange={handleLogoSelected}
+                      />
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5 w-fit"
+                        onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                        {logoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        {logoUploading ? "Uploading…" : account?.logo_url ? "Replace Logo" : "Upload Logo"}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">PNG, JPG, SVG or WebP. Appears on receipts, statements, leases, and application forms.</p>
+                      {logoError && <p className="text-xs text-destructive">{logoError}</p>}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -425,23 +493,6 @@ function SettingsPageInner() {
                   <input type="checkbox" defaultChecked className="h-4 w-4 accent-primary" />
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="branding">
-          <Card>
-            <CardHeader>
-              <CardTitle>Branding</CardTitle>
-              <CardDescription>
-                Upload your company logo.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-2 max-w-sm">
-                <Label>Logo URL</Label>
-                <Input value={account?.logo_url || ''} readOnly placeholder="Not set" />
-                <p className="text-sm text-muted-foreground mt-2">Logo upload via Storage is pending implementation.</p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

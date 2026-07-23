@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { Building2, UserCheck, Phone, Mail, Landmark, ArrowLeft, Download } from "@/components/icons";
+import { Building2, UserCheck, Phone, Mail, Landmark, ArrowLeft, Download, FileCheck } from "@/components/icons";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,11 @@ export default function OwnerDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const { owner, loading, error } = useOwner(id);
+
+  const handleDownloadAgreement = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    window.open(`${base}/owners/${id}/management-agreement/pdf`, "_blank");
+  };
 
   if (loading) {
     return (
@@ -100,6 +105,24 @@ export default function OwnerDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileCheck className="h-5 w-5" />
+              Property Management Agreement
+            </CardTitle>
+            <CardDescription>
+              Generated using your agency&apos;s branding and management fee from Settings → Account.
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownloadAgreement}>
+            <Download className="h-3.5 w-3.5" />
+            Download Agreement
+          </Button>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader>

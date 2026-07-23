@@ -19,7 +19,7 @@ export interface ApplicationListItem {
     unit_number: string;
     rent_amount: number;
     currency: string;
-    property: { name: string; address: string | null };
+    property: { name: string; address: string | null; type?: string };
   };
   reviewer: { full_name: string | null } | null;
 }
@@ -27,6 +27,13 @@ export interface ApplicationListItem {
 export interface ApplicationDetail extends ApplicationListItem {
   form_data: ApplicationFormData;
   id_document_url: string | null;
+}
+
+export interface ApplicationDirector {
+  name: string;
+  residentialAddress?: string;
+  idNumber?: string;
+  telephone?: string;
 }
 
 export interface ApplicationFormData {
@@ -53,6 +60,19 @@ export interface ApplicationFormData {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   additionalNotes?: string;
+  // Commercial / business premises application only
+  businessName?: string;
+  businessBoxNumber?: string;
+  physicalAddress?: string;
+  faxNumber?: string;
+  dateIncorporated?: string;
+  operatingFromLastPremisesFor?: string;
+  intendedUse?: string;
+  numberOfEmployees?: number;
+  bankersName?: string;
+  bankersBranch?: string;
+  bankersAccountNumber?: string;
+  directors?: ApplicationDirector[];
 }
 
 export interface PublicApplicationInfo {
@@ -70,6 +90,7 @@ export interface PublicApplicationInfo {
       address: string | null;
       suburb: string | null;
       city: string | null;
+      type: string;
     };
   };
 }

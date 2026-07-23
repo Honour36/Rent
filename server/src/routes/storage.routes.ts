@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
-import { uploadFile, BUCKETS } from '../db/storage';
+import { uploadFile, getPublicUrl, BUCKETS } from '../db/storage';
 import Busboy from 'busboy';
 import { Readable } from 'stream';
 
@@ -33,8 +33,10 @@ router.post('/upload', authenticate, (req: Request, res: Response) => {
     const bucket = (fields.bucket as keyof typeof BUCKETS) || 'documents';
     const path = fields.path || `uploads/${Date.now()}-${originalName}`;
     try {
-      const storedPath = await uploadFile(BUCKETS[bucket] ?? BUCKETS.documents, path, fileBuffer, mimeType);
-      res.json({ success: true, data: { path: storedPath } });
+      const resolvedBucket = BUCKETS[bucket] ?? BUCKETS.documents;
+      const storedPath = await uploadFile(resolvedBucket, path, fileBuffer, mimeType);
+      const publicUrl = getPublicUrl(resolvedBucket, storedPath);
+      res.json({ success: true, data: { path: storedPath, publicUrl } });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
