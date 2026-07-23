@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { useOwners } from "@/hooks/useOwners";
+import { useTenants } from "@/hooks/useTenants";
 import { apiClient } from "@/lib/api-client";
 import type { Property } from "@/hooks/useProperties";
 import { AddUnitDialog } from "./add-unit-dialog";
@@ -20,6 +21,7 @@ interface EditPropertyDialogProps {
 
 export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPropertyDialogProps) {
   const { owners, loading: loadingOwners } = useOwners();
+  const { tenants, loading: loadingTenants } = useTenants();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,6 +30,7 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
   // scenes), so units[0] is always the property itself here.
   const primaryUnit = property.units?.[0];
   const hasExtraUnits = (property.units?.length ?? 0) > 1;
+  const isOccupied = (primaryUnit?.tenancies?.length ?? 0) > 0;
 
   const [form, setForm] = useState({
     name: property.name ?? "",
@@ -38,6 +41,7 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
     ownerId: property.owner?.id ?? "",
     rentAmount: primaryUnit?.rent_amount != null ? String(primaryUnit.rent_amount) : "",
     currency: primaryUnit?.currency ?? "USD",
+    tenantId: "",
   });
 
   useEffect(() => {
@@ -50,6 +54,7 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
       ownerId: property.owner?.id ?? "",
       rentAmount: primaryUnit?.rent_amount != null ? String(primaryUnit.rent_amount) : "",
       currency: primaryUnit?.currency ?? "USD",
+      tenantId: "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [property]);
@@ -66,6 +71,7 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
       data: {
         ...form,
         rentAmount: form.rentAmount === "" ? "" : parseFloat(form.rentAmount),
+        tenantId: form.tenantId || undefined,
       },
     });
     if (res.success) { toast.success("Property updated."); onSuccess(); onOpenChange(false); }
@@ -134,6 +140,30 @@ export function EditPropertyDialog({ property, onOpenChange, onSuccess }: EditPr
             {hasExtraUnits && (
               <p className="text-xs text-muted-foreground col-span-4">
                 This property has multiple units - rent is set per unit on the property page instead of here.
+              </p>
+            )}
+
+            {!hasExtraUnits && !isOccupied && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tenantId" className="text-right">Tenant</Label>
+                <div className="col-span-3">
+                  <NativeSelect id="tenantId" name="tenantId" value={form.tenantId} onChange={handleChange}
+                    className="w-full" disabled={loadingTenants || tenants.length === 0}>
+                    <NativeSelectOption value="">
+                      {loadingTenants ? "Loading tenants…" : tenants.length === 0 ? "No tenants available" : "- Select tenant (optional) -"}
+                    </NativeSelectOption>
+                    {tenants.map((t) => (
+                      <NativeSelectOption key={t.id} value={t.id}>{t.full_name}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <p className="text-xs text-muted-foreground mt-1">Assigning a tenant here requires a rent amount and starts the lease today.</p>
+                </div>
+              </div>
+            )}
+
+            {!hasExtraUnits && isOccupied && (
+              <p className="text-xs text-muted-foreground col-span-4">
+                This unit already has an active tenant - manage the tenancy from Tenants instead of here.
               </p>
             )}
 

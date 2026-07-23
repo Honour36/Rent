@@ -45,8 +45,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link prefetch={false} href="/dashboard/overview">
-                <Logo height={20} />
+              <Link prefetch={false} href="/dashboard/overview" className="flex items-center justify-center">
+                <span className="hidden group-data-[collapsible=icon]:inline text-xl font-bold leading-none text-sidebar-foreground">
+                  R
+                </span>
+                <span className="group-data-[collapsible=icon]:hidden">
+                  <Logo height={28} />
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

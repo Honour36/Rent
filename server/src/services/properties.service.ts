@@ -143,7 +143,13 @@ export class PropertiesService {
   async update(id: string, data: any, user: TokenPayload) {
     const existing = await prisma.property.findFirst({
       where: { id, account_id: user.accountId },
-      include: { units: { orderBy: { created_at: 'asc' }, take: 1 } },
+      include: {
+        units: {
+          orderBy: { created_at: 'asc' },
+          take: 1,
+          include: { tenancies: { where: { status: 'active' }, take: 1 } },
+        },
+      },
     });
     if (!existing) throw new Error('Property not found');
 
@@ -190,6 +196,35 @@ export class PropertiesService {
             status: 'vacant',
           },
         });
+      }
+    }
+
+    // Assign a tenant from Edit Property, same as Add Property's tenantId
+    // flow - only when the primary unit doesn't already have an active
+    // tenancy (reassigning an occupied unit is a move-out/move-in workflow,
+    // not a plain edit, so we deliberately don't overwrite one here).
+    if (data.tenantId) {
+      const primaryUnit = existing.units[0];
+      const alreadyOccupied = (primaryUnit?.tenancies?.length ?? 0) > 0;
+      const rentAmount = data.rentAmount === '' || data.rentAmount === undefined
+        ? primaryUnit?.rent_amount != null ? Number(primaryUnit.rent_amount) : undefined
+        : Number(data.rentAmount);
+
+      if (primaryUnit && !alreadyOccupied && rentAmount) {
+        await prisma.$transaction([
+          prisma.tenancy.create({
+            data: {
+              account_id: user.accountId,
+              unit_id: primaryUnit.id,
+              tenant_id: data.tenantId,
+              lease_start: new Date(),
+              rent_amount: rentAmount,
+              currency: data.currency ?? primaryUnit.currency ?? 'USD',
+              status: 'active',
+            },
+          }),
+          prisma.unit.update({ where: { id: primaryUnit.id }, data: { status: 'occupied' } }),
+        ]);
       }
     }
 

@@ -19,6 +19,10 @@ export interface Account {
   bank_account?: string | null;
   /** Computed: true if the minimum fields for receipt generation are filled */
   receiptReady?: boolean;
+  /** Computed server-side from created_at - every account gets a 1-month free trial. */
+  trial_ends_at?: string | null;
+  is_trialing?: boolean;
+  trial_days_left?: number;
 }
 
 export interface Template {

@@ -5,7 +5,7 @@ import { TokenPayload } from '../middleware/auth.middleware';
 export const UpdateAccountSchema = z.object({
   name: z.string().min(2).optional(),
   logo_url: z.string().url().optional(),
-  subscription_tier: z.enum(['free', 'starter', 'growth', 'professional']).optional(),
+  subscription_tier: z.enum(['basic', 'starter', 'growth', 'professional']).optional(),
   management_fee_pct: z.number().min(0).max(100).optional(),
   // Company / receipt details
   address: z.string().optional(),
@@ -25,6 +25,13 @@ export const TemplateSchema = z.object({
   body: z.string().min(1)
 });
 
+// Every account gets a 1-month free trial from signup, then billing starts
+// from the second month - see config/subscription-tiers.ts on the client
+// for the matching TRIAL_DAYS constant and tier pricing. Trial status is
+// computed from `created_at` rather than stored, since there's no billing
+// provider wired up yet to actually start/stop a subscription clock.
+const TRIAL_DAYS = 30;
+
 export type UpdateAccountDto = z.infer<typeof UpdateAccountSchema>;
 export type TemplateDto = z.infer<typeof TemplateSchema>;
 
@@ -39,7 +46,15 @@ export class SettingsService {
     const account = await prisma.account.findUnique({
       where: { id: user.accountId }
     });
-    return account;
+    if (!account) return account;
+
+    const trialEndsAt = new Date(account.created_at);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
+    const msLeft = trialEndsAt.getTime() - Date.now();
+    const isTrialing = msLeft > 0;
+    const trialDaysLeft = isTrialing ? Math.ceil(msLeft / (1000 * 60 * 60 * 24)) : 0;
+
+    return { ...account, trial_ends_at: trialEndsAt, is_trialing: isTrialing, trial_days_left: trialDaysLeft };
   }
 
   async updateAccount(data: UpdateAccountDto, user: TokenPayload) {

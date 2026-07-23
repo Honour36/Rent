@@ -1,4 +1,4 @@
-export type TierKey = "free" | "starter" | "growth" | "professional";
+export type TierKey = "basic" | "starter" | "growth" | "professional";
 
 export interface TierLimit {
   properties: number;
@@ -18,12 +18,22 @@ export interface SubscriptionTier {
   highlighted?: boolean;
 }
 
+/**
+ * Every tier gets a 1-month free trial - billing only starts from the
+ * second month. There's deliberately no permanent free tier anymore; this
+ * constant drives the trial messaging shown next to pricing everywhere
+ * these tiers are rendered (see settings billing tab).
+ */
+export const TRIAL_DAYS = 30;
+
+// Four tiers for now, priced from $4.99 up to $99 - more will be added
+// above Professional as the product grows, but this is the current set.
 export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
-    key: "free",
-    name: "Free",
-    priceUsd: 0,
-    tagline: "Try it out - no credit card needed",
+    key: "basic",
+    name: "Basic",
+    priceUsd: 4.99,
+    tagline: "1 month free, then billed monthly - perfect to get started",
     limits: { properties: 1, units: 5, agents: 1, owners: 1, storageGb: 0.5 },
     features: [
       "1 property, up to 5 units",
@@ -37,7 +47,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     key: "starter",
     name: "Starter",
-    priceUsd: 49,
+    priceUsd: 19.99,
     tagline: "Perfect for independent landlords",
     limits: { properties: 10, units: 40, agents: 3, owners: 10, storageGb: 5 },
     features: [
@@ -53,7 +63,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     key: "growth",
     name: "Growth",
-    priceUsd: 129,
+    priceUsd: 49.99,
     tagline: "For growing property agencies",
     highlighted: true,
     limits: { properties: 50, units: 300, agents: 10, owners: 50, storageGb: 25 },
@@ -71,7 +81,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
     key: "professional",
     name: "Professional",
-    priceUsd: 250,
+    priceUsd: 99,
     tagline: "Unlimited - full contact management",
     limits: { properties: -1, units: -1, agents: -1, owners: -1, storageGb: 100 },
     features: [

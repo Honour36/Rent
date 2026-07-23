@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Plus, MoreHorizontal, UserCog, Mail } from "@/components/icons";
 import { useAgents, Agent, AgentInvite } from "@/hooks/useAgents";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,19 +40,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAuthStore } from "@/stores/auth.store";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function AgentsPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const currentUser = useCurrentUser();
   const { agents, invites, loading, inviteAgent, updateAgent } = useAgents();
-  
+
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("junior_agent");
 
-  if (user?.role !== 'admin') {
-    redirect('/dashboard/overview');
+  // useCurrentUser resolves asynchronously (it reads the session cookie /
+  // hits /auth/me on mount), so `currentUser` is null for a brief moment on
+  // every load - redirecting on that transient null was the bug: it fired
+  // for actual admins too, before their role had loaded.
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "admin") {
+      router.replace("/dashboard/overview");
+    }
+  }, [currentUser, router]);
+
+  if (!currentUser || currentUser.role !== "admin") {
+    return null;
   }
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -126,7 +137,7 @@ export default function AgentsPage() {
                       <Select
                         defaultValue={agent.role}
                         onValueChange={(val) => handleRoleChange(agent, val)}
-                        disabled={user?.id === agent.id}
+                        disabled={currentUser.id === agent.id}
                       >
                         <SelectTrigger className="w-[140px] h-8 text-xs">
                           <SelectValue />
@@ -151,7 +162,7 @@ export default function AgentsPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={user?.id === agent.id}>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={currentUser.id === agent.id}>
                             <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>

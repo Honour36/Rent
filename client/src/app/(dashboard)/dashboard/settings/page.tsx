@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pencil, Trash2, Plus, CheckCircle2, Zap, Upload, Loader2 } from "@/components/icons";
-import { SUBSCRIPTION_TIERS, getTierByKey } from "@/config/subscription-tiers";
+import { SUBSCRIPTION_TIERS, getTierByKey, TRIAL_DAYS } from "@/config/subscription-tiers";
 import { Badge } from "@/components/ui/badge";
 
 function SettingsPageInner() {
@@ -366,15 +366,29 @@ function SettingsPageInner() {
               <p className="text-sm text-muted-foreground mt-1">
                 Current plan:{" "}
                 <Badge variant="outline" className="ml-1 capitalize font-semibold">
-                  {account?.subscription_tier ?? "free"}
+                  {account?.subscription_tier ?? "basic"}
                 </Badge>
                 {" "}- contact support to upgrade.
               </p>
+              {account?.is_trialing ? (
+                <div className="mt-3 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                  <Zap className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    You're in your {TRIAL_DAYS}-day free trial —{" "}
+                    <strong>{account.trial_days_left} day{account.trial_days_left === 1 ? "" : "s"} left</strong>.
+                    Billing starts automatically from month two.
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Every plan includes a {TRIAL_DAYS}-day free trial for new accounts - billing starts from the second month.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {SUBSCRIPTION_TIERS.map((tier) => {
-                const isCurrent = (account?.subscription_tier ?? "free") === tier.key;
+                const isCurrent = (account?.subscription_tier ?? "basic") === tier.key;
                 return (
                   <Card
                     key={tier.key}
@@ -402,6 +416,7 @@ function SettingsPageInner() {
                         <span className="text-3xl font-bold">${tier.priceUsd}</span>
                         <span className="text-sm text-muted-foreground">/mo</span>
                       </div>
+                      <p className="text-xs text-primary font-medium mt-0.5">Free for {TRIAL_DAYS} days, then billed monthly</p>
                       <CardDescription className="text-xs mt-1">{tier.tagline}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1">
@@ -425,7 +440,7 @@ function SettingsPageInner() {
                           variant={tier.highlighted ? "default" : "outline"}
                           onClick={() => window.open("mailto:support@rental.app?subject=Upgrade to " + tier.name, "_blank")}
                         >
-                          {tier.priceUsd === 0 ? "Get Started Free" : `Upgrade to ${tier.name}`}
+                          {`Start Free Trial - ${tier.name}`}
                         </Button>
                       )}
                     </CardFooter>
@@ -445,7 +460,7 @@ function SettingsPageInner() {
                       <TableRow>
                         <TableHead>Resource</TableHead>
                         {SUBSCRIPTION_TIERS.map(t => (
-                          <TableHead key={t.key} className={t.key === (account?.subscription_tier ?? "free") ? "font-bold text-primary" : ""}>
+                          <TableHead key={t.key} className={t.key === (account?.subscription_tier ?? "basic") ? "font-bold text-primary" : ""}>
                             {t.name}
                           </TableHead>
                         ))}
