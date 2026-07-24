@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { Check, Download, FileText, Send } from "@/components/icons";
 
@@ -18,11 +19,12 @@ import { useReports, type StatementData, type OwnerStatementDto } from "@/hooks/
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
-export default function OwnerStatementPage() {
+function OwnerStatementPageInner() {
+  const searchParams = useSearchParams();
   const { owners, loading: ownersLoading } = useOwners();
   const { generateOwnerStatement, approveOwnerStatement, dispatchOwnerStatement, listOwnerStatements, loading } = useReports();
 
-  const [selectedOwnerId, setSelectedOwnerId] = useState<string>("");
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>(searchParams.get("ownerId") ?? "");
   const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()));
 
@@ -301,5 +303,13 @@ export default function OwnerStatementPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OwnerStatementPage() {
+  return (
+    <Suspense fallback={null}>
+      <OwnerStatementPageInner />
+    </Suspense>
   );
 }
