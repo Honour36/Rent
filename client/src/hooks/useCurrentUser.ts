@@ -11,21 +11,6 @@ export interface CurrentUser {
   avatar: string;
 }
 
-function parseJwtPayload(token: string): Record<string, any> | null {
-  try {
-    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(base64));
-  } catch {
-    return null;
-  }
-}
-
-function getTokenFromCookie(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 function buildUser(name: string, email: string, role: string, id: string): CurrentUser {
   const seed = encodeURIComponent(name || email || "U");
   return {
@@ -41,17 +26,12 @@ export function useCurrentUser(): CurrentUser | null {
   const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
-    // 1. Try JWT first (instant - no network round trip)
-    const token = getTokenFromCookie();
-    if (token) {
-      const payload = parseJwtPayload(token);
-      if (payload?.name && payload?.email) {
-        setUser(buildUser(payload.name, payload.email, payload.role, payload.sub));
-        return; // JWT has what we need - done
-      }
-    }
-
-    // 2. Fallback: fetch /me from backend (covers old JWTs without name/email)
+    // access_token is httpOnly (by design, so client-side JS can never read
+    // it - keeps it safe from XSS), so there's no cookie shortcut here.
+    // /auth/me is the only source of truth, and now that api-client treats
+    // it like any other protected endpoint, an expired access token is
+    // silently refreshed and this call retried automatically - no more
+    // falling back to a placeholder name while the session is still valid.
     apiClient<{ id: string; name: string; email: string; role: string }>("/auth/me")
       .then((res) => {
         if (res.success) {

@@ -50,7 +50,16 @@ export async function apiClient<T>(
     throw err;
   }
 
-  const isAuthEndpoint = endpoint.startsWith("/auth/");
+  // Only these endpoints should skip the auto-refresh-and-retry flow: a 401
+  // from them means "bad credentials" or "refresh token itself is dead",
+  // not "access token expired, please refresh". Everything else under
+  // /auth/ (like /auth/me) is a normal protected endpoint and should be
+  // retried after a silent refresh, same as any other API call - excluding
+  // the whole /auth/ prefix here was why the sidebar/navbar name reverted
+  // to "Agent" after the access token expired while the session was still
+  // perfectly valid.
+  const NO_REFRESH_RETRY = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/accept-invite'];
+  const isAuthEndpoint = NO_REFRESH_RETRY.some((p) => endpoint.startsWith(p));
 
   if (response.status === 401 && !isAuthEndpoint) {
     if (!isRefreshing) {
