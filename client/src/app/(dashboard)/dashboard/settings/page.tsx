@@ -3,6 +3,7 @@
 import { useState, useRef, Suspense, useEffect } from "react";
 import { toast } from "sonner";
 import { useSettings, Template } from "@/hooks/useSettings";
+import { useBilling } from "@/hooks/useBilling";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -44,7 +45,50 @@ function SettingsPageInner() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") ?? "account";
   const user = useCurrentUser();
-  const { account, templates, loading, updateAccount, createTemplate, updateTemplate, deleteTemplate } = useSettings();
+  const { account, templates, loading, refetch, updateAccount, createTemplate, updateTemplate, deleteTemplate } = useSettings();
+  const { subscribe, getStatus, loading: billingLoading } = useBilling();
+
+  // Billing State
+  const [subscribingTier, setSubscribingTier] = useState<string | null>(null);
+  const [paymentBanner, setPaymentBanner] = useState<{ type: "success" | "pending" | "error"; message: string } | null>(null);
+
+  // If we've just bounced back from Paynow (?paymentId=...), check how the
+  // payment landed and refresh the account so the new tier shows up.
+  useEffect(() => {
+    const paymentId = searchParams.get("paymentId");
+    if (!paymentId) return;
+
+    getStatus(paymentId).then((payment) => {
+      if (!payment) return;
+      if (payment.status === "paid") {
+        setPaymentBanner({ type: "success", message: `Payment confirmed - you're now on the ${getTierByKey(payment.tier).name} plan.` });
+        refetch();
+      } else if (payment.status === "cancelled") {
+        setPaymentBanner({ type: "error", message: "Payment was cancelled - your plan wasn't changed." });
+      } else {
+        setPaymentBanner({ type: "pending", message: "We're still confirming your payment with Paynow - this can take a minute. Refresh to check again." });
+      }
+      router.replace("/dashboard/settings?tab=subscription");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSubscribe = async (tierKey: string) => {
+    setSubscribingTier(tierKey);
+    const res = await subscribe(tierKey);
+    if (!res.success) {
+      toast.error(res.error);
+      setSubscribingTier(null);
+      return;
+    }
+    if (res.data.requiresPayment && res.data.redirectUrl) {
+      window.location.href = res.data.redirectUrl;
+      return; // leaving the page - no need to clear loading state
+    }
+    toast.success(`You're on the ${getTierByKey(tierKey).name} plan for the rest of your free trial.`);
+    refetch();
+    setSubscribingTier(null);
+  };
   
   // Account Form State
   const [accountName, setAccountName] = useState("");
@@ -361,6 +405,17 @@ function SettingsPageInner() {
 
         <TabsContent value="subscription">
           <div className="space-y-6">
+            {paymentBanner && (
+              <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                paymentBanner.type === "success" ? "border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300" :
+                paymentBanner.type === "error" ? "border-destructive/30 bg-destructive/10 text-destructive" :
+                "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+              }`}>
+                {paymentBanner.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Zap className="h-4 w-4 shrink-0" />}
+                <span>{paymentBanner.message}</span>
+              </div>
+            )}
+
             <div>
               <h2 className="text-lg font-semibold">Subscription Plans</h2>
               <p className="text-sm text-muted-foreground mt-1">
@@ -368,7 +423,11 @@ function SettingsPageInner() {
                 <Badge variant="outline" className="ml-1 capitalize font-semibold">
                   {account?.subscription_tier ?? "basic"}
                 </Badge>
-                {" "}- contact support to upgrade.
+                {account?.subscription_paid_until && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Active until {new Date(account.subscription_paid_until).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </span>
+                )}
               </p>
               {account?.is_trialing ? (
                 <div className="mt-3 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
@@ -386,14 +445,15 @@ function SettingsPageInner() {
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
               {SUBSCRIPTION_TIERS.map((tier) => {
                 const isCurrent = (account?.subscription_tier ?? "basic") === tier.key;
+                const isSubscribing = subscribingTier === tier.key;
                 return (
                   <Card
                     key={tier.key}
                     className={[
-                      "relative flex flex-col",
+                      "relative flex h-full flex-col",
                       tier.highlighted ? "border-primary shadow-md" : "",
                       isCurrent ? "ring-2 ring-primary" : "",
                     ].join(" ")}
@@ -416,31 +476,33 @@ function SettingsPageInner() {
                         <span className="text-3xl font-bold">${tier.priceUsd}</span>
                         <span className="text-sm text-muted-foreground">/mo</span>
                       </div>
-                      <p className="text-xs text-primary font-medium mt-0.5">Free for {TRIAL_DAYS} days, then billed monthly</p>
+                      <p className="text-xs text-primary font-medium mt-1">Free for {TRIAL_DAYS} days, then billed monthly</p>
                       <CardDescription className="text-xs mt-1">{tier.tagline}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1">
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {tier.features.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-sm">
+                          <li key={f} className="flex items-start gap-2 text-sm leading-snug">
                             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                             <span>{f}</span>
                           </li>
                         ))}
                       </ul>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="mt-auto pt-4">
                       {isCurrent ? (
                         <Button className="w-full" variant="secondary" disabled>
                           Current Plan
                         </Button>
                       ) : (
                         <Button
-                          className="w-full"
+                          className="w-full gap-1.5"
                           variant={tier.highlighted ? "default" : "outline"}
-                          onClick={() => window.open("mailto:support@rental.app?subject=Upgrade to " + tier.name, "_blank")}
+                          disabled={billingLoading && isSubscribing}
+                          onClick={() => handleSubscribe(tier.key)}
                         >
-                          {`Start Free Trial - ${tier.name}`}
+                          {isSubscribing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          {account?.is_trialing ? `Start Free Trial - ${tier.name}` : `Subscribe - ${tier.name}`}
                         </Button>
                       )}
                     </CardFooter>

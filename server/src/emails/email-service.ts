@@ -376,3 +376,33 @@ export function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+// ─── SUBSCRIPTION RENEWAL REMINDER ───────────────────────────────────────────
+
+export async function sendSubscriptionRenewalReminderEmail(opts: {
+  to: string;
+  accountName: string;
+  tierName: string;
+  priceUsd: number;
+  paidUntil: Date;
+  renewUrl: string;
+  daysLeft: number;
+}) {
+  const body = `
+    <h1>Your ${opts.tierName} plan renews soon</h1>
+    <p>Hi ${opts.accountName},</p>
+    <p>Your current billing period ends on <strong>${opts.paidUntil.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>${opts.daysLeft > 0 ? ` (${opts.daysLeft} day${opts.daysLeft === 1 ? '' : 's'} from now)` : ''}.</p>
+    <div class="info-row"><span class="info-label">Plan</span><span class="info-value">${opts.tierName}</span></div>
+    <div class="info-row"><span class="info-label">Amount</span><span class="info-value" style="font-size:18px;font-weight:700">USD ${opts.priceUsd.toFixed(2)}/mo</span></div>
+    <hr class="divider" />
+    <p>Renew now to keep your account uninterrupted - it only takes a minute.</p>
+    <center><a href="${opts.renewUrl}" class="btn">Renew Subscription →</a></center>
+  `;
+
+  return sendEmail({
+    from: getFromAddress(opts.accountName),
+    to: [opts.to],
+    subject: `Your ${opts.tierName} plan renews in ${opts.daysLeft} day${opts.daysLeft === 1 ? '' : 's'}`,
+    html: buildHtml({ title: 'Subscription Renewal', body }),
+  });
+}
+

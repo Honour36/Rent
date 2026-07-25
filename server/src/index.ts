@@ -27,6 +27,8 @@ import noticesToVacateRoutes from './routes/notices-to-vacate.routes';
 import levyChargesRoutes from './routes/levy-charges.routes';
 import checklistTemplatesRoutes from './routes/checklist-templates.routes';
 import { startRentRemindersJob } from './jobs/rent-reminders.job';
+import billingRoutes from './routes/billing.routes';
+import { startSubscriptionRenewalRemindersJob } from './jobs/subscription-renewal-reminders.job';
 
 dotenv.config();
 
@@ -52,6 +54,7 @@ app.use('/api/agents', agentsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api/rent-collection', rentCollectionRoutes);
 app.use('/api/deposits', depositsRoutes);
 app.use('/api/inspections', inspectionsRoutes);
@@ -65,6 +68,7 @@ app.get('/health', (req, res) => {
 
 // Start scheduled jobs
 startRentRemindersJob();
+startSubscriptionRenewalRemindersJob();
 
 const PORT = process.env.PORT || 3001;
 

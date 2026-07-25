@@ -33,7 +33,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     key: "basic",
     name: "Basic",
     priceUsd: 4.99,
-    tagline: "1 month free, then billed monthly - perfect to get started",
+    tagline: "Perfect to get started",
     limits: { properties: 1, units: 5, agents: 1, owners: 1, storageGb: 0.5 },
     features: [
       "1 property, up to 5 units",

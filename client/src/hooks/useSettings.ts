@@ -23,6 +23,7 @@ export interface Account {
   trial_ends_at?: string | null;
   is_trialing?: boolean;
   trial_days_left?: number;
+  subscription_paid_until?: string | null;
 }
 
 export interface Template {
@@ -112,6 +113,7 @@ export function useSettings() {
     account,
     templates,
     loading,
+    refetch: fetchData,
     updateAccount,
     createTemplate,
     updateTemplate,

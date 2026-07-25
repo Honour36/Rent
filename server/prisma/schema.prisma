@@ -11,6 +11,7 @@ model Account {
   name               String
   logo_url           String?
   subscription_tier  String?
+  subscription_paid_until DateTime? @db.Timestamptz
   management_fee_pct Decimal?  @db.Decimal
   // Company / receipt details
   address            String?
@@ -46,6 +47,7 @@ model Account {
   notices_to_vacate  NoticeToVacate[]
   levy_charges       LevyCharge[]
   checklist_templates ChecklistTemplate[]
+  subscription_payments SubscriptionPayment[]
 
   @@map("accounts")
 }
@@ -343,6 +345,32 @@ model OwnerStatement {
   approver      User?     @relation("ApprovedBy", fields: [approved_by], references: [id])
 
   @@map("owner_statements")
+}
+
+// One row per billing-period charge attempt via Paynow. Paynow's public API
+// is redirect-checkout-per-charge (no native recurring billing - see
+// forums.paynow.co.zw/t/recurring-automated-payments/8314), so a subscription
+// here means "billed period-by-period, with a reminder to renew" rather than
+// silent auto-charging.
+model SubscriptionPayment {
+  id               String    @id @default(uuid()) @db.Uuid
+  account_id       String    @db.Uuid
+  tier             String
+  amount           Decimal   @db.Decimal(10, 2)
+  currency         String    @default("USD")
+  reference        String    @unique
+  paynow_reference String?
+  poll_url         String?
+  method           String    @default("web") // web (card/EcoCash/OneMoney via redirect) | mobile (express checkout)
+  status           String    @default("created") // created | paid | cancelled | failed
+  period_start     DateTime  @db.Timestamptz
+  period_end       DateTime  @db.Timestamptz
+  paid_at          DateTime? @db.Timestamptz
+  created_at       DateTime  @default(now()) @db.Timestamptz
+
+  account          Account   @relation(fields: [account_id], references: [id])
+
+  @@map("subscription_payments")
 }
 
 model MessageTemplate {

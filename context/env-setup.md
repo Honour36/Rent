@@ -41,6 +41,27 @@ PORT=3001
 
 # Public URL of your frontend (used for application links)
 FRONTEND_URL=http://localhost:3000
+
+# Public URL of THIS backend (used for the Paynow webhook below - Paynow
+# needs to reach it over the internet, so in production this must be your
+# real deployed backend URL, e.g. https://your-backend.onrender.com).
+# Falls back to http://localhost:$PORT if unset, which is fine for local
+# dev but Paynow obviously can't reach that.
+APP_URL=http://localhost:3001
+
+# ─── Paynow (subscription billing) ─────────────────────────────────────────────
+# Get these from: Paynow Dashboard → Integrations. Integration ID is not
+# secret; Integration Key is - never commit it, set it in Render's
+# environment variables (or your host's equivalent), not here.
+PAYNOW_INTEGRATION_ID=25830
+PAYNOW_INTEGRATION_KEY=your_integration_key_here
+
+# Pre-launch safety switch - defaults to OFF, meaning the Paynow checkout
+# flow works end-to-end for real (you can actually subscribe and pay) but
+# nobody's actual usage is limited by their tier. Flip to "true" only once
+# ready to gate real usage by subscription - no code change needed, just
+# this one variable.
+SUBSCRIPTION_ENFORCEMENT_ENABLED=false
 ```
 
 ---

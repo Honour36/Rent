@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
+import { TRIAL_DAYS } from '../config/subscription-tiers';
 
 export const UpdateAccountSchema = z.object({
   name: z.string().min(2).optional(),
@@ -26,11 +27,10 @@ export const TemplateSchema = z.object({
 });
 
 // Every account gets a 1-month free trial from signup, then billing starts
-// from the second month - see config/subscription-tiers.ts on the client
-// for the matching TRIAL_DAYS constant and tier pricing. Trial status is
-// computed from `created_at` rather than stored, since there's no billing
-// provider wired up yet to actually start/stop a subscription clock.
-const TRIAL_DAYS = 30;
+// from the second month - see config/subscription-tiers.ts (server) and
+// client/src/config/subscription-tiers.ts for the matching TRIAL_DAYS
+// constant and tier pricing. Trial status is computed from `created_at`
+// rather than stored.
 
 export type UpdateAccountDto = z.infer<typeof UpdateAccountSchema>;
 export type TemplateDto = z.infer<typeof TemplateSchema>;
