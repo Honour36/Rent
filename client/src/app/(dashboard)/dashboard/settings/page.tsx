@@ -453,24 +453,19 @@ function SettingsPageInner() {
                   <Card
                     key={tier.key}
                     className={[
-                      "relative flex h-full flex-col",
+                      "flex h-full flex-col overflow-hidden pt-0",
                       tier.highlighted ? "border-primary shadow-md" : "",
                       isCurrent ? "ring-2 ring-primary" : "",
                     ].join(" ")}
                   >
-                    {tier.highlighted && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <Badge className="px-3 py-0.5 text-xs">Most Popular</Badge>
+                    {(tier.highlighted || isCurrent) && (
+                      <div className={`flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium ${
+                        isCurrent ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+                      }`}>
+                        {isCurrent ? <><Zap className="h-3 w-3" /> Active</> : "Most Popular"}
                       </div>
                     )}
-                    {isCurrent && (
-                      <div className="absolute -top-3 right-3">
-                        <Badge variant="secondary" className="px-2 py-0.5 text-xs flex items-center gap-1">
-                          <Zap className="h-3 w-3" /> Active
-                        </Badge>
-                      </div>
-                    )}
-                    <CardHeader className="pb-3">
+                    <CardHeader className={tier.highlighted || isCurrent ? "pt-5 pb-3" : "pt-6 pb-3"}>
                       <CardTitle className="text-base">{tier.name}</CardTitle>
                       <div className="mt-1">
                         <span className="text-3xl font-bold">${tier.priceUsd}</span>
