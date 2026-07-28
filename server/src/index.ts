@@ -35,7 +35,13 @@ dotenv.config();
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+// Default express.json() caps request bodies at 100KB, which every other
+// route in this app comfortably sits under - except a bulk migration
+// import's `rows` payload, which blew straight through it. Express rejects
+// an oversized body before any route handler runs, with a plain-text/HTML
+// response instead of JSON - which is what surfaced as "Invalid JSON
+// response from server" on the frontend rather than a real error message.
+app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);

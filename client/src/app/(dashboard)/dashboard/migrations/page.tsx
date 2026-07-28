@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -27,7 +28,7 @@ const ALL_FIELDS = Object.keys(FIELD_LABELS) as MigrationField[];
 type Step = "intro" | "preview" | "result";
 
 export default function MigrationsPage() {
-  const { downloadTemplate, preview, commit, uploading, committing } = useMigrations();
+  const { downloadTemplate, preview, commit, uploading, uploadProgress, committing, commitProgress } = useMigrations();
   const [step, setStep] = useState<Step>("intro");
   const [error, setError] = useState("");
   const [parsed, setParsed] = useState<ParsedPreview | null>(null);
@@ -140,7 +141,12 @@ export default function MigrationsPage() {
                 ) : (
                   <Upload className="h-8 w-8 text-muted-foreground" />
                 )}
-                <p className="text-sm font-medium">{uploading ? "Reading your file…" : "Upload your spreadsheet"}</p>
+                <p className="text-sm font-medium">{uploading ? `Uploading… ${uploadProgress}%` : "Upload your spreadsheet"}</p>
+                {uploading && (
+                  <div className="w-full max-w-xs">
+                    <Progress value={uploadProgress} />
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">.xlsx or .csv, up to 15MB</p>
                 <Button size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
                   Choose File
@@ -222,6 +228,19 @@ export default function MigrationsPage() {
             </CardContent>
           </Card>
 
+          {committing && (
+            <Card>
+              <CardContent className="py-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Importing your data…</span>
+                  <span className="text-muted-foreground">{commitProgress}%</span>
+                </div>
+                <Progress value={commitProgress} />
+                <p className="text-xs text-muted-foreground">Don&apos;t close this tab - rows already processed are saved even if you do, but you&apos;ll need to check back here for the full summary.</p>
+              </CardContent>
+            </Card>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -230,10 +249,10 @@ export default function MigrationsPage() {
           )}
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={reset}>Start Over</Button>
+            <Button variant="outline" onClick={reset} disabled={committing}>Start Over</Button>
             <Button className="gap-1.5" disabled={committing} onClick={handleCommit}>
               {committing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {committing ? "Importing…" : `Import ${parsed.totalRows} Rows`}
+              {committing ? `Importing… ${commitProgress}%` : `Import ${parsed.totalRows} Rows`}
             </Button>
           </div>
         </>
