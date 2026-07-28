@@ -9,6 +9,7 @@ import {
   type IconComponent,
   MessageSquare,
   Settings,
+  Upload,
   UserCheck,
   UserCog,
   Users,
@@ -152,6 +153,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Agents",
         url: "/dashboard/agents",
         icon: UserCog,
+      },
+      {
+        id: "migrations",
+        title: "Migrations",
+        url: "/dashboard/migrations",
+        icon: Upload,
       },
       {
         id: "settings",

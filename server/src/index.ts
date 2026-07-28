@@ -28,6 +28,7 @@ import levyChargesRoutes from './routes/levy-charges.routes';
 import checklistTemplatesRoutes from './routes/checklist-templates.routes';
 import { startRentRemindersJob } from './jobs/rent-reminders.job';
 import billingRoutes from './routes/billing.routes';
+import migrationsRoutes from './routes/migrations.routes';
 import { startSubscriptionRenewalRemindersJob } from './jobs/subscription-renewal-reminders.job';
 
 dotenv.config();
@@ -55,6 +56,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/migrations', migrationsRoutes);
 app.use('/api/rent-collection', rentCollectionRoutes);
 app.use('/api/deposits', depositsRoutes);
 app.use('/api/inspections', inspectionsRoutes);
