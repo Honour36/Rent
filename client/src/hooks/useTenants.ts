@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 
 export interface TenantListItem {
@@ -23,7 +22,17 @@ export interface TenantListItem {
       property: { name: string; address: string | null; city: string | null };
     };
   } | null;
+  /** Rent balance owed > 0. isOverdue is the same value - only one arrears
+   * severity exists, kept as two fields for backward compat with callers
+   * that read either name. */
   hasArrears: boolean;
+  isOverdue: boolean;
+  currentPayment: {
+    amount_paid: number;
+    status: string;
+    period_month: number;
+    period_year: number;
+  } | null;
 }
 
 export interface TenantDetail {
@@ -79,9 +88,10 @@ export function useTenants() {
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchTenants = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<TenantListItem[]>("/tenants");
     if (res.success) {
       setTenants(res.data);
@@ -89,6 +99,7 @@ export function useTenants() {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {
@@ -102,9 +113,10 @@ export function useTenant(id: string) {
   const [tenant, setTenant] = useState<TenantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchTenant = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<TenantDetail>(`/tenants/${id}`);
     if (res.success) {
       setTenant(res.data);
@@ -112,6 +124,7 @@ export function useTenant(id: string) {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {
@@ -120,4 +133,3 @@ export function useTenant(id: string) {
 
   return { tenant, loading, error, refetch: fetchTenant };
 }
-

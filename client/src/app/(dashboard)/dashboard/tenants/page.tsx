@@ -97,7 +97,7 @@ export default function TenantsPage() {
                   {filtered.map((tenant) => {
                     const t = tenant.activeTenancy;
                     return (
-                      <TableRow key={tenant.id} className={`cursor-pointer transition-colors ${(tenant as any).isOverdue ? "bg-red-50/60 dark:bg-red-950/20 hover:bg-red-100/60 border-l-2 border-l-destructive" : "hover:bg-muted/50"}`}
+                      <TableRow key={tenant.id} className={`cursor-pointer transition-colors ${tenant.isOverdue ? "bg-red-50/60 dark:bg-red-950/20 hover:bg-red-100/60 border-l-2 border-l-destructive" : "hover:bg-muted/50"}`}
                         onClick={() => router.push(`/dashboard/tenants/${tenant.id}`)}>
                         <TableCell className="text-sm font-medium text-foreground">{tenant.full_name}</TableCell>
                         <TableCell>
@@ -118,12 +118,10 @@ export default function TenantsPage() {
                           {t ? <Badge variant="default">Active</Badge> : <Badge variant="outline">No Tenancy</Badge>}
                         </TableCell>
 <TableCell>
-                          {(tenant as any).isOverdue ? (
+                          {tenant.isOverdue ? (
                             <Badge variant="destructive" className="flex items-center gap-1 w-fit">
                               <AlertTriangle className="h-3 w-3" />Overdue
                             </Badge>
-                          ) : tenant.hasArrears ? (
-                            <Badge variant="destructive">Partial</Badge>
                           ) : (
                             <Badge variant="secondary">Clear</Badge>
                           )}

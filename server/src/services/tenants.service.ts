@@ -54,8 +54,6 @@ export class TenantsService {
 
   async list(user: TokenPayload) {
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
     const dayOfMonth = now.getDate();
 
     const tenants = await prisma.tenant.findMany({
@@ -69,9 +67,8 @@ export class TenantsService {
           include: {
             unit: { include: { property: true } },
             payments: {
-              where: { payment_type: 'rent', period_month: currentMonth, period_year: currentYear },
+              where: { payment_type: 'rent' },
               select: { amount_paid: true, status: true, period_month: true, period_year: true },
-              take: 1,
               orderBy: { created_at: 'desc' },
             },
           },
@@ -84,19 +81,36 @@ export class TenantsService {
       const currentPayment = activeTenancy?.payments[0] ?? null;
       const rentDueDay = activeTenancy?.rent_due_day ?? 1;
 
-      // Overdue = lease has actually started, we're past the due day this
-      // month, and no paid/late payment has been recorded. Without the
-      // lease_start check, a tenancy approved with a future move-in date
-      // showed as overdue the moment it was created - the tenant hadn't
-      // even moved in yet.
-      const leaseHasStarted = activeTenancy ? new Date(activeTenancy.lease_start) <= now : false;
-      const isOverdue = activeTenancy
-        ? leaseHasStarted &&
-          dayOfMonth > rentDueDay &&
-          (!currentPayment || currentPayment.status === 'unpaid' || currentPayment.status === 'partial')
-        : false;
+      // Arrears = same cumulative balance formula as the Arrears report
+      // (monthsActive x rent - totalPaid), not "is there a payment
+      // recorded for literally this calendar month". That simpler check
+      // used to flag freshly-imported tenants as overdue immediately -
+      // their payment history only covers the months their spreadsheet
+      // recorded, so of course nothing existed yet for today's real
+      // month. A tenant whose imported history has no gaps (no blank
+      // months) has balance 0 and correctly shows no arrears; a lease
+      // that starts today (the fallback when a spreadsheet had no lease
+      // start date) has 0 months active yet, so nothing is owed until a
+      // real due date actually passes.
+      //
+      // hasArrears and isOverdue are intentionally the same value - there
+      // is only one arrears state (balance > 0), not a separate "partial"
+      // severity. Kept as two fields since the frontend type already reads
+      // both; collapse there, not here.
+      let hasArrears = false;
+      if (activeTenancy) {
+        const start = new Date(activeTenancy.lease_start);
+        let monthsActive = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+        if (dayOfMonth < rentDueDay) monthsActive--;
+        if (monthsActive < 0) monthsActive = 0;
 
-      const hasArrears = isOverdue || (currentPayment?.status === 'partial');
+        const totalDue = monthsActive * Number(activeTenancy.rent_amount);
+        const totalPaid = activeTenancy.payments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+        const balance = totalDue - totalPaid;
+
+        hasArrears = balance > 0;
+      }
+      const isOverdue = hasArrears;
 
       return { ...t, activeTenancy, hasArrears, isOverdue, currentPayment };
     });

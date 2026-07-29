@@ -77,8 +77,11 @@ function parseMoney(raw: unknown): number | null {
 }
 
 function normalizeZimPhone(str: string): string {
-  if (str.startsWith('+263')) return str;
-  if (str.startsWith('263')) return `+${str}`;
+  // Any country code already present (+263, +27, +44, +91, whatever) means
+  // leave it alone - only bare local-format numbers (no + at all) get the
+  // Zimbabwe assumption applied, since that's the only locale this data
+  // realistically comes from without an explicit code.
+  if (str.startsWith('+')) return str;
   if (str.startsWith('0')) return `+263${str.slice(1)}`;
   return str; // unrecognized shape - leave as-is rather than guess wrong
 }
@@ -482,6 +485,19 @@ export class MigrationsService {
               tenancyId = newTenancy.id;
               tenancyCreated = 1;
               summary.tenanciesCreated++;
+
+              // An imported tenant is, by definition, an existing tenancy -
+              // assume the deposit was already collected at move-in rather
+              // than surfacing it as outstanding. Falls back to one month's
+              // rent (the common convention) when the sheet had no deposit
+              // column value.
+              await tx.deposit.create({
+                data: {
+                  account_id: user.accountId, tenancy_id: tenancyId,
+                  required_amount: depositAmount ?? rentAmount, currency,
+                  status: 'paid_in_full',
+                },
+              });
             } else if (!activeTenancy && !rentAmount) {
               warnings.push(`Tenant "${tenantName}" found but no rent amount was given, so no tenancy or payment history was imported - add a rent amount and try again, or add the tenancy manually.`);
             } else if (activeTenancy) {

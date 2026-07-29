@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 
 export interface ActiveTenancy {
@@ -43,9 +42,10 @@ export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchProperties = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<Property[]>("/properties");
     if (res.success) {
       setProperties(res.data);
@@ -53,6 +53,7 @@ export function useProperties() {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {
@@ -66,9 +67,10 @@ export function useProperty(id: string) {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchProperty = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<Property>(`/properties/${id}`);
     if (res.success) {
       setProperty(res.data);
@@ -76,6 +78,7 @@ export function useProperty(id: string) {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {

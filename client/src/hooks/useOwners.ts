@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiClient } from "@/lib/api-client";
 
@@ -17,9 +17,10 @@ export function useOwners() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchOwners = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<Owner[]>("/owners");
     if (res.success) {
       setOwners(res.data);
@@ -27,6 +28,7 @@ export function useOwners() {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {
@@ -40,9 +42,10 @@ export function useOwner(id: string) {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const hasLoadedOnce = useRef(false);
 
   const fetchOwner = async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     const res = await apiClient<Owner>(`/owners/${id}`);
     if (res.success) {
       setOwner(res.data);
@@ -50,6 +53,7 @@ export function useOwner(id: string) {
       setError(res.error);
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   };
 
   useEffect(() => {
