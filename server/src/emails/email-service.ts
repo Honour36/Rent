@@ -372,6 +372,66 @@ export async function sendApplicationMoreInfoEmail(opts: {
   });
 }
 
+// ─── MIGRATION SUMMARY EMAIL ─────────────────────────────────────────────────
+
+export async function sendMigrationSummaryEmail(opts: {
+  to: string;
+  name: string;
+  accountName: string;
+  ownersCreated: number;
+  ownersMatched: number;
+  propertiesCreated: number;
+  propertiesMatched: number;
+  tenantsCreated: number;
+  tenantsMatched: number;
+  tenanciesCreated: number;
+  paymentsImported: number;
+  skippedRows: { row: number; detail: string }[];
+  migrationsUrl?: string;
+}) {
+  const url = opts.migrationsUrl || `${process.env.FRONTEND_URL || 'https://rent-pi-murex.vercel.app'}/dashboard/migrations`;
+  const totalTransferred = opts.propertiesCreated + opts.propertiesMatched;
+  const skippedCount = opts.skippedRows.length;
+
+  const skippedListHtml = skippedCount > 0 ? `
+    <hr class="divider" />
+    <p><strong>${skippedCount} row${skippedCount === 1 ? '' : 's'} from your spreadsheet ${skippedCount === 1 ? 'was' : 'were'} not transferred.</strong> Cross-reference the row numbers below against your original spreadsheet - some may be intentional blanks, others may just need a property address or owner name filled in before re-uploading.</p>
+    <div class="highlight" style="padding:0;overflow:hidden">
+      ${opts.skippedRows.slice(0, 50).map(r => `
+        <div class="info-row" style="padding:10px 16px">
+          <span class="info-label">Row ${r.row}</span>
+          <span class="info-value" style="font-weight:400;text-align:right;max-width:340px">${r.detail}</span>
+        </div>
+      `).join('')}
+    </div>
+    ${skippedCount > 50 ? `<p style="color:#6b7280;font-size:13px">+ ${skippedCount - 50} more - open the migration page for the full list.</p>` : ''}
+  ` : `
+    <hr class="divider" />
+    <p style="color:#6b7280;font-size:13px">Every row in your spreadsheet was transferred - nothing to cross-reference.</p>
+  `;
+
+  const body = `
+    <h1>Your migration summary</h1>
+    <p>Hi ${opts.name}, here's what happened when we imported your spreadsheet into <strong>${opts.accountName}</strong>.</p>
+    <div class="info-row"><span class="info-label">Properties</span><span class="info-value">${totalTransferred} transferred (${opts.propertiesCreated} new, ${opts.propertiesMatched} matched existing)</span></div>
+    <div class="info-row"><span class="info-label">Owners</span><span class="info-value">${opts.ownersCreated} new, ${opts.ownersMatched} matched existing</span></div>
+    <div class="info-row"><span class="info-label">Tenants</span><span class="info-value">${opts.tenantsCreated} new, ${opts.tenantsMatched} matched existing</span></div>
+    <div class="info-row"><span class="info-label">Tenancies created</span><span class="info-value">${opts.tenanciesCreated}</span></div>
+    <div class="info-row"><span class="info-label">Payments imported</span><span class="info-value">${opts.paymentsImported}</span></div>
+    ${skippedListHtml}
+    <center style="margin-top:24px"><a href="${url}" class="btn">Review in Rental →</a></center>
+  `;
+
+  return sendEmail({
+    from: getFromAddress(opts.accountName),
+    to: [opts.to],
+    subject: skippedCount > 0
+      ? `Migration complete - ${totalTransferred} transferred, ${skippedCount} need a look`
+      : `Migration complete - ${totalTransferred} properties transferred`,
+    html: buildHtml({ title: 'Migration Summary', body }),
+  });
+}
+
 export function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }

@@ -12,5 +12,6 @@ router.get('/fields', migrationsController.fields);
 router.get('/template', migrationsController.template);
 router.post('/preview', migrationsController.preview);
 router.post('/commit', migrationsController.commit);
+router.post('/summary-email', migrationsController.sendSummaryEmail);
 
 export default router;

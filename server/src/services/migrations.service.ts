@@ -6,6 +6,7 @@ import {
   matchMonthColumn, normalizeHeader,
 } from '../config/migration-fields';
 import { notificationsService } from './notifications.service';
+import { sendMigrationSummaryEmail } from '../emails/email-service';
 
 class AppError extends Error {
   constructor(public message: string, public statusCode: number) {
@@ -567,6 +568,46 @@ export class MigrationsService {
     }
 
     return summary;
+  }
+
+  /**
+   * Called once by the frontend after every commit batch has finished (not
+   * per-batch - a large import is several /commit calls, and this would
+   * otherwise fire one email per batch). Never throws - a failed send here
+   * must not turn a successful import into an error response.
+   */
+  async sendSummaryEmail(summary: CommitSummary, user: TokenPayload): Promise<{ sent: boolean }> {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.sub },
+        select: { email: true, full_name: true, account: { select: { name: true, email: true } } },
+      });
+      const to = dbUser?.email || dbUser?.account?.email;
+      if (!to) return { sent: false };
+
+      const skippedRows = summary.results
+        .filter(r => r.status === 'skipped')
+        .map(r => ({ row: r.row, detail: r.detail }));
+
+      await sendMigrationSummaryEmail({
+        to,
+        name: dbUser?.full_name || 'there',
+        accountName: dbUser?.account?.name || 'Rental',
+        ownersCreated: summary.ownersCreated,
+        ownersMatched: summary.ownersMatched,
+        propertiesCreated: summary.propertiesCreated,
+        propertiesMatched: summary.propertiesMatched,
+        tenantsCreated: summary.tenantsCreated,
+        tenantsMatched: summary.tenantsMatched,
+        tenanciesCreated: summary.tenanciesCreated,
+        paymentsImported: summary.paymentsImported,
+        skippedRows,
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error('[MigrationsService/sendSummaryEmail] Failed to send migration summary email:', err);
+      return { sent: false };
+    }
   }
 }
 

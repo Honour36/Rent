@@ -28,7 +28,7 @@ const ALL_FIELDS = Object.keys(FIELD_LABELS) as MigrationField[];
 type Step = "intro" | "preview" | "result";
 
 export default function MigrationsPage() {
-  const { downloadTemplate, preview, commit, uploading, uploadProgress, committing, commitProgress } = useMigrations();
+  const { downloadTemplate, preview, commit, sendSummaryEmail, uploading, uploadProgress, committing, commitProgress } = useMigrations();
   const [step, setStep] = useState<Step>("intro");
   const [error, setError] = useState("");
   const [parsed, setParsed] = useState<ParsedPreview | null>(null);
@@ -66,6 +66,7 @@ export default function MigrationsPage() {
     if (!res.success) { setError(res.error); return; }
     setResult(res.data);
     setStep("result");
+    sendSummaryEmail(res.data);
   };
 
   const reset = () => {
@@ -292,6 +293,9 @@ export default function MigrationsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                A summary of this import - including any rows that weren&apos;t transferred - has been emailed to you so you can cross-reference it against your original spreadsheet.
+              </p>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {[
                   { label: "Owners", created: result.ownersCreated, matched: result.ownersMatched },
