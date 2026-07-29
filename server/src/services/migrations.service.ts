@@ -281,7 +281,18 @@ export class MigrationsService {
   // ─── Find-or-create helpers - same matching rules as the duplicate-prevention
   // in owners/properties/tenants.service.ts, but reusing a match instead of
   // rejecting it, since re-running an import (or importing an overlapping
-  // sheet from a different year) should link up, not duplicate. ────────────
+  // sheet from a different year) should link up, not duplicate.
+  //
+  // Property matching in particular needs all three of name, owner, AND
+  // tenant to agree before two rows are treated as the same property/unit.
+  // Address alone isn't enough - a generic address like "Stand 245" or
+  // "Flat 3" recurs across different owners' portfolios in real spreadsheets,
+  // and two different owners' rows landing on the same property would
+  // silently move one owner's rent and tenant history onto the other's. A
+  // matching name + owner but a *different* tenant isn't a duplicate either -
+  // it's a second unit at the same multi-unit property, so it gets its own
+  // unit under the existing property rather than overwriting the first
+  // tenant's unit. ──────────────────────────────────────────────────────────
 
   private async findOrCreateOwner(
     tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
@@ -309,21 +320,45 @@ export class MigrationsService {
     accountId: string,
     ownerId: string,
     address: string,
+    tenantName: string,
     suburb: string | undefined,
     city: string | undefined,
     type: 'residential' | 'commercial'
   ): Promise<{ id: string; unitId: string; created: boolean }> {
     const existing = await tx.property.findFirst({
-      where: { account_id: accountId, name: { equals: address, mode: 'insensitive' }, address: { equals: address, mode: 'insensitive' } },
-      include: { units: { orderBy: { created_at: 'asc' }, take: 1 } },
+      where: {
+        account_id: accountId,
+        owner_id: ownerId,
+        name: { equals: address, mode: 'insensitive' },
+        address: { equals: address, mode: 'insensitive' },
+      },
+      include: {
+        units: {
+          include: { tenancies: { where: { status: 'active' }, include: { tenant: true }, take: 1 } },
+          orderBy: { created_at: 'asc' },
+        },
+      },
     });
+
     if (existing) {
-      let unit = existing.units[0];
+      // Reuse a unit only if its current tenant matches this row's tenant -
+      // that's the "same record, re-imported" case. Everything else (a
+      // different tenant, or no tenant info on this row at all) falls
+      // through to a vacant unit if one exists, or a brand new unit -
+      // never onto a unit that already belongs to someone else.
+      const normalizedTenant = tenantName ? normalizeHeader(tenantName) : '';
+      let unit = normalizedTenant
+        ? existing.units.find(u => u.tenancies[0] && normalizeHeader(u.tenancies[0].tenant.full_name) === normalizedTenant)
+        : undefined;
+
+      if (!unit) unit = existing.units.find(u => !u.tenancies[0]);
+
       if (!unit) {
-        // Matched a property that (unusually) has no unit yet - give it one
-        // rather than leaving the row with nowhere to attach rent/tenancy.
         unit = await tx.unit.create({
-          data: { account_id: accountId, property_id: existing.id, unit_number: 'Main Unit', currency: 'USD', status: 'vacant' },
+          data: {
+            account_id: accountId, property_id: existing.id,
+            unit_number: `Unit ${existing.units.length + 1}`, currency: 'USD', status: 'vacant',
+          },
         });
       }
       return { id: existing.id, unitId: unit.id, created: false };
@@ -426,7 +461,7 @@ export class MigrationsService {
           if (!parsePhone(cellRaw(row, mapping, 'owner_phone')) && !cellText(row, mapping, 'owner_email')) needsReview = true;
 
           const property = await this.findOrCreateProperty(
-            tx, user.accountId, owner.id, address,
+            tx, user.accountId, owner.id, address, tenantName,
             cellText(row, mapping, 'property_suburb') || undefined,
             cellText(row, mapping, 'property_city') || undefined,
             parsePropertyType(cellRaw(row, mapping, 'property_type'))

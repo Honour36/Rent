@@ -1,12 +1,13 @@
 "use client";
 
 import { useDashboard } from "@/hooks/useDashboard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Building2, AlertTriangle, Activity, DollarSign } from "@/components/icons";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
+import Link from "next/link";
 
 export default function OverviewPage() {
   const { data, loading, error } = useDashboard();
@@ -119,13 +120,18 @@ export default function OverviewPage() {
           <CardHeader>
             <CardTitle>Top Arrears</CardTitle>
             <CardDescription>Tenants with the highest outstanding balances.</CardDescription>
+            <CardAction>
+              <Link href="/dashboard/reports/arrears" className="text-xs font-medium text-primary hover:underline">
+                See more
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {arrearsTable.length === 0 ? (
               <p className="text-sm text-muted-foreground">No tenants in arrears.</p>
             ) : (
               <div className="space-y-4">
-                {arrearsTable.map((arrear) => (
+                {arrearsTable.slice(0, 5).map((arrear) => (
                   <div key={arrear.tenancyId} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                     <div>
                       <p className="text-sm font-medium">{arrear.tenantName}</p>
@@ -147,13 +153,18 @@ export default function OverviewPage() {
           <CardHeader>
             <CardTitle>Expiring Leases (30 Days)</CardTitle>
             <CardDescription>Tenancies ending soon.</CardDescription>
+            <CardAction>
+              <Link href="/dashboard/reports/lease-expiry" className="text-xs font-medium text-primary hover:underline">
+                See more
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {expiringLeases.length === 0 ? (
               <p className="text-sm text-muted-foreground">No leases expiring in the next 30 days.</p>
             ) : (
               <div className="space-y-4">
-                {expiringLeases.map((lease) => (
+                {expiringLeases.slice(0, 5).map((lease) => (
                   <div key={lease.tenancyId} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                     <div>
                       <p className="text-sm font-medium">{lease.tenantName}</p>
@@ -175,13 +186,18 @@ export default function OverviewPage() {
           <CardHeader>
             <CardTitle>Maintenance Alerts</CardTitle>
             <CardDescription>High and emergency priority requests.</CardDescription>
+            <CardAction>
+              <Link href="/dashboard/maintenance" className="text-xs font-medium text-primary hover:underline">
+                See more
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {maintenanceAlerts.length === 0 ? (
               <p className="text-sm text-muted-foreground">No critical maintenance requests.</p>
             ) : (
               <div className="space-y-4">
-                {maintenanceAlerts.map((alert) => (
+                {maintenanceAlerts.slice(0, 5).map((alert) => (
                   <div key={alert.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                     <div>
                       <p className="text-sm font-medium">{alert.title}</p>
@@ -204,13 +220,18 @@ export default function OverviewPage() {
           <CardHeader>
             <CardTitle>Recent Payments</CardTitle>
             <CardDescription>The last 5 payments recorded.</CardDescription>
+            <CardAction>
+              <Link href="/dashboard/payments" className="text-xs font-medium text-primary hover:underline">
+                See more
+              </Link>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {recentPayments.length === 0 ? (
               <p className="text-sm text-muted-foreground">No recent payments.</p>
             ) : (
               <div className="space-y-4">
-                {recentPayments.map((payment) => (
+                {recentPayments.slice(0, 5).map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
