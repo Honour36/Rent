@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Property } from "@/hooks/useProperties";
 import { useProperties } from "@/hooks/useProperties";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar } from "@/components/data-table/BulkActionBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiClient } from "@/lib/api-client";
 import { AddPropertyDialog } from "./_components/add-property-dialog";
 import { EditPropertyDialog } from "./_components/edit-property-dialog";
@@ -66,6 +69,21 @@ export default function PropertiesPage() {
       p.address.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const bulk = useBulkSelection(filtered, (p) => p.id);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const results = await Promise.all(ids.map((id) => apiClient(`/properties/${id}`, { method: "DELETE" })));
+    const failed = results.filter((r) => !r.success).length;
+    if (failed === 0) {
+      toast.success(`${ids.length} propert${ids.length === 1 ? "y" : "ies"} deleted.`);
+    } else {
+      toast.error(`${failed} of ${ids.length} could not be deleted`, { description: "They may have related records blocking deletion." });
+    }
+    bulk.clear();
+    refetch();
+  };
+
   const handleDelete = async () => {
     if (!deleteProp) return;
     setDeleting(true);
@@ -103,6 +121,14 @@ export default function PropertiesPage() {
             <Input placeholder="Search properties…" className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
+          <BulkActionBar
+            count={bulk.selectedCount}
+            entityLabelSingular="property"
+            entityLabelPlural="properties"
+            onClear={bulk.clear}
+            onConfirmDelete={handleBulkDelete}
+          />
+
           {loading ? (
             <div className="flex h-32 items-center justify-center">
               <p className="text-sm text-muted-foreground">Loading…</p>
@@ -123,6 +149,13 @@ export default function PropertiesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={bulk.allSelected ? true : bulk.someSelected ? "indeterminate" : false}
+                        onCheckedChange={bulk.toggleAll}
+                        aria-label="Select all properties"
+                      />
+                    </TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Property</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Location</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Owner</TableHead>
@@ -146,6 +179,13 @@ export default function PropertiesPage() {
                         }`}
                         onClick={() => router.push(`/dashboard/properties/${prop.id}`)}
                       >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={bulk.isSelected(prop.id)}
+                            onCheckedChange={() => bulk.toggle(prop.id)}
+                            aria-label={`Select ${prop.name}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="text-sm font-medium text-foreground">{prop.name}</span>

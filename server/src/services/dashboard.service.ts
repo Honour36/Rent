@@ -10,7 +10,9 @@ export class DashboardService {
       return JSON.parse(cached);
     }
 
-    // 1. Total Units, Occupied, Vacant
+    // 1. Total Properties, Units, Occupied, Vacant
+    const totalProperties = await prisma.property.count({ where: { account_id: accountId } });
+
     const units = await prisma.unit.findMany({
       where: { account_id: accountId },
       select: { status: true }
@@ -111,6 +113,7 @@ export class DashboardService {
 
     const overviewData = {
       kpis: {
+        totalProperties,
         totalUnits,
         occupiedUnits,
         vacantUnits,

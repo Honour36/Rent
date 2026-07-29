@@ -3,6 +3,7 @@ import { apiClient } from '@/lib/api-client';
 
 export interface DashboardOverviewData {
   kpis: {
+    totalProperties: number;
     totalUnits: number;
     occupiedUnits: number;
     vacantUnits: number;

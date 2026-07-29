@@ -15,6 +15,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useOwners, Owner } from "@/hooks/useOwners";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar } from "@/components/data-table/BulkActionBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiClient } from "@/lib/api-client";
 import { AddOwnerDialog } from "./_components/add-owner-dialog";
 import { EditOwnerDialog } from "./_components/edit-owner-dialog";
@@ -28,6 +31,21 @@ export default function OwnersPage() {
   const [deleting, setDeleting] = useState(false);
 
   const filtered = owners.filter((o) => o.full_name.toLowerCase().includes(search.toLowerCase()));
+
+  const bulk = useBulkSelection(filtered, (o) => o.id);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const results = await Promise.all(ids.map((id) => apiClient(`/owners/${id}`, { method: "DELETE" })));
+    const failed = results.filter((r) => !r.success).length;
+    if (failed === 0) {
+      toast.success(`${ids.length} owner${ids.length === 1 ? "" : "s"} deleted.`);
+    } else {
+      toast.error(`${failed} of ${ids.length} could not be deleted`, { description: "They may have related records blocking deletion." });
+    }
+    bulk.clear();
+    refetch();
+  };
 
   const handleDelete = async () => {
     if (!deleteOwner) return;
@@ -64,6 +82,14 @@ export default function OwnersPage() {
             <Input placeholder="Search owners..." className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
+          <BulkActionBar
+            count={bulk.selectedCount}
+            entityLabelSingular="owner"
+            entityLabelPlural="owners"
+            onClear={bulk.clear}
+            onConfirmDelete={handleBulkDelete}
+          />
+
           {loading ? (
             <div className="flex h-32 items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>
           ) : error ? (
@@ -82,6 +108,13 @@ export default function OwnersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={bulk.allSelected ? true : bulk.someSelected ? "indeterminate" : false}
+                        onCheckedChange={bulk.toggleAll}
+                        aria-label="Select all owners"
+                      />
+                    </TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Name</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Contact</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Properties</TableHead>
@@ -93,6 +126,13 @@ export default function OwnersPage() {
                   {filtered.map((owner) => (
                     <TableRow key={owner.id} className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => router.push(`/dashboard/owners/${owner.id}`)}>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={bulk.isSelected(owner.id)}
+                          onCheckedChange={() => bulk.toggle(owner.id)}
+                          aria-label={`Select ${owner.full_name}`}
+                        />
+                      </TableCell>
                       <TableCell className="text-sm font-medium text-foreground">
                         {owner.full_name}
                         {owner.is_diaspora && <Badge variant="secondary" className="ml-2">Diaspora</Badge>}

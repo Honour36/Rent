@@ -16,6 +16,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTenants, TenantListItem } from "@/hooks/useTenants";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar } from "@/components/data-table/BulkActionBar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiClient } from "@/lib/api-client";
 import { AddTenantDialog } from "./_components/add-tenant-dialog";
 import { EditTenantDialog } from "./_components/edit-tenant-dialog";
@@ -31,6 +34,21 @@ export default function TenantsPage() {
   const filtered = tenants.filter((t) =>
     t.full_name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const bulk = useBulkSelection(filtered, (t) => t.id);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const results = await Promise.all(ids.map((id) => apiClient(`/tenants/${id}`, { method: "DELETE" })));
+    const failed = results.filter((r) => !r.success).length;
+    if (failed === 0) {
+      toast.success(`${ids.length} tenant${ids.length === 1 ? "" : "s"} deleted.`);
+    } else {
+      toast.error(`${failed} of ${ids.length} could not be deleted`, { description: "They may have related records blocking deletion." });
+    }
+    bulk.clear();
+    refetch();
+  };
 
   const handleDelete = async () => {
     if (!deleteTenant) return;
@@ -67,6 +85,14 @@ export default function TenantsPage() {
             <Input placeholder="Search tenants..." className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
+          <BulkActionBar
+            count={bulk.selectedCount}
+            entityLabelSingular="tenant"
+            entityLabelPlural="tenants"
+            onClear={bulk.clear}
+            onConfirmDelete={handleBulkDelete}
+          />
+
           {loading ? (
             <div className="flex h-32 items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>
           ) : error ? (
@@ -85,6 +111,13 @@ export default function TenantsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={bulk.allSelected ? true : bulk.someSelected ? "indeterminate" : false}
+                        onCheckedChange={bulk.toggleAll}
+                        aria-label="Select all tenants"
+                      />
+                    </TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Name</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Contact</TableHead>
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Current Property / Unit</TableHead>
@@ -99,6 +132,13 @@ export default function TenantsPage() {
                     return (
                       <TableRow key={tenant.id} className={`cursor-pointer transition-colors ${tenant.isOverdue ? "bg-red-50/60 dark:bg-red-950/20 hover:bg-red-100/60 border-l-2 border-l-destructive" : "hover:bg-muted/50"}`}
                         onClick={() => router.push(`/dashboard/tenants/${tenant.id}`)}>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={bulk.isSelected(tenant.id)}
+                            onCheckedChange={() => bulk.toggle(tenant.id)}
+                            aria-label={`Select ${tenant.full_name}`}
+                          />
+                        </TableCell>
                         <TableCell className="text-sm font-medium text-foreground">{tenant.full_name}</TableCell>
                         <TableCell>
                           <div className="flex flex-col text-sm">
