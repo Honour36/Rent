@@ -283,16 +283,17 @@ export class MigrationsService {
   // rejecting it, since re-running an import (or importing an overlapping
   // sheet from a different year) should link up, not duplicate.
   //
-  // Property matching in particular needs all three of name, owner, AND
-  // tenant to agree before two rows are treated as the same property/unit.
-  // Address alone isn't enough - a generic address like "Stand 245" or
-  // "Flat 3" recurs across different owners' portfolios in real spreadsheets,
-  // and two different owners' rows landing on the same property would
-  // silently move one owner's rent and tenant history onto the other's. A
-  // matching name + owner but a *different* tenant isn't a duplicate either -
-  // it's a second unit at the same multi-unit property, so it gets its own
-  // unit under the existing property rather than overwriting the first
-  // tenant's unit. ──────────────────────────────────────────────────────────
+  // Property matching in particular needs all three of name, owner, AND a
+  // named tenant to agree before two rows are treated as the same
+  // property/unit. Address alone isn't enough - a generic address like
+  // "Stand 245" or "Flat 3" recurs across different owners' portfolios in
+  // real spreadsheets, and two different owners' rows landing on the same
+  // property would silently move one owner's rent and tenant history onto
+  // the other's. A matching name + owner but a *different* (or absent)
+  // tenant isn't a duplicate either - it's a second unit at the same
+  // multi-unit property (e.g. one owner's 5 apartments in one complex, or
+  // several shops under one landlord), so it gets its own unit under the
+  // existing property rather than overwriting the first tenant's unit. ────
 
   private async findOrCreateOwner(
     tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
@@ -341,18 +342,28 @@ export class MigrationsService {
     });
 
     if (existing) {
-      // Reuse a unit only if its current tenant matches this row's tenant -
-      // that's the "same record, re-imported" case. Everything else (a
-      // different tenant, or no tenant info on this row at all) falls
-      // through to a vacant unit if one exists, or a brand new unit -
-      // never onto a unit that already belongs to someone else.
+      // Name + owner alone only narrows it to "same building" - it's a
+      // duplicate row (created: false) only if this row names a tenant AND
+      // that tenant matches an existing unit's active tenant. A row with
+      // no tenant name never counts as a match, even against another
+      // vacant unit - two blank apartments in the same building (e.g. two
+      // empty shops for the same landlord) are still two different units,
+      // not the same one re-imported twice.
       const normalizedTenant = tenantName ? normalizeHeader(tenantName) : '';
-      let unit = normalizedTenant
+      const tenantMatch = normalizedTenant
         ? existing.units.find(u => u.tenancies[0] && normalizeHeader(u.tenancies[0].tenant.full_name) === normalizedTenant)
         : undefined;
 
-      if (!unit) unit = existing.units.find(u => !u.tenancies[0]);
+      if (tenantMatch) {
+        return { id: existing.id, unitId: tenantMatch.id, created: false };
+      }
 
+      // Tenant differs from every unit already on this property - this is
+      // a different unit at the same multi-unit property, not a
+      // duplicate. Reuse a vacant unit if one exists rather than creating
+      // an unnecessary extra empty unit, but still report it as created -
+      // never attach to a unit that already belongs to someone else.
+      let unit = existing.units.find(u => !u.tenancies[0]);
       if (!unit) {
         unit = await tx.unit.create({
           data: {
@@ -361,7 +372,7 @@ export class MigrationsService {
           },
         });
       }
-      return { id: existing.id, unitId: unit.id, created: false };
+      return { id: existing.id, unitId: unit.id, created: true };
     }
 
     const property = await tx.property.create({

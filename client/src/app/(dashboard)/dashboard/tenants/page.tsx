@@ -39,12 +39,11 @@ export default function TenantsPage() {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
-    const results = await Promise.all(ids.map((id) => apiClient(`/tenants/${id}`, { method: "DELETE" })));
-    const failed = results.filter((r) => !r.success).length;
-    if (failed === 0) {
+    const res = await apiClient(`/tenants/bulk-delete`, { method: "POST", data: { ids } });
+    if (res.success) {
       toast.success(`${ids.length} tenant${ids.length === 1 ? "" : "s"} deleted.`);
     } else {
-      toast.error(`${failed} of ${ids.length} could not be deleted`, { description: "They may have related records blocking deletion." });
+      toast.error("Could not delete the selected tenants", { description: (res as any).error });
     }
     bulk.clear();
     refetch();

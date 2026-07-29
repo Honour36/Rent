@@ -261,6 +261,37 @@ export class OwnersService {
 
     return { deleted: true };
   }
+
+  /**
+   * Deletes many owners (and everything under them) in one transaction
+   * instead of one call per owner - see PropertiesService.bulkDelete for
+   * why per-row concurrent transactions fail partway through at scale.
+   */
+  async bulkDelete(ids: string[], user: TokenPayload): Promise<{ deleted: number }> {
+    const owned = await prisma.owner.findMany({
+      where: { id: { in: ids }, account_id: user.accountId },
+      select: { id: true },
+    });
+    const ownedIds = owned.map(o => o.id);
+    if (ownedIds.length === 0) return { deleted: 0 };
+
+    const properties = await prisma.property.findMany({ where: { owner_id: { in: ownedIds } }, select: { id: true } });
+    const propertyIds = properties.map(p => p.id);
+
+    await prisma.$transaction(
+      async (tx) => {
+        await deletePropertiesCascade(tx, propertyIds);
+        await tx.rentCollectionRequest.deleteMany({ where: { owner_id: { in: ownedIds } } });
+        await tx.trustTransaction.deleteMany({ where: { owner_id: { in: ownedIds } } });
+        await tx.communication.deleteMany({ where: { owner_id: { in: ownedIds } } });
+        await tx.ownerStatement.deleteMany({ where: { owner_id: { in: ownedIds } } });
+        await tx.owner.deleteMany({ where: { id: { in: ownedIds } } });
+      },
+      { timeout: 120_000 }
+    );
+
+    return { deleted: ownedIds.length };
+  }
 }
 
 export const ownersService = new OwnersService();

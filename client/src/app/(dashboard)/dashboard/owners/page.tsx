@@ -36,12 +36,11 @@ export default function OwnersPage() {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
-    const results = await Promise.all(ids.map((id) => apiClient(`/owners/${id}`, { method: "DELETE" })));
-    const failed = results.filter((r) => !r.success).length;
-    if (failed === 0) {
+    const res = await apiClient(`/owners/bulk-delete`, { method: "POST", data: { ids } });
+    if (res.success) {
       toast.success(`${ids.length} owner${ids.length === 1 ? "" : "s"} deleted.`);
     } else {
-      toast.error(`${failed} of ${ids.length} could not be deleted`, { description: "They may have related records blocking deletion." });
+      toast.error("Could not delete the selected owners", { description: (res as any).error });
     }
     bulk.clear();
     refetch();

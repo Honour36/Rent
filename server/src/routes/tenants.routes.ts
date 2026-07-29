@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.get('/', tenantsController.list);
 router.post('/', roleAuthorize('admin', 'senior_agent'), tenantsController.create);
+router.post('/bulk-delete', roleAuthorize('admin', 'senior_agent'), tenantsController.bulkDelete);
 router.get('/:id', tenantsController.getById);
 router.patch('/:id', roleAuthorize('admin', 'senior_agent'), tenantsController.update);
 

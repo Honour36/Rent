@@ -10,6 +10,7 @@ router.use(authenticate);
 
 router.get('/', ownersController.list);
 router.post('/', roleAuthorize('admin', 'senior_agent'), enforceTierLimit('owners'), ownersController.create);
+router.post('/bulk-delete', roleAuthorize('admin', 'senior_agent'), ownersController.bulkDelete);
 router.get('/:id', ownersController.getById);
 router.get('/:id/management-agreement/pdf', ownersController.getManagementAgreementPdf);
 router.patch('/:id', roleAuthorize('admin', 'senior_agent'), ownersController.update);

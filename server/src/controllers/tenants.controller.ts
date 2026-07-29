@@ -1,11 +1,15 @@
 import { Response } from 'express';
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { tenantsService, CreateTenantSchema, UpdateTenantSchema } from '../services/tenants.service';
 
 function zodMessage(err: ZodError): string {
   return err.errors.map(e => e.message).join('. ');
 }
+
+const BulkDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, 'Select at least one tenant to delete.'),
+});
 
 export const tenantsController = {
   async list(req: AuthRequest, res: Response) {
@@ -71,6 +75,20 @@ export const tenantsController = {
       const status = error.statusCode || 500;
       const msg = status === 404 ? 'Tenant not found.' : 'Could not delete tenant.';
       res.status(status).json({ success: false, error: msg });
+    }
+  },
+
+  async bulkDelete(req: AuthRequest, res: Response) {
+    try {
+      const { ids } = BulkDeleteSchema.parse(req.body);
+      const data = await tenantsService.bulkDelete(ids, req.user!);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(422).json({ success: false, error: zodMessage(error), code: 'VALIDATION_ERROR' });
+      } else {
+        res.status(500).json({ success: false, error: 'Could not delete the selected tenants.' });
+      }
     }
   },
 };
