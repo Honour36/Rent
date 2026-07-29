@@ -363,16 +363,17 @@ export class MigrationsService {
       // duplicate. Reuse a vacant unit if one exists rather than creating
       // an unnecessary extra empty unit, but still report it as created -
       // never attach to a unit that already belongs to someone else.
-      let unit = existing.units.find(u => !u.tenancies[0]);
-      if (!unit) {
-        unit = await tx.unit.create({
+      let unitId = existing.units.find(u => !u.tenancies[0])?.id;
+      if (!unitId) {
+        const newUnit = await tx.unit.create({
           data: {
             account_id: accountId, property_id: existing.id,
             unit_number: `Unit ${existing.units.length + 1}`, currency: 'USD', status: 'vacant',
           },
         });
+        unitId = newUnit.id;
       }
-      return { id: existing.id, unitId: unit.id, created: true };
+      return { id: existing.id, unitId, created: true };
     }
 
     const property = await tx.property.create({
