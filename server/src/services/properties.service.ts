@@ -276,6 +276,30 @@ export class PropertiesService {
 
     return { deleted: true };
   }
+
+  /**
+   * Deletes many properties in one transaction instead of one call per
+   * property - a bulk selection of 100+ properties as 100+ concurrent
+   * single-delete transactions exhausts the DB connection pool and fails
+   * partway through, which is exactly the bug this replaces.
+   */
+  async bulkDelete(ids: string[], user: TokenPayload): Promise<{ deleted: number }> {
+    const owned = await prisma.property.findMany({
+      where: { id: { in: ids }, account_id: user.accountId },
+      select: { id: true },
+    });
+    const ownedIds = owned.map(p => p.id);
+    if (ownedIds.length === 0) return { deleted: 0 };
+
+    await prisma.$transaction(
+      async (tx) => {
+        await deletePropertiesCascade(tx, ownedIds);
+      },
+      { timeout: 120_000 }
+    );
+
+    return { deleted: ownedIds.length };
+  }
 }
 
 export const propertiesService = new PropertiesService();

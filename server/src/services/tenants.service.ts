@@ -206,6 +206,34 @@ export class TenantsService {
 
     return { deleted: true };
   }
+
+  /**
+   * Deletes many tenants in one transaction instead of one call per
+   * tenant - see PropertiesService.bulkDelete for why per-row concurrent
+   * transactions fail partway through at scale.
+   */
+  async bulkDelete(ids: string[], user: TokenPayload): Promise<{ deleted: number }> {
+    const owned = await prisma.tenant.findMany({
+      where: { id: { in: ids }, account_id: user.accountId },
+      select: { id: true },
+    });
+    const ownedIds = owned.map(t => t.id);
+    if (ownedIds.length === 0) return { deleted: 0 };
+
+    const tenancies = await prisma.tenancy.findMany({ where: { tenant_id: { in: ownedIds } }, select: { id: true } });
+    const tenancyIds = tenancies.map(t => t.id);
+
+    await prisma.$transaction(
+      async (tx) => {
+        await deleteTenanciesCascade(tx, tenancyIds);
+        await tx.communication.deleteMany({ where: { tenant_id: { in: ownedIds } } });
+        await tx.tenant.deleteMany({ where: { id: { in: ownedIds } } });
+      },
+      { timeout: 120_000 }
+    );
+
+    return { deleted: ownedIds.length };
+  }
 }
 
 export const tenantsService = new TenantsService();

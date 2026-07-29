@@ -10,6 +10,7 @@ router.use(authenticate);
 
 router.get('/', propertiesController.list);
 router.post('/', roleAuthorize('admin', 'senior_agent'), enforceTierLimit('properties'), propertiesController.create);
+router.post('/bulk-delete', roleAuthorize('admin', 'senior_agent'), propertiesController.bulkDelete);
 router.get('/:id', propertiesController.getById);
 
 router.patch('/:id', roleAuthorize('admin', 'senior_agent'), propertiesController.update);
