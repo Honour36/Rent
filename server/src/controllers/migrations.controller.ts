@@ -56,12 +56,14 @@ export const migrationsController = {
 
   async commit(req: AuthRequest, res: Response) {
     try {
-      const { rows, mapping } = req.body ?? {};
+      const { rows, mapping, monthMapping, year } = req.body ?? {};
       if (!Array.isArray(rows) || typeof mapping !== 'object') {
         res.status(422).json({ success: false, error: 'Missing rows or column mapping.' });
         return;
       }
-      const summary = await migrationsService.commitImport(rows, mapping, req.user!);
+      const summary = await migrationsService.commitImport(
+        rows, mapping, monthMapping ?? {}, typeof year === 'number' ? year : new Date().getFullYear(), req.user!
+      );
       res.json({ success: true, data: summary });
     } catch (err: any) {
       res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Could not complete the import.' });

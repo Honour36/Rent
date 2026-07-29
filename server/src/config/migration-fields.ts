@@ -96,9 +96,34 @@ export function matchHeaderToField(rawHeader: string): MigrationField | null {
 }
 
 /** One example row for the downloadable template. */
-export const TEMPLATE_HEADERS = MIGRATION_FIELDS.map(f => f.aliases[0]);
+export const TEMPLATE_HEADERS = [...MIGRATION_FIELDS.map(f => f.aliases[0]), 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const TEMPLATE_EXAMPLE_ROW = [
   '12 Example Street, Borrowdale', 'Mr J. Moyo', 'Harare', 'Harare', 'residential',
   '0772000000', 'jmoyo@example.com', 'Mrs T. Banda', '0771000000', 'tbanda@example.com',
   '650', 'USD', '2025-01-01', '2026-01-01', '650',
+  'paid', 'paid', '400', '', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid',
 ];
+
+// ─── Monthly payment columns (Jan-Dec) ───────────────────────────────────────
+// Not part of MIGRATION_FIELDS above (those are one-per-property fields);
+// each month is its own column mapped independently to a calendar month,
+// carrying that month's payment status: "paid" (full rent), a number
+// (partial or exact amount actually paid), or blank (rent wasn't paid -
+// this is what feeds arrears; see commitImport in migrations.service.ts).
+
+const MONTH_ALIASES: [number, string[]][] = [
+  [1, ['JAN', 'JANUARY']], [2, ['FEB', 'FEBRUARY']], [3, ['MAR', 'MARCH']],
+  [4, ['APR', 'APRIL']], [5, ['MAY']], [6, ['JUN', 'JUNE']],
+  [7, ['JUL', 'JULY']], [8, ['AUG', 'AUGUST']], [9, ['SEP', 'SEPT', 'SEPTEMBER']],
+  [10, ['OCT', 'OCTOBER']], [11, ['NOV', 'NOVEMBER']], [12, ['DEC', 'DECEMBER']],
+];
+
+/** 1-12 if this header is a month-name column, else null. */
+export function matchMonthColumn(rawHeader: string): number | null {
+  const normalized = normalizeHeader(rawHeader);
+  if (!normalized) return null;
+  for (const [num, aliases] of MONTH_ALIASES) {
+    if (aliases.some(a => normalizeHeader(a) === normalized)) return num;
+  }
+  return null;
+}

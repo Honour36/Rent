@@ -1,7 +1,11 @@
 import * as XLSX from 'xlsx';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
-import { MIGRATION_FIELDS, MigrationField, matchHeaderToField, matchHeaderExact, matchHeaderFuzzy, normalizeHeader } from '../config/migration-fields';
+import {
+  MIGRATION_FIELDS, MigrationField, matchHeaderToField, matchHeaderExact, matchHeaderFuzzy,
+  matchMonthColumn, normalizeHeader,
+} from '../config/migration-fields';
+import { notificationsService } from './notifications.service';
 
 class AppError extends Error {
   constructor(public message: string, public statusCode: number) {
@@ -12,6 +16,8 @@ class AppError extends Error {
 export interface ParsedPreview {
   headers: string[];
   mapping: Record<number, MigrationField | null>;
+  monthMapping: Record<number, number>; // column index -> month number 1-12
+  inferredYear: number;
   rows: unknown[][];
   totalRows: number;
   sheetName: string;
@@ -33,6 +39,7 @@ export interface CommitSummary {
   tenantsCreated: number;
   tenantsMatched: number;
   tenanciesCreated: number;
+  paymentsImported: number;
   rowsSkipped: number;
   results: RowResult[];
 }
@@ -69,6 +76,13 @@ function parseMoney(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function normalizeZimPhone(str: string): string {
+  if (str.startsWith('+263')) return str;
+  if (str.startsWith('263')) return `+${str}`;
+  if (str.startsWith('0')) return `+263${str.slice(1)}`;
+  return str; // unrecognized shape - leave as-is rather than guess wrong
+}
+
 function parsePhone(raw: unknown): string | undefined {
   if (raw === null || raw === undefined || raw === '') return undefined;
   // Numeric phone "numbers" (Excel stored the column as Number, not Text)
@@ -79,7 +93,8 @@ function parsePhone(raw: unknown): string | undefined {
   if (typeof raw === 'number' && /^7\d{8}$/.test(str)) str = `0${str}`;
   // "0716165908/0772572113" - two numbers separated by "/". Only the first
   // is imported; there's no second phone field on Tenant/Owner to put it.
-  return str.split('/')[0].trim() || undefined;
+  str = str.split('/')[0].trim();
+  return str ? normalizeZimPhone(str) : undefined;
 }
 
 function parseDate(raw: unknown): Date | null {
@@ -115,6 +130,52 @@ function parsePropertyType(raw: unknown): 'residential' | 'commercial' {
 
 function parseCurrency(raw: unknown): 'USD' | 'ZiG' {
   return normalizeHeader(String(raw ?? '')) === 'ZIG' ? 'ZiG' : 'USD';
+}
+
+// ─── Monthly payment grid classification ────────────────────────────────────
+//
+// A blank cell means rent wasn't paid that month - it's not "no data", it's
+// a confirmed arrear. "paid" means the full rent amount was paid. A number
+// means that specific amount was paid against the full rent (a partial
+// payment if it's less than the rent amount). "vacant"/"out" mean the unit
+// had no tenant from that point - not a payment at all.
+
+type MonthCellStatus =
+  | { kind: 'paid'; amount: number }
+  | { kind: 'partial'; amount: number }
+  | { kind: 'unpaid' }
+  | { kind: 'vacant' };
+
+function classifyMonthCell(raw: unknown, rentAmount: number | null): MonthCellStatus {
+  if (raw === null || raw === undefined) return { kind: 'unpaid' };
+  const str = String(raw).trim();
+  if (str === '' || str === '-' || str === '--') return { kind: 'unpaid' };
+
+  const normalized = normalizeHeader(str);
+  if (normalized === 'VACANT' || normalized === 'OUT') return { kind: 'vacant' };
+  if (normalized === 'PAID' || normalized === 'P') {
+    return rentAmount ? { kind: 'paid', amount: rentAmount } : { kind: 'unpaid' };
+  }
+
+  const amount = parseMoney(raw);
+  if (amount !== null) {
+    return rentAmount && amount >= rentAmount ? { kind: 'paid', amount } : { kind: 'partial', amount };
+  }
+  return { kind: 'unpaid' };
+}
+
+/** Best-guess year for a sheet's month columns, from the sheet name or any
+ * title text above the header row (e.g. "list 2025", "RENTAL LIST 2024"). */
+function inferYear(sheetName: string, titleRows: unknown[][]): number {
+  const fromName = sheetName.match(/(20\d{2})/);
+  if (fromName) return Number(fromName[1]);
+  for (const row of titleRows) {
+    for (const cell of row) {
+      const match = String(cell ?? '').match(/(20\d{2})/);
+      if (match) return Number(match[1]);
+    }
+  }
+  return new Date().getFullYear();
 }
 
 // ─── Parsing an uploaded file into a previewable, editable shape ────────────
@@ -191,9 +252,21 @@ export class MigrationsService {
       }
     }
 
+    const monthMapping: Record<number, number> = {};
+    headerRow.forEach((h, i) => {
+      const m = matchMonthColumn(h);
+      if (m) monthMapping[i] = m;
+    });
+    const inferredYear = inferYear(best.sheetName, best.rows.slice(0, best.headerRowIndex));
+    if (Object.keys(monthMapping).length > 0) {
+      warnings.push(`Detected monthly payment columns for ${inferredYear} - "paid" or an amount means rent was paid that month, blank means it wasn't (counted as an arrear).`);
+    }
+
     return {
       headers: headerRow,
       mapping,
+      monthMapping,
+      inferredYear,
       rows: dataRows,
       totalRows: dataRows.length,
       sheetName: best.sheetName,
@@ -280,19 +353,45 @@ export class MigrationsService {
     return { id: created.id, created: true };
   }
 
-  async commitImport(rows: unknown[][], mapping: Record<number, MigrationField | null>, user: TokenPayload): Promise<CommitSummary> {
+  async commitImport(
+    rows: unknown[][],
+    mapping: Record<number, MigrationField | null>,
+    monthMapping: Record<number, number>,
+    year: number,
+    user: TokenPayload
+  ): Promise<CommitSummary> {
     const summary: CommitSummary = {
       ownersCreated: 0, ownersMatched: 0,
       propertiesCreated: 0, propertiesMatched: 0,
       tenantsCreated: 0, tenantsMatched: 0,
-      tenanciesCreated: 0, rowsSkipped: 0,
+      tenanciesCreated: 0, paymentsImported: 0, rowsSkipped: 0,
       results: [],
     };
+
+    const now = new Date();
+    let rowsNeedingReview = 0;
+
+    // Month columns in chronological order, resolving each to a concrete
+    // (year, month) - handles a sheet whose first column is December
+    // belonging to the *previous* year (seen in real agency exports that
+    // start their financial-year sheet on Dec of the prior year).
+    const monthColumns = Object.entries(monthMapping)
+      .map(([colIndex, monthNum]) => ({ colIndex: Number(colIndex), monthNum }))
+      .sort((a, b) => a.colIndex - b.colIndex);
+    let resolvedYear = year;
+    let prevMonthNum = 0;
+    const monthPeriods = monthColumns.map(({ colIndex, monthNum }, i) => {
+      if (i === 0 && monthNum === 12) resolvedYear = year - 1;
+      else if (monthNum < prevMonthNum) resolvedYear = year;
+      prevMonthNum = monthNum;
+      return { colIndex, month: monthNum, year: resolvedYear };
+    });
 
     for (let i = 0; i < rows.length; i++) {
       const rowNum = i + 1;
       const row = rows[i];
       const warnings: string[] = [];
+      let needsReview = false;
 
       const address = cellText(row, mapping, 'property_address');
       const ownerName = cellText(row, mapping, 'owner_name');
@@ -307,6 +406,12 @@ export class MigrationsService {
         continue;
       }
 
+      // "VACANT" typed directly in the tenant name column, instead of a
+      // month cell, also means no current tenant.
+      const tenantNameRaw = cellText(row, mapping, 'tenant_name');
+      const tenantNameIsVacancyMarker = ['VACANT', 'NONE', '-', 'N/A'].includes(normalizeHeader(tenantNameRaw));
+      const tenantName = tenantNameIsVacancyMarker ? '' : tenantNameRaw;
+
       try {
         // eslint-disable-next-line no-await-in-loop
         await prisma.$transaction(async (tx) => {
@@ -314,6 +419,7 @@ export class MigrationsService {
             tx, user.accountId, ownerName, parsePhone(cellRaw(row, mapping, 'owner_phone')), cellText(row, mapping, 'owner_email') || undefined
           );
           owner.created ? summary.ownersCreated++ : summary.ownersMatched++;
+          if (!parsePhone(cellRaw(row, mapping, 'owner_phone')) && !cellText(row, mapping, 'owner_email')) needsReview = true;
 
           const property = await this.findOrCreateProperty(
             tx, user.accountId, owner.id, address,
@@ -327,27 +433,45 @@ export class MigrationsService {
           const currency = parseCurrency(cellRaw(row, mapping, 'currency'));
           if (rentAmount) {
             await tx.unit.update({ where: { id: property.unitId }, data: { rent_amount: rentAmount, currency } });
+          } else {
+            needsReview = true;
           }
 
-          const tenantName = cellText(row, mapping, 'tenant_name');
-          let tenancyCreated = false;
-          if (tenantName) {
+          // Classify every month cell up front so we can both (a) find the
+          // most recent status to decide if this unit is currently
+          // occupied or vacant, and (b) import a Payment for each month
+          // that was actually paid (in part or in full).
+          const monthStatuses = monthPeriods
+            .filter(p => p.year < now.getFullYear() || (p.year === now.getFullYear() && p.month <= now.getMonth() + 1))
+            .map(p => ({ ...p, status: classifyMonthCell(row[p.colIndex], rentAmount) }));
+
+          const lastNonBlank = [...monthStatuses].reverse().find(m => m.status.kind !== 'unpaid');
+          const currentlyVacant = tenantNameIsVacancyMarker || (!tenantName && !lastNonBlank) || lastNonBlank?.status.kind === 'vacant';
+
+          let tenancyCreated = 0;
+          let paymentsForRow = 0;
+
+          if (tenantName && !currentlyVacant) {
             const tenant = await this.findOrCreateTenant(
               tx, user.accountId, tenantName, parsePhone(cellRaw(row, mapping, 'tenant_phone')), cellText(row, mapping, 'tenant_email') || undefined
             );
             tenant.created ? summary.tenantsCreated++ : summary.tenantsMatched++;
+            if (!parsePhone(cellRaw(row, mapping, 'tenant_phone'))) needsReview = true;
 
             const activeTenancy = await tx.tenancy.findFirst({ where: { unit_id: property.unitId, status: 'active' }, select: { id: true } });
+            let tenancyId = activeTenancy?.id;
+
             if (!activeTenancy && rentAmount) {
               let leaseStart = parseDate(cellRaw(row, mapping, 'lease_start'));
               if (!leaseStart) {
                 leaseStart = new Date();
-                warnings.push('No lease start date in the spreadsheet - defaulted to today. Update it from the tenant\'s lease.');
+                warnings.push("No lease start date in the spreadsheet - defaulted to today. Update it from the tenant's lease.");
+                needsReview = true;
               }
               const leaseEnd = parseDate(cellRaw(row, mapping, 'lease_end'));
               const depositAmount = parseMoney(cellRaw(row, mapping, 'deposit_amount'));
 
-              await tx.tenancy.create({
+              const newTenancy = await tx.tenancy.create({
                 data: {
                   account_id: user.accountId, unit_id: property.unitId, tenant_id: tenant.id,
                   lease_start: leaseStart, lease_end: leaseEnd, rent_amount: rentAmount, currency,
@@ -355,19 +479,58 @@ export class MigrationsService {
                 },
               });
               await tx.unit.update({ where: { id: property.unitId }, data: { status: 'occupied' } });
-              tenancyCreated = true;
+              tenancyId = newTenancy.id;
+              tenancyCreated = 1;
               summary.tenanciesCreated++;
             } else if (!activeTenancy && !rentAmount) {
-              warnings.push(`Tenant "${tenantName}" found but no rent amount was given, so no tenancy was created - add one from the property page.`);
+              warnings.push(`Tenant "${tenantName}" found but no rent amount was given, so no tenancy or payment history was imported - add a rent amount and try again, or add the tenancy manually.`);
             } else if (activeTenancy) {
               warnings.push('This unit already has an active tenant - the tenant on this row was matched/created but not linked to a new tenancy.');
             }
+
+            // Import a Payment for every month actually paid (in full or in
+            // part). Blank months intentionally get no row - that absence
+            // is what your arrears report already sums as owed.
+            if (tenancyId) {
+              for (const m of monthStatuses) {
+                if (m.status.kind !== 'paid' && m.status.kind !== 'partial') continue;
+                // eslint-disable-next-line no-await-in-loop
+                const existingPayment = await tx.payment.findFirst({
+                  where: { tenancy_id: tenancyId, period_month: m.month, period_year: m.year },
+                  select: { id: true },
+                });
+                if (existingPayment) continue; // already recorded (e.g. re-running an import)
+
+                // eslint-disable-next-line no-await-in-loop
+                await tx.payment.create({
+                  data: {
+                    account_id: user.accountId, tenancy_id: tenancyId,
+                    period_month: m.month, period_year: m.year,
+                    amount_paid: m.status.amount, currency,
+                    method: 'other', status: m.status.kind === 'paid' ? 'paid' : 'partial',
+                    payment_date: new Date(m.year, m.month - 1, 1),
+                    recorded_by: user.sub,
+                  },
+                });
+                paymentsForRow++;
+              }
+              summary.paymentsImported += paymentsForRow;
+            }
           }
+
+          if (currentlyVacant) {
+            await tx.unit.update({ where: { id: property.unitId }, data: { status: 'vacant' } });
+          }
+
+          if (needsReview) rowsNeedingReview++;
 
           summary.results.push({
             row: rowNum,
             status: property.created || owner.created ? 'created' : 'matched',
-            detail: `${address} - ${owner.created ? 'owner created' : 'owner matched'}${tenancyCreated ? ', tenancy created' : ''}`,
+            detail: `${address} - ${owner.created ? 'owner created' : 'owner matched'}` +
+              (tenancyCreated ? ', tenancy created' : '') +
+              (paymentsForRow > 0 ? `, ${paymentsForRow} payment${paymentsForRow === 1 ? '' : 's'} imported` : '') +
+              (currentlyVacant ? ', marked vacant' : ''),
             warnings,
           });
         });
@@ -375,6 +538,16 @@ export class MigrationsService {
         summary.rowsSkipped++;
         summary.results.push({ row: rowNum, status: 'skipped', detail: err.message || 'Unexpected error processing this row', warnings: [] });
       }
+    }
+
+    if (rowsNeedingReview > 0) {
+      await notificationsService.create({
+        accountId: user.accountId,
+        type: 'import_needs_review',
+        title: 'Imported properties need a few details',
+        body: `${rowsNeedingReview} propert${rowsNeedingReview === 1 ? 'y needs' : 'ies need'} details added from your recent import - missing rent, contact info, or lease dates. Check the affected properties and tenants when you have a moment.`,
+        entityType: 'migration',
+      });
     }
 
     return summary;

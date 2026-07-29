@@ -62,7 +62,7 @@ export default function MigrationsPage() {
       return;
     }
 
-    const res = await commit(parsed.rows, finalMapping);
+    const res = await commit(parsed.rows, finalMapping, parsed.monthMapping, parsed.inferredYear);
     if (!res.success) { setError(res.error); return; }
     setResult(res.data);
     setStep("result");
@@ -92,6 +92,14 @@ export default function MigrationsPage() {
               <CardTitle className="text-base">How this works</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>NB: Download the template and use it</AlertTitle>
+                <AlertDescription>
+                  Your own spreadsheet will likely still work — column matching is flexible — but starting from the template gives you the exact structure this importer is built around, including the monthly payment columns below, and avoids surprises. Download it, copy your data into it, then upload that.
+                </AlertDescription>
+              </Alert>
+
               <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                 <li>Upload an <strong className="text-foreground">.xlsx or .csv</strong> file — one row per property.</li>
                 <li>We&apos;ll automatically detect your column headers and match them to the right fields — you can fix any that guessed wrong before anything is saved.</li>
@@ -112,7 +120,20 @@ export default function MigrationsPage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Column names don&apos;t need to match exactly — e.g. &quot;LESSOR&quot; or &quot;LANDLORD&quot; are both recognized as Owner Name. Anything not listed here (like monthly paid/unpaid tracking, or commission rates) isn&apos;t imported — commission is a single account-wide rate set in Settings, not tracked per property, and a paid/unpaid grid has no date or amount to import meaningfully.
+                  Column names don&apos;t need to match exactly — e.g. &quot;LESSOR&quot; or &quot;LANDLORD&quot; are both recognized as Owner Name. Commission isn&apos;t imported - it&apos;s a single account-wide rate set in Settings, not tracked per property.
+                </p>
+              </div>
+
+              <div className="rounded-md border border-border p-3">
+                <p className="font-medium mb-2">Monthly payment columns (JAN – DEC)</p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li><Badge variant="outline" className="text-[10px] px-1.5 py-0 mr-1.5">paid</Badge>the full rent amount was paid that month</li>
+                  <li><Badge variant="outline" className="text-[10px] px-1.5 py-0 mr-1.5">145</Badge>that specific amount was paid against the full rent - imported as a partial payment if it&apos;s less than the rent amount</li>
+                  <li><Badge variant="outline" className="text-[10px] px-1.5 py-0 mr-1.5">(blank)</Badge>rent wasn&apos;t paid that month - this becomes an arrear, not a missing value</li>
+                  <li><Badge variant="outline" className="text-[10px] px-1.5 py-0 mr-1.5">vacant</Badge>the unit had no tenant from that point on - the unit is imported as vacant</li>
+                </ul>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Arrears are calculated the same way as everywhere else in Rental: blank months up to and including the current month (once its due day has passed) count as owed. A blank month that hasn&apos;t happened yet obviously isn&apos;t an arrear.
                 </p>
               </div>
 
@@ -120,13 +141,13 @@ export default function MigrationsPage() {
                 <Info className="h-4 w-4" />
                 <AlertTitle>Missing information is fine</AlertTitle>
                 <AlertDescription>
-                  Only a property address and an owner name are required. Everything else — rent, tenant details, lease dates — can be left blank and filled in later from the property page, the same as you&apos;d do for any manually-added property.
+                  Only a property address and an owner name are required. Everything else — rent, tenant details, lease dates — can be left blank and filled in later from the property page. We&apos;ll also remind you afterwards if anything imported is missing details worth adding.
                 </AlertDescription>
               </Alert>
 
               <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadTemplate}>
                 <Download className="h-3.5 w-3.5" />
-                Download a template
+                Download the template
               </Button>
             </CardContent>
           </Card>
@@ -174,6 +195,9 @@ export default function MigrationsPage() {
               </CardTitle>
               <CardDescription>
                 Found {parsed.totalRows} row{parsed.totalRows === 1 ? "" : "s"} on sheet &quot;{parsed.sheetName}&quot;. Fix any column below that was guessed wrong, or set it to &quot;Don&apos;t import&quot;.
+                {Object.keys(parsed.monthMapping).length > 0 && (
+                  <> Detected {Object.keys(parsed.monthMapping).length} monthly payment column{Object.keys(parsed.monthMapping).length === 1 ? "" : "s"} for {parsed.inferredYear}.</>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -268,12 +292,13 @@ export default function MigrationsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {[
                   { label: "Owners", created: result.ownersCreated, matched: result.ownersMatched },
                   { label: "Properties", created: result.propertiesCreated, matched: result.propertiesMatched },
                   { label: "Tenants", created: result.tenantsCreated, matched: result.tenantsMatched },
                   { label: "Tenancies Created", created: result.tenanciesCreated, matched: null },
+                  { label: "Payments Imported", created: result.paymentsImported, matched: null },
                 ].map(s => (
                   <div key={s.label} className="rounded-md border border-border p-3">
                     <p className="text-xs text-muted-foreground">{s.label}</p>

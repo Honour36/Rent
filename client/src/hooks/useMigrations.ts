@@ -19,6 +19,8 @@ export interface FieldDef {
 export interface ParsedPreview {
   headers: string[];
   mapping: Record<number, MigrationField | null>;
+  monthMapping: Record<number, number>;
+  inferredYear: number;
   rows: unknown[][];
   totalRows: number;
   sheetName: string;
@@ -40,6 +42,7 @@ export interface CommitSummary {
   tenantsCreated: number;
   tenantsMatched: number;
   tenanciesCreated: number;
+  paymentsImported: number;
   rowsSkipped: number;
   results: RowResult[];
 }
@@ -51,7 +54,7 @@ const EMPTY_SUMMARY: CommitSummary = {
   ownersCreated: 0, ownersMatched: 0,
   propertiesCreated: 0, propertiesMatched: 0,
   tenantsCreated: 0, tenantsMatched: 0,
-  tenanciesCreated: 0, rowsSkipped: 0,
+  tenanciesCreated: 0, paymentsImported: 0, rowsSkipped: 0,
   results: [],
 };
 
@@ -64,6 +67,7 @@ function mergeSummary(into: CommitSummary, part: CommitSummary): CommitSummary {
     tenantsCreated: into.tenantsCreated + part.tenantsCreated,
     tenantsMatched: into.tenantsMatched + part.tenantsMatched,
     tenanciesCreated: into.tenanciesCreated + part.tenanciesCreated,
+    paymentsImported: into.paymentsImported + part.paymentsImported,
     rowsSkipped: into.rowsSkipped + part.rowsSkipped,
     results: [...into.results, ...part.results],
   };
@@ -134,7 +138,9 @@ export function useMigrations() {
    */
   const commit = async (
     rows: unknown[][],
-    mapping: Record<number, MigrationField | null>
+    mapping: Record<number, MigrationField | null>,
+    monthMapping: Record<number, number>,
+    year: number
   ): Promise<{ success: true; data: CommitSummary } | { success: false; error: string }> => {
     setCommitting(true);
     setCommitProgress(0);
@@ -147,7 +153,7 @@ export function useMigrations() {
       if (batch.length === 0) break;
 
       // eslint-disable-next-line no-await-in-loop
-      const res = await apiClient<CommitSummary>("/migrations/commit", { method: "POST", data: { rows: batch, mapping } });
+      const res = await apiClient<CommitSummary>("/migrations/commit", { method: "POST", data: { rows: batch, mapping, monthMapping, year } });
       if (!res.success) {
         setCommitting(false);
         // Whatever succeeded in earlier batches is already saved - surface

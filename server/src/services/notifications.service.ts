@@ -9,7 +9,8 @@ export type NotificationType =
   | 'lease_expiring'
   | 'unit_vacant'
   | 'payment_received'
-  | 'rent_collection_scheduled';
+  | 'rent_collection_scheduled'
+  | 'import_needs_review';
 
 export interface CreateNotificationInput {
   accountId: string;
