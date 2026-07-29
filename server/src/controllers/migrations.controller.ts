@@ -69,4 +69,20 @@ export const migrationsController = {
       res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Could not complete the import.' });
     }
   },
+
+  async sendSummaryEmail(req: AuthRequest, res: Response) {
+    try {
+      const summary = req.body ?? {};
+      if (!Array.isArray(summary.results)) {
+        res.status(422).json({ success: false, error: 'Missing import summary.' });
+        return;
+      }
+      const result = await migrationsService.sendSummaryEmail(summary, req.user!);
+      res.json({ success: true, data: result });
+    } catch (err: any) {
+      // Never surface this as a hard failure to the user - the import itself
+      // already succeeded by the time this is called.
+      res.json({ success: true, data: { sent: false } });
+    }
+  },
 };

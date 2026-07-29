@@ -168,5 +168,19 @@ export function useMigrations() {
     return { success: true, data: summary };
   };
 
-  return { getFields, downloadTemplate, preview, commit, uploading, uploadProgress, committing, commitProgress };
+  /**
+   * Fire-and-forget: called once after the full (possibly multi-batch)
+   * commit finishes, so the agent gets exactly one email with the
+   * complete picture rather than one per 25-row batch. A failure here
+   * never surfaces to the user - the import itself already succeeded.
+   */
+  const sendSummaryEmail = async (summary: CommitSummary): Promise<void> => {
+    try {
+      await apiClient("/migrations/summary-email", { method: "POST", data: summary });
+    } catch {
+      // best-effort - the import already completed successfully
+    }
+  };
+
+  return { getFields, downloadTemplate, preview, commit, sendSummaryEmail, uploading, uploadProgress, committing, commitProgress };
 }
