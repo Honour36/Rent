@@ -59,8 +59,9 @@ export class DashboardService {
       collected: c.collected,
     }));
 
-    // 4. Lease Expiry Alerts
-    const expiringLeases = await reportsService.getLeaseExpiryReport(accountId, 30);
+    // 4. Lease Expiry Alerts - top 5 soonest to expire (report is already
+    // sorted lease_end ascending), full list lives on the Lease Expiry report.
+    const expiringLeasesReport = await reportsService.getLeaseExpiryReport(accountId, 30);
 
     // 5. Maintenance Alerts
     const maintenanceAlerts = await prisma.maintenanceRequest.findMany({
@@ -75,7 +76,7 @@ export class DashboardService {
       orderBy: { created_at: 'desc' }
     });
 
-    const mappedMaintenanceAlerts = maintenanceAlerts.map(m => ({
+    const mappedMaintenanceAlerts = maintenanceAlerts.slice(0, 5).map(m => ({
       id: m.id,
       title: m.title,
       priority: m.priority,
@@ -126,7 +127,7 @@ export class DashboardService {
       },
       chartData,
       arrearsTable: arrearsReport.slice(0, 5), // top 5 arrears
-      expiringLeases,
+      expiringLeases: expiringLeasesReport.slice(0, 5), // 5 soonest to expire
       maintenanceAlerts: mappedMaintenanceAlerts,
       recentPayments: mappedRecentPayments,
     };
