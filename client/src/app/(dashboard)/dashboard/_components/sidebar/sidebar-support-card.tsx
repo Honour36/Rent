@@ -79,21 +79,6 @@ async function fetchContextualNotifications(): Promise<ContextualNotification[]>
       }
     }
 
-    // Check account receipt readiness
-    const accRes = await apiClient<any>("/settings/account");
-    if (accRes.success) {
-      const acc = (accRes as any).data;
-      if (!acc?.address || !acc?.phone || !acc?.email) {
-        notes.push({
-          id: "account-incomplete",
-          message: "Account details incomplete",
-          type: "warning",
-          action: "Fill in address, phone & email to enable receipt printing.",
-          actionUrl: "/dashboard/settings?tab=account",
-        });
-      }
-    }
-
     if (notes.length === 0) {
       notes.push({ id: "all-good", message: "All systems in order.", type: "success" });
     }
@@ -102,6 +87,37 @@ async function fetchContextualNotifications(): Promise<ContextualNotification[]>
   }
 
   return notes;
+}
+
+/**
+ * Account-completeness is checked once per session (guarded by
+ * sessionStorage, same pattern as the pending-applications notice below),
+ * not on every 5-minute poll of fetchContextualNotifications. The actual
+ * enforcement - the thing that matters - already happens server-side at
+ * the moment a receipt is generated (payments/[id]/page.tsx handles the
+ * ACCOUNT_DETAILS_INCOMPLETE code from that request directly). This is
+ * just a one-time heads-up right after logging in, not a second, separate
+ * copy of that check running forever in the background.
+ */
+async function checkAccountCompletenessOnce() {
+  if (typeof sessionStorage === "undefined") return;
+  if (sessionStorage.getItem("account-completeness-checked")) return;
+  sessionStorage.setItem("account-completeness-checked", "1");
+
+  try {
+    const accRes = await apiClient<any>("/settings/account");
+    if (!accRes.success) return;
+    const acc = (accRes as any).data;
+    if (!acc?.address || !acc?.phone || !acc?.email) {
+      toast.warning("Account details incomplete", {
+        description: "Fill in address, phone & email to enable receipt printing.",
+        duration: 8000,
+        action: { label: "Fix now →", onClick: () => window.location.assign("/dashboard/settings?tab=account") },
+      });
+    }
+  } catch {
+    // Non-critical - the real gate is server-side at receipt time anyway.
+  }
 }
 
 const typeIcon: Record<string, React.ElementType> = {
@@ -161,6 +177,7 @@ export function SidebarSupportCard() {
 
   useEffect(() => {
     load();
+    checkAccountCompletenessOnce();
     // Refresh every 5 minutes
     const id = setInterval(load, 5 * 60 * 1000);
     return () => clearInterval(id);
