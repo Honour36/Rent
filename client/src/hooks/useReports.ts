@@ -65,8 +65,6 @@ export interface ArrearsReportItem {
   propertyName: string;
   unitNumber: string;
   amountOwed: number;
-  computedAmountOwed: number;
-  adjustment: number;
   currency: string;
   daysOverdue: number;
 }
@@ -194,10 +192,19 @@ export function useReports() {
     return res.data;
   }, []);
 
-  const updateArrearsAdjustment = async (tenancyId: string, adjustment: number) => {
+  const addArrears = async (tenancyId: string, amount: number) => {
     const res = await apiClient<ArrearsReportItem>(`/reports/arrears/${tenancyId}`, {
       method: "PATCH",
-      data: { adjustment },
+      data: { action: "add", amount },
+    });
+    if (!res.success) return { success: false as const, error: res.error };
+    return { success: true as const, data: res.data };
+  };
+
+  const clearArrears = async (tenancyId: string) => {
+    const res = await apiClient<ArrearsReportItem>(`/reports/arrears/${tenancyId}`, {
+      method: "PATCH",
+      data: { action: "clear" },
     });
     if (!res.success) return { success: false as const, error: res.error };
     return { success: true as const, data: res.data };
@@ -271,7 +278,8 @@ export function useReports() {
     approveOwnerStatement,
     dispatchOwnerStatement,
     getArrearsReport,
-    updateArrearsAdjustment,
+    addArrears,
+    clearArrears,
     getVacancyReport,
     getLeaseExpiryReport,
     getCollectionRateReport,

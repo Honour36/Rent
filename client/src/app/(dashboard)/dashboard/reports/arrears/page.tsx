@@ -16,7 +16,7 @@ import {
 import { Pencil } from "@/components/icons";
 
 export default function ArrearsReportPage() {
-  const { getArrearsReport, updateArrearsAdjustment, loading, error } = useReports();
+  const { getArrearsReport, addArrears, clearArrears, loading, error } = useReports();
   const [data, setData] = useState<ArrearsReportItem[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState<ArrearsReportItem | null>(null);
@@ -37,7 +37,7 @@ export default function ArrearsReportPage() {
           <h1 className="text-3xl font-bold tracking-tight">Arrears</h1>
           <p className="text-muted-foreground mt-2">
             Outstanding balances are calculated automatically from lease start date and rent payments received.
-            Migrated data can be incomplete or wrong - use Edit to assign an arrear it missed, or clear one that isn&apos;t really owed.
+            Migrated data can be incomplete or wrong - use Edit to add an arrear it missed, or clear one that isn&apos;t really owed.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function ArrearsReportPage() {
           <CardTitle>{showAll ? "All Active Tenancies" : "Outstanding Balances"}</CardTitle>
           <CardDescription>
             {showAll
-              ? "Every active tenancy, including those with no balance owed - pick one to manually assign an arrear."
+              ? "Every active tenancy, including those with no balance owed - pick one to add an arrear."
               : `${inArrearsCount} tenant${inArrearsCount === 1 ? "" : "s"} currently in arrears.`}
           </CardDescription>
         </CardHeader>
@@ -82,11 +82,6 @@ export default function ArrearsReportPage() {
                       <TableCell>{item.propertyName}, Unit {item.unitNumber}</TableCell>
                       <TableCell className="font-mono">
                         {item.currency === "USD" ? "$" : "ZiG "}{item.amountOwed.toFixed(2)}
-                        {item.adjustment !== 0 && (
-                          <span className="ml-1.5 text-xs text-muted-foreground font-sans">
-                            (manually {item.adjustment > 0 ? "added" : "adjusted"})
-                          </span>
-                        )}
                       </TableCell>
                       <TableCell>
                         {item.amountOwed > 0 ? (
@@ -113,13 +108,23 @@ export default function ArrearsReportPage() {
         <EditArrearsDialog
           item={editing}
           onOpenChange={(open) => { if (!open) setEditing(null); }}
-          onSave={async (adjustment) => {
-            const res = await updateArrearsAdjustment(editing.tenancyId, adjustment);
+          onAdd={async (amount) => {
+            const res = await addArrears(editing.tenancyId, amount);
             if (!res.success) {
-              toast.error("Could not update arrears", { description: res.error });
+              toast.error("Could not add arrears", { description: res.error });
               return;
             }
-            toast.success(`Arrears updated for ${editing.tenantName}.`);
+            toast.success(`Added to ${editing.tenantName}'s arrears.`);
+            setEditing(null);
+            load();
+          }}
+          onClear={async () => {
+            const res = await clearArrears(editing.tenancyId);
+            if (!res.success) {
+              toast.error("Could not clear arrears", { description: res.error });
+              return;
+            }
+            toast.success(`Arrears cleared for ${editing.tenantName}.`);
             setEditing(null);
             load();
           }}
@@ -129,23 +134,33 @@ export default function ArrearsReportPage() {
   );
 }
 
-function EditArrearsDialog({ item, onOpenChange, onSave }: {
+function EditArrearsDialog({ item, onOpenChange, onAdd, onClear }: {
   item: ArrearsReportItem;
   onOpenChange: (open: boolean) => void;
-  onSave: (adjustment: number) => Promise<void>;
+  onAdd: (amount: number) => Promise<void>;
+  onClear: () => Promise<void>;
 }) {
-  const [adjustment, setAdjustment] = useState(String(item.adjustment));
+  const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
-  const parsed = Number(adjustment);
-  const preview = item.computedAmountOwed + (Number.isFinite(parsed) ? parsed : 0);
+  const parsed = Number(amount);
+  const canAdd = amount.trim() !== "" && Number.isFinite(parsed) && parsed > 0;
 
-  const handleSave = async () => {
-    if (!Number.isFinite(parsed)) return;
+  const handleAdd = async () => {
+    if (!canAdd) return;
     setSaving(true);
-    await onSave(parsed);
+    await onAdd(parsed);
     setSaving(false);
   };
+
+  const handleClear = async () => {
+    setClearing(true);
+    await onClear();
+    setClearing(false);
+  };
+
+  const currencySymbol = item.currency === "USD" ? "$" : "ZiG ";
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -155,41 +170,39 @@ function EditArrearsDialog({ item, onOpenChange, onSave }: {
           <DialogDescription>{item.propertyName}, Unit {item.unitNumber}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-3 py-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Calculated from lease &amp; payments</span>
-            <span className="font-mono">{item.currency === "USD" ? "$" : "ZiG "}{item.computedAmountOwed.toFixed(2)}</span>
+        <div className="grid gap-4 py-2">
+          <div className="flex items-center justify-between text-sm rounded-md bg-muted px-3 py-2">
+            <span className="font-medium">Currently owed</span>
+            <span className="font-mono font-semibold">{currencySymbol}{item.amountOwed.toFixed(2)}</span>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="adjustment" className="text-sm font-medium">Manual adjustment</Label>
+            <Label htmlFor="add-amount" className="text-sm font-medium">Add arrears amount</Label>
             <Input
-              id="adjustment" type="number" step="0.01" value={adjustment}
-              onChange={(e) => setAdjustment(e.target.value)}
+              id="add-amount" type="number" min="0" step="0.01" placeholder="e.g. 150"
+              value={amount} onChange={(e) => setAmount(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Positive assigns an arrear the calculation missed. Negative reduces or clears one that isn&apos;t really owed.
+              Enter what this tenant owes that isn&apos;t already reflected above - it adds on top of the current total.
             </p>
           </div>
 
-          <div className="flex items-center justify-between text-sm rounded-md bg-muted px-3 py-2">
-            <span className="font-medium">Total owed after saving</span>
-            <span className="font-mono font-semibold">
-              {item.currency === "USD" ? "$" : "ZiG "}{Math.max(preview, 0).toFixed(2)}
-              {preview < 0 && <span className="text-muted-foreground font-normal"> (credit not shown)</span>}
-            </span>
+          <Button type="button" onClick={handleAdd} disabled={!canAdd || saving || clearing}>
+            {saving ? "Adding…" : "Add to arrears"}
+          </Button>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />or<div className="h-px flex-1 bg-border" />
           </div>
+
+          <Button type="button" variant="outline" onClick={handleClear} disabled={saving || clearing || item.amountOwed === 0}>
+            {clearing ? "Clearing…" : "Clear arrears to zero"}
+          </Button>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            type="button" variant="outline"
-            onClick={() => setAdjustment(String(-item.computedAmountOwed))}
-          >
-            Clear arrears
-          </Button>
-          <Button type="button" onClick={handleSave} disabled={saving || !Number.isFinite(parsed)}>
-            {saving ? "Saving…" : "Save"}
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving || clearing}>
+            Done
           </Button>
         </DialogFooter>
       </DialogContent>

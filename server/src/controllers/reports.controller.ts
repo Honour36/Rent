@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { reportsService, GenerateStatementSchema, UpdateArrearsAdjustmentSchema } from '../services/reports.service';
+import { reportsService, GenerateStatementSchema, ArrearsActionSchema } from '../services/reports.service';
 
 export class ReportsController {
   async generate(req: AuthRequest, res: Response): Promise<void> {
@@ -80,8 +80,8 @@ export class ReportsController {
 
   async updateArrearsAdjustment(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { adjustment } = UpdateArrearsAdjustmentSchema.parse(req.body);
-      const result = await reportsService.updateArrearsAdjustment(req.params.tenancyId, adjustment, req.user!.accountId);
+      const { action, amount } = ArrearsActionSchema.parse(req.body);
+      const result = await reportsService.applyArrearsAction(req.params.tenancyId, action, amount, req.user!.accountId);
       res.json({ success: true, data: result });
     } catch (err: unknown) {
       if (err instanceof Error && err.constructor.name === 'ZodError') {
@@ -89,7 +89,7 @@ export class ReportsController {
         return;
       }
       const anyErr = err as any;
-      res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to update arrears adjustment' });
+      res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to update arrears' });
     }
   }
 

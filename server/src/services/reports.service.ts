@@ -14,14 +14,17 @@ export const GenerateStatementSchema = z.object({
 
 export type GenerateStatementDto = z.infer<typeof GenerateStatementSchema>;
 
-export const UpdateArrearsAdjustmentSchema = z.object({
-  // Positive assigns/increases an arrear the computed balance missed;
-  // negative reduces or clears one that isn't actually owed. Absolute
-  // dollar amount, not a delta - each save replaces the prior adjustment.
-  adjustment: z.number(),
+export const ArrearsActionSchema = z.object({
+  // 'add' tops up the running arrears total by a plain positive amount -
+  // no deltas, no negative numbers. 'clear' zeroes the tenant out.
+  action: z.enum(['add', 'clear']),
+  amount: z.number().positive().optional(),
+}).refine((data) => data.action !== 'add' || (data.amount !== undefined && data.amount > 0), {
+  message: 'Enter an amount greater than 0 to add.',
+  path: ['amount'],
 });
 
-export type UpdateArrearsAdjustmentDto = z.infer<typeof UpdateArrearsAdjustmentSchema>;
+export type ArrearsActionDto = z.infer<typeof ArrearsActionSchema>;
 
 class AppError extends Error {
   constructor(
@@ -408,6 +411,23 @@ export class ReportsService {
     });
   }
 
+  /** The automatic month-by-month calculation (unchanged) - months since
+   * lease start x rent, minus rent payments received. This stays running in
+   * the background regardless of any manual arrears entries on top of it. */
+  private computeMonthlyBalance(t: { lease_start: Date; rent_due_day: number | null; rent_amount: any; payments: Array<{ payment_type: string; amount_paid: any }> }) {
+    const now = new Date();
+    const start = new Date(t.lease_start);
+    let monthsActive = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+    if (now.getDate() < (t.rent_due_day || 1)) monthsActive--;
+    if (monthsActive < 0) monthsActive = 0;
+
+    const totalDue = monthsActive * Number(t.rent_amount);
+    const totalPaid = t.payments
+      .filter((p) => p.payment_type === 'rent')
+      .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+    return { monthsActive, computedBalance: totalDue - totalPaid };
+  }
+
   async getArrearsReport(accountId: string, options: { includeAll?: boolean } = {}) {
     const tenancies = await prisma.tenancy.findMany({
       where: { account_id: accountId, status: 'active' },
@@ -420,20 +440,10 @@ export class ReportsService {
 
     const report = [];
     const now = new Date();
-    
+
     for (const t of tenancies) {
       const start = new Date(t.lease_start);
-      let monthsActive = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
-      if (now.getDate() < (t.rent_due_day || 1)) {
-        monthsActive--;
-      }
-      if (monthsActive < 0) monthsActive = 0;
-      
-      const totalDue = monthsActive * Number(t.rent_amount);
-      const totalPaid = t.payments
-        .filter(p => p.payment_type === 'rent')
-        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
-      const computedBalance = totalDue - totalPaid;
+      const { monthsActive, computedBalance } = this.computeMonthlyBalance(t);
       const adjustment = Number(t.arrears_adjustment);
       const balance = computedBalance + adjustment;
 
@@ -450,8 +460,6 @@ export class ReportsService {
           propertyName: t.unit.property.name,
           unitNumber: t.unit.unit_number,
           amountOwed: balance,
-          computedAmountOwed: computedBalance,
-          adjustment,
           currency: t.currency,
           daysOverdue,
         });
@@ -464,9 +472,7 @@ export class ReportsService {
           tenantName: t.tenant.full_name,
           propertyName: t.unit.property.name,
           unitNumber: t.unit.unit_number,
-          amountOwed: balance,
-          computedAmountOwed: computedBalance,
-          adjustment,
+          amountOwed: Math.max(balance, 0),
           currency: t.currency,
           daysOverdue: 0,
         });
@@ -476,11 +482,38 @@ export class ReportsService {
     return report.sort((a, b) => b.daysOverdue - a.daysOverdue);
   }
 
-  async updateArrearsAdjustment(tenancyId: string, adjustment: number, accountId: string) {
-    const tenancy = await prisma.tenancy.findFirst({ where: { id: tenancyId, account_id: accountId }, select: { id: true } });
+  /**
+   * Arrears editing, simplified to two plain actions - no deltas, no
+   * negative numbers for the agent to work out themselves:
+   *  - 'add': tops up the running total by a positive amount. Uses an
+   *    atomic DB increment, so two agents adding an arrear around the same
+   *    time can't clobber each other's entry (the old overwrite-based
+   *    "adjustment" field could).
+   *  - 'clear': zeroes the tenant's balance out completely, computed
+   *    server-side (negative of whatever the auto-calculated balance
+   *    currently is) so the agent never has to do that subtraction.
+   */
+  async applyArrearsAction(tenancyId: string, action: 'add' | 'clear', amount: number | undefined, accountId: string) {
+    const tenancy = await prisma.tenancy.findFirst({
+      where: { id: tenancyId, account_id: accountId },
+      include: { payments: true },
+    });
     if (!tenancy) throw new AppError('Tenancy not found', 404);
-    await prisma.tenancy.update({ where: { id: tenancyId }, data: { arrears_adjustment: adjustment } });
-    return this.getArrearsReport(accountId, { includeAll: true }).then(rows => rows.find(r => r.tenancyId === tenancyId));
+
+    if (action === 'add') {
+      await prisma.tenancy.update({
+        where: { id: tenancyId },
+        data: { arrears_adjustment: { increment: amount! } },
+      });
+    } else {
+      const { computedBalance } = this.computeMonthlyBalance(tenancy);
+      await prisma.tenancy.update({
+        where: { id: tenancyId },
+        data: { arrears_adjustment: -computedBalance },
+      });
+    }
+
+    return this.getArrearsReport(accountId, { includeAll: true }).then((rows) => rows.find((r) => r.tenancyId === tenancyId));
   }
 
   async getVacancyReport(accountId: string) {
