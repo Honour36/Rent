@@ -21,6 +21,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDataTableControls } from '@/hooks/useDataTableControls';
+import { SortableHeader } from '@/components/data-table/SortableHeader';
+import { DataTablePagination } from '@/components/data-table/DataTablePagination';
 
 function statusBadge(status: string) {
   switch (status) {
@@ -93,6 +96,16 @@ export function PaymentListTable({ payments, onRefresh }: { payments: PaymentDto
   const [deletePayment, setDeletePayment] = useState<PaymentDto | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const { paged, page, pageCount, pageSize, setPage, setPageSize, sortKey, sortDir, toggleSort, totalCount } =
+    useDataTableControls(payments, {
+      date: (p) => new Date(p.payment_date),
+      tenant: (p) => p.tenancy?.tenant?.full_name ?? "",
+      property: (p) => p.tenancy?.unit?.property?.name ?? "",
+      period: (p) => p.period_year * 100 + p.period_month,
+      amount: (p) => Number(p.amount_paid),
+      status: (p) => p.status,
+    });
+
   const handleDelete = async () => {
     if (!deletePayment) return;
     setDeleting(true);
@@ -117,18 +130,18 @@ export function PaymentListTable({ payments, onRefresh }: { payments: PaymentDto
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Tenant</TableHead>
-              <TableHead>Property / Unit</TableHead>
-              <TableHead>Period</TableHead>
+              <SortableHeader label="Date" sortKey="date" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableHeader label="Tenant" sortKey="tenant" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableHeader label="Property / Unit" sortKey="property" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <SortableHeader label="Period" sortKey="period" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <TableHead>Method</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-center">Status</TableHead>
+              <SortableHeader label="Amount" sortKey="amount" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-right" />
+              <SortableHeader label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="text-center" />
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {payments.map((p) => (
+            {paged.map((p) => (
               <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50"
                 onClick={() => router.push(`/dashboard/payments/${p.id}`)}>
                 <TableCell>{format(new Date(p.payment_date), 'dd MMM yyyy')}</TableCell>
@@ -139,7 +152,7 @@ export function PaymentListTable({ payments, onRefresh }: { payments: PaymentDto
                     <span className="text-muted-foreground">{p.tenancy?.unit?.unit_number}</span>
                   </div>
                 </TableCell>
-                <TableCell>{p.period_month}/{p.period_year}</TableCell>
+                <TableCell>{format(new Date(p.period_year, p.period_month - 1, 1), 'MMM yyyy')}</TableCell>
                 <TableCell className="capitalize">{p.method.replace('_', ' ')}</TableCell>
                 <TableCell className="text-right font-medium">
                   {p.currency} {Number(p.amount_paid).toLocaleString('en-ZW', { minimumFractionDigits: 2 })}
@@ -166,6 +179,11 @@ export function PaymentListTable({ payments, onRefresh }: { payments: PaymentDto
           </TableBody>
         </Table>
       </div>
+
+      <DataTablePagination
+        page={page} pageCount={pageCount} pageSize={pageSize} totalCount={totalCount}
+        onPageChange={setPage} onPageSizeChange={setPageSize} itemLabel="payments"
+      />
 
       {editPayment && (
         <EditPaymentDialog

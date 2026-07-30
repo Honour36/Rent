@@ -65,6 +65,8 @@ export interface ArrearsReportItem {
   propertyName: string;
   unitNumber: string;
   amountOwed: number;
+  computedAmountOwed: number;
+  adjustment: number;
   currency: string;
   daysOverdue: number;
 }
@@ -180,10 +182,10 @@ export function useReports() {
     return { success: true as const, data: res.data };
   };
 
-  const getArrearsReport = useCallback(async () => {
+  const getArrearsReport = useCallback(async (includeAll: boolean = false) => {
     setLoading(true);
     setError("");
-    const res = await apiClient<ArrearsReportItem[]>("/reports/arrears");
+    const res = await apiClient<ArrearsReportItem[]>(`/reports/arrears${includeAll ? "?all=true" : ""}`);
     setLoading(false);
     if (!res.success) {
       setError(res.error);
@@ -191,6 +193,15 @@ export function useReports() {
     }
     return res.data;
   }, []);
+
+  const updateArrearsAdjustment = async (tenancyId: string, adjustment: number) => {
+    const res = await apiClient<ArrearsReportItem>(`/reports/arrears/${tenancyId}`, {
+      method: "PATCH",
+      data: { adjustment },
+    });
+    if (!res.success) return { success: false as const, error: res.error };
+    return { success: true as const, data: res.data };
+  };
 
   const getVacancyReport = useCallback(async () => {
     setLoading(true);
@@ -260,6 +271,7 @@ export function useReports() {
     approveOwnerStatement,
     dispatchOwnerStatement,
     getArrearsReport,
+    updateArrearsAdjustment,
     getVacancyReport,
     getLeaseExpiryReport,
     getCollectionRateReport,

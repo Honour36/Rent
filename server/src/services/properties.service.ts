@@ -4,8 +4,12 @@ import { TokenPayload } from '../middleware/auth.middleware';
 import { deletePropertiesCascade } from './cascade-delete.helper';
 
 export const CreatePropertySchema = z.object({
-  ownerId: z.string({ required_error: 'An owner must be selected before saving a property.' })
-            .uuid('Please select a valid owner.'),
+  // Optional: a property can be saved without an owner and assigned one
+  // later from Edit Property. When omitted, create() attaches the account's
+  // "Unassigned Owner" placeholder so every property still satisfies the
+  // owner_id foreign key - nothing downstream (reports, statements, owner
+  // portal) has to special-case a null owner.
+  ownerId: z.string().uuid('Please select a valid owner.').optional(),
   name: z.string().min(2, 'Property name must be at least 2 characters.'),
   address: z.string().min(5, 'Please enter a full street address.'),
   suburb: z.string().optional(),
@@ -28,6 +32,26 @@ class AppError extends Error {
 }
 
 export class PropertiesService {
+  // One placeholder owner per account, reused across every property saved
+  // without picking a real one - not a new row every time. "Owner" search/
+  // matching elsewhere in the app looks up by name, so give it a name an
+  // agent would never type for a real owner.
+  private async getOrCreateUnassignedOwner(
+    accountId: string,
+    tx: Pick<typeof prisma, 'owner'> = prisma
+  ): Promise<string> {
+    const existing = await tx.owner.findFirst({
+      where: { account_id: accountId, full_name: 'Unassigned Owner' },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+    const created = await tx.owner.create({
+      data: { account_id: accountId, full_name: 'Unassigned Owner' },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
   async list(user: TokenPayload) {
     const properties = await prisma.property.findMany({
       where: { account_id: user.accountId },
@@ -102,10 +126,12 @@ export class PropertiesService {
     // three writes in one transaction means either all of them land or none
     // do, so an orphaned duplicate can no longer be created going forward.
     const property = await prisma.$transaction(async (tx) => {
+      const ownerId = data.ownerId ?? await this.getOrCreateUnassignedOwner(user.accountId, tx);
+
       const created = await tx.property.create({
         data: {
           account_id: user.accountId,
-          owner_id: data.ownerId!,
+          owner_id: ownerId,
           name: data.name,
           address: data.address,
           suburb: data.suburb,

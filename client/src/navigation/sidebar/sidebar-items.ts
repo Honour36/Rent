@@ -9,6 +9,7 @@ import {
   type IconComponent,
   MessageSquare,
   Settings,
+  TrendingDown,
   Upload,
   UserCheck,
   UserCog,
@@ -122,13 +123,18 @@ export const sidebarItems: NavGroup[] = [
         icon: Wrench,
       },
       {
+        id: "arrears",
+        title: "Arrears",
+        url: "/dashboard/reports/arrears",
+        icon: TrendingDown,
+      },
+      {
         id: "reports",
         title: "Reports",
         icon: ChartBar,
         subItems: [
           { id: "reports-hub", title: "All Reports", url: "/dashboard/reports" },
           { id: "reports-owner-statement", title: "Owner Statements", url: "/dashboard/reports/owner-statement" },
-          { id: "reports-arrears", title: "Arrears", url: "/dashboard/reports/arrears" },
           { id: "reports-vacancy", title: "Vacancy", url: "/dashboard/reports/vacancy" },
           { id: "reports-lease-expiry", title: "Lease Expiry", url: "/dashboard/reports/lease-expiry" },
           { id: "reports-collection-rate", title: "Collection Rate", url: "/dashboard/reports/collection-rate" },

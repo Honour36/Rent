@@ -14,6 +14,15 @@ export const GenerateStatementSchema = z.object({
 
 export type GenerateStatementDto = z.infer<typeof GenerateStatementSchema>;
 
+export const UpdateArrearsAdjustmentSchema = z.object({
+  // Positive assigns/increases an arrear the computed balance missed;
+  // negative reduces or clears one that isn't actually owed. Absolute
+  // dollar amount, not a delta - each save replaces the prior adjustment.
+  adjustment: z.number(),
+});
+
+export type UpdateArrearsAdjustmentDto = z.infer<typeof UpdateArrearsAdjustmentSchema>;
+
 class AppError extends Error {
   constructor(
     public message: string,
@@ -399,7 +408,7 @@ export class ReportsService {
     });
   }
 
-  async getArrearsReport(accountId: string) {
+  async getArrearsReport(accountId: string, options: { includeAll?: boolean } = {}) {
     const tenancies = await prisma.tenancy.findMany({
       where: { account_id: accountId, status: 'active' },
       include: {
@@ -424,10 +433,12 @@ export class ReportsService {
       const totalPaid = t.payments
         .filter(p => p.payment_type === 'rent')
         .reduce((sum, p) => sum + Number(p.amount_paid), 0);
-      const balance = totalDue - totalPaid;
-      
+      const computedBalance = totalDue - totalPaid;
+      const adjustment = Number(t.arrears_adjustment);
+      const balance = computedBalance + adjustment;
+
       if (balance > 0) {
-        const monthsOwed = balance / Number(t.rent_amount);
+        const monthsOwed = computedBalance / Number(t.rent_amount);
         const earliestMonthOwed = monthsActive - monthsOwed; 
         const earliestDueDate = new Date(start.getFullYear(), start.getMonth() + Math.floor(earliestMonthOwed), t.rent_due_day || 1);
         let daysOverdue = Math.floor((now.getTime() - earliestDueDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -439,13 +450,37 @@ export class ReportsService {
           propertyName: t.unit.property.name,
           unitNumber: t.unit.unit_number,
           amountOwed: balance,
+          computedAmountOwed: computedBalance,
+          adjustment,
           currency: t.currency,
           daysOverdue,
+        });
+      } else if (options.includeAll) {
+        // Not currently in arrears, but the Arrears page's "assign an
+        // arrear" flow needs every active tenant available to pick from,
+        // not just the ones already showing a balance.
+        report.push({
+          tenancyId: t.id,
+          tenantName: t.tenant.full_name,
+          propertyName: t.unit.property.name,
+          unitNumber: t.unit.unit_number,
+          amountOwed: balance,
+          computedAmountOwed: computedBalance,
+          adjustment,
+          currency: t.currency,
+          daysOverdue: 0,
         });
       }
     }
     
     return report.sort((a, b) => b.daysOverdue - a.daysOverdue);
+  }
+
+  async updateArrearsAdjustment(tenancyId: string, adjustment: number, accountId: string) {
+    const tenancy = await prisma.tenancy.findFirst({ where: { id: tenancyId, account_id: accountId }, select: { id: true } });
+    if (!tenancy) throw new AppError('Tenancy not found', 404);
+    await prisma.tenancy.update({ where: { id: tenancyId }, data: { arrears_adjustment: adjustment } });
+    return this.getArrearsReport(accountId, { includeAll: true }).then(rows => rows.find(r => r.tenancyId === tenancyId));
   }
 
   async getVacancyReport(accountId: string) {
