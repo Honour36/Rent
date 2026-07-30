@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
+import { authorize as roleAuthorize } from '../middleware/role.middleware';
 import { reportsController } from '../controllers/reports.controller';
 
 const router = Router();
@@ -12,6 +13,7 @@ router.post('/owner-statement/:id/approve', authenticate, (req, res) => reportsC
 router.post('/owner-statement/:id/dispatch', authenticate, (req, res) => reportsController.dispatch(req as any, res));
 
 router.get('/arrears', authenticate, (req, res) => reportsController.getArrearsReport(req as any, res));
+router.patch('/arrears/:tenancyId', authenticate, roleAuthorize('admin', 'senior_agent'), (req, res) => reportsController.updateArrearsAdjustment(req as any, res));
 router.get('/vacancy', authenticate, (req, res) => reportsController.getVacancyReport(req as any, res));
 router.get('/lease-expiry', authenticate, (req, res) => reportsController.getLeaseExpiryReport(req as any, res));
 router.get('/collection-rate', authenticate, (req, res) => reportsController.getCollectionRateReport(req as any, res));

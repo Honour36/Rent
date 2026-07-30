@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -17,7 +18,10 @@ import {
 import type { Property } from "@/hooks/useProperties";
 import { useProperties } from "@/hooks/useProperties";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { useDataTableControls } from "@/hooks/useDataTableControls";
 import { BulkActionBar } from "@/components/data-table/BulkActionBar";
+import { SortableHeader } from "@/components/data-table/SortableHeader";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiClient } from "@/lib/api-client";
 import { AddPropertyDialog } from "./_components/add-property-dialog";
@@ -55,21 +59,54 @@ function formatRent(property: Property) {
   return `${unit.currency} ${Number(unit.rent_amount).toLocaleString()}`;
 }
 
+type StatusCategory = "needs_setup" | "vacant" | "occupied" | "maintenance";
+
+function statusCategory(p: Property): StatusCategory {
+  const unit = primaryUnit(p);
+  if (!unit) return "needs_setup";
+  if ((p.units?.length ?? 0) > 1) {
+    const vacant = p.units!.filter((u) => u.status === "vacant").length;
+    return vacant > 0 ? "vacant" : "occupied";
+  }
+  if (unit.status === "maintenance") return "maintenance";
+  return unit.status === "occupied" ? "occupied" : "vacant";
+}
+
+const STATUS_FILTER_OPTIONS: { value: StatusCategory | "all"; label: string }[] = [
+  { value: "all", label: "All Statuses" },
+  { value: "occupied", label: "Occupied" },
+  { value: "vacant", label: "Vacant" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "needs_setup", label: "Needs Setup" },
+];
+
 export default function PropertiesPage() {
   const router = useRouter();
   const { properties, loading, error, refetch } = useProperties();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusCategory | "all">("all");
   const [editProp, setEditProp] = useState<Property | null>(null);
   const [deleteProp, setDeleteProp] = useState<Property | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const filtered = properties.filter(
-    (p) =>
+  const filtered = properties.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.address.toLowerCase().includes(search.toLowerCase()),
-  );
+      p.address.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || statusCategory(p) === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const bulk = useBulkSelection(filtered, (p) => p.id);
+  const { paged, page, pageCount, pageSize, setPage, setPageSize, sortKey, sortDir, toggleSort, totalCount } =
+    useDataTableControls(filtered, {
+      name: (p) => p.name,
+      location: (p) => p.address,
+      owner: (p) => p.owner?.full_name ?? "",
+      rent: (p) => primaryUnit(p)?.rent_amount != null ? Number(primaryUnit(p)!.rent_amount) : null,
+      status: (p) => statusCategory(p),
+    });
+
+  const bulk = useBulkSelection(paged, (p) => p.id);
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
@@ -115,9 +152,22 @@ export default function PropertiesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search properties…" className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusCategory | "all")}>
+              <SelectTrigger size="sm" className="w-40">
+                <span className="text-muted-foreground">Status:</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectGroup>
+                  {STATUS_FILTER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           <BulkActionBar
@@ -155,17 +205,17 @@ export default function PropertiesPage() {
                         aria-label="Select all properties"
                       />
                     </TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Property</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Location</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Owner</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Rent</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Status</TableHead>
+                    <SortableHeader label="Property" sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Location" sortKey="location" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Owner" sortKey="owner" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Rent" sortKey="rent" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">App Link</TableHead>
                     <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((prop) => {
+                  {paged.map((prop) => {
                     const status = getVacancyStatus(prop);
                     const incomplete = isIncomplete(prop);
                     return (
@@ -234,6 +284,10 @@ export default function PropertiesPage() {
               </Table>
             </div>
           )}
+          <DataTablePagination
+            page={page} pageCount={pageCount} pageSize={pageSize} totalCount={totalCount}
+            onPageChange={setPage} onPageSizeChange={setPageSize} itemLabel="properties"
+          />
         </CardContent>
       </Card>
 

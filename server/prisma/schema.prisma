@@ -211,6 +211,14 @@ model Tenancy {
   status          String
   lease_pdf_url   String?
   created_at      DateTime  @default(now()) @db.Timestamptz
+  // Manual correction applied on top of the computed arrears balance
+  // (computed = months-since-lease-start x rent - rent payments received).
+  // Migrated spreadsheets often have missing lease-start dates or gaps in
+  // payment history, so the computed number can be wrong - this lets an
+  // agent assign an arrear the computation missed, or zero one out that
+  // was never actually owed, without fabricating a payment record. A
+  // positive value adds to the balance; negative reduces or clears it.
+  arrears_adjustment Decimal @default(0) @db.Decimal
 
   account         Account   @relation(fields: [account_id], references: [id])
   unit            Unit      @relation(fields: [unit_id], references: [id])

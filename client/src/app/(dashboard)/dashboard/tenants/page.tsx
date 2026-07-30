@@ -11,31 +11,59 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTenants, TenantListItem } from "@/hooks/useTenants";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { useDataTableControls } from "@/hooks/useDataTableControls";
 import { BulkActionBar } from "@/components/data-table/BulkActionBar";
+import { SortableHeader } from "@/components/data-table/SortableHeader";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiClient } from "@/lib/api-client";
 import { AddTenantDialog } from "./_components/add-tenant-dialog";
 import { EditTenantDialog } from "./_components/edit-tenant-dialog";
 
+type TenancyFilter = "all" | "active" | "none" | "overdue";
+
+const TENANCY_FILTER_OPTIONS: { value: TenancyFilter; label: string }[] = [
+  { value: "all", label: "All Tenants" },
+  { value: "active", label: "Active Tenancy" },
+  { value: "none", label: "No Tenancy" },
+  { value: "overdue", label: "Overdue" },
+];
+
 export default function TenantsPage() {
   const router = useRouter();
   const { tenants, loading, error, refetch } = useTenants();
   const [search, setSearch] = useState("");
+  const [tenancyFilter, setTenancyFilter] = useState<TenancyFilter>("all");
   const [editTenant, setEditTenant] = useState<TenantListItem | null>(null);
   const [deleteTenant, setDeleteTenant] = useState<TenantListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const filtered = tenants.filter((t) =>
-    t.full_name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = tenants.filter((t) => {
+    const matchesSearch = t.full_name.toLowerCase().includes(search.toLowerCase());
+    const matchesTenancy =
+      tenancyFilter === "all" ? true :
+      tenancyFilter === "active" ? !!t.activeTenancy :
+      tenancyFilter === "none" ? !t.activeTenancy :
+      t.isOverdue;
+    return matchesSearch && matchesTenancy;
+  });
 
-  const bulk = useBulkSelection(filtered, (t) => t.id);
+  const { paged, page, pageCount, pageSize, setPage, setPageSize, sortKey, sortDir, toggleSort, totalCount } =
+    useDataTableControls(filtered, {
+      name: (t) => t.full_name,
+      property: (t) => t.activeTenancy?.unit.property.name ?? "",
+      tenancy: (t) => (t.activeTenancy ? 1 : 0),
+      arrears: (t) => (t.isOverdue ? 1 : 0),
+    });
+
+  const bulk = useBulkSelection(paged, (t) => t.id);
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
@@ -79,9 +107,22 @@ export default function TenantsPage() {
           <CardDescription>Click a row to view full details. Use the icons to edit or delete.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search tenants..." className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Select value={tenancyFilter} onValueChange={(v) => setTenancyFilter(v as TenancyFilter)}>
+              <SelectTrigger size="sm" className="w-44">
+                <span className="text-muted-foreground">Status:</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectGroup>
+                  {TENANCY_FILTER_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           <BulkActionBar
@@ -117,16 +158,16 @@ export default function TenantsPage() {
                         aria-label="Select all tenants"
                       />
                     </TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Name</TableHead>
+                    <SortableHeader label="Name" sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                     <TableHead className="text-xs font-medium uppercase text-muted-foreground">Contact</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Current Property / Unit</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Tenancy</TableHead>
-                    <TableHead className="text-xs font-medium uppercase text-muted-foreground">Arrears</TableHead>
+                    <SortableHeader label="Current Property / Unit" sortKey="property" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Tenancy" sortKey="tenancy" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Arrears" sortKey="arrears" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                     <TableHead className="text-right text-xs font-medium uppercase text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((tenant) => {
+                  {paged.map((tenant) => {
                     const t = tenant.activeTenancy;
                     return (
                       <TableRow key={tenant.id} className={`cursor-pointer transition-colors ${tenant.isOverdue ? "bg-red-50/60 dark:bg-red-950/20 hover:bg-red-100/60 border-l-2 border-l-destructive" : "hover:bg-muted/50"}`}
@@ -183,6 +224,10 @@ export default function TenantsPage() {
               </Table>
             </div>
           )}
+          <DataTablePagination
+            page={page} pageCount={pageCount} pageSize={pageSize} totalCount={totalCount}
+            onPageChange={setPage} onPageSizeChange={setPageSize} itemLabel="tenants"
+          />
         </CardContent>
       </Card>
 

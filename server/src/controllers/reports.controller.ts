@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { reportsService, GenerateStatementSchema } from '../services/reports.service';
+import { reportsService, GenerateStatementSchema, UpdateArrearsAdjustmentSchema } from '../services/reports.service';
 
 export class ReportsController {
   async generate(req: AuthRequest, res: Response): Promise<void> {
@@ -69,11 +69,27 @@ export class ReportsController {
 
   async getArrearsReport(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const result = await reportsService.getArrearsReport(req.user!.accountId);
+      const includeAll = req.query.all === 'true' || req.query.all === '1';
+      const result = await reportsService.getArrearsReport(req.user!.accountId, { includeAll });
       res.json({ success: true, data: result });
     } catch (err: unknown) {
       const anyErr = err as any;
       res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to get arrears report' });
+    }
+  }
+
+  async updateArrearsAdjustment(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { adjustment } = UpdateArrearsAdjustmentSchema.parse(req.body);
+      const result = await reportsService.updateArrearsAdjustment(req.params.tenancyId, adjustment, req.user!.accountId);
+      res.json({ success: true, data: result });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.constructor.name === 'ZodError') {
+        res.status(400).json({ success: false, error: err.message });
+        return;
+      }
+      const anyErr = err as any;
+      res.status(anyErr?.statusCode ?? 500).json({ success: false, error: anyErr?.message ?? 'Failed to update arrears adjustment' });
     }
   }
 

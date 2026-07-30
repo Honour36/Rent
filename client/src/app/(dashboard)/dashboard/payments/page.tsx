@@ -13,7 +13,8 @@ export default function PaymentsPage() {
   const { listPayments, loading } = usePayments();
   const [payments, setPayments] = useState<PaymentDto[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  
+  const [search, setSearch] = useState("");
+
   useEffect(() => {
     const fetchPayments = async () => {
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
@@ -22,6 +23,16 @@ export default function PaymentsPage() {
     };
     fetchPayments();
   }, [listPayments, statusFilter]);
+
+  const filtered = payments.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (p.tenancy?.tenant?.full_name ?? "").toLowerCase().includes(q) ||
+      (p.tenancy?.unit?.property?.name ?? "").toLowerCase().includes(q) ||
+      (p.reference ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -42,7 +53,8 @@ export default function PaymentsPage() {
       <div className="flex items-center gap-4 py-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search payments..." className="pl-9" />
+          <Input placeholder="Search by tenant, property, or reference…" className="pl-9"
+            value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -63,7 +75,7 @@ export default function PaymentsPage() {
           Loading payments...
         </div>
       ) : (
-        <PaymentListTable payments={payments} onRefresh={() => { const filters = statusFilter !== "all" ? { status: statusFilter } : {}; listPayments(filters).then(setPayments); }} />
+        <PaymentListTable payments={filtered} onRefresh={() => { const filters = statusFilter !== "all" ? { status: statusFilter } : {}; listPayments(filters).then(setPayments); }} />
       )}
     </div>
   );

@@ -167,7 +167,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
                 const appLink = `${appBase}/application/${unit.id}`;
                 return (
                   <div key={unit.id} className="flex flex-col gap-2">
-                    <UnitCard unit={unit} />
+                    <UnitCard unit={unit} onChanged={refetch} />
                     <div className="flex items-center gap-2 px-1">
                       <code className="text-xs text-muted-foreground truncate flex-1">ID: {unit.id}</code>
                       <GenerateUnitLinkButton unitId={unit.id} unitStatus={unit.status} />
@@ -181,7 +181,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
           <>
             <h2 className="text-lg font-semibold">Application Link</h2>
             <div className="flex flex-col gap-2 max-w-md">
-              <UnitCard unit={primaryUnit} />
+              <UnitCard unit={primaryUnit} onChanged={refetch} />
               <div className="flex items-center gap-2 px-1">
                 <code className="text-xs text-muted-foreground truncate flex-1">ID: {primaryUnit.id}</code>
                 <GenerateUnitLinkButton unitId={primaryUnit.id} unitStatus={primaryUnit.status} />

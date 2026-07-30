@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useMaintenance, MaintenanceRequestDto } from "@/hooks/useMaintenance";
+import { useDataTableControls } from "@/hooks/useDataTableControls";
+import { SortableHeader } from "@/components/data-table/SortableHeader";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import { LogMaintenanceDialog } from "./LogMaintenanceDialog";
 import { apiClient } from "@/lib/api-client";
 
@@ -149,6 +152,16 @@ export function MaintenanceListTable() {
     return r.title.toLowerCase().includes(q) || r.unit.unit_number.toLowerCase().includes(q) || r.unit.property.name.toLowerCase().includes(q);
   });
 
+  const PRIORITY_WEIGHT: Record<string, number> = { low: 0, medium: 1, high: 2, emergency: 3 };
+  const { paged, page, pageCount, pageSize, setPage, setPageSize, sortKey, sortDir, toggleSort, totalCount } =
+    useDataTableControls(filtered, {
+      title: (r) => r.title,
+      property: (r) => r.unit.property.name,
+      priority: (r) => PRIORITY_WEIGHT[r.priority] ?? 0,
+      status: (r) => r.status,
+      logged: (r) => new Date(r.created_at),
+    });
+
   return (
     <>
       <Card>
@@ -193,11 +206,11 @@ export function MaintenanceListTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6">Title</TableHead>
-                <TableHead>Property / Unit</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Logged</TableHead>
+                <SortableHeader label="Title" sortKey="title" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="pl-6" />
+                <SortableHeader label="Property / Unit" sortKey="property" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="Priority" sortKey="priority" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortableHeader label="Logged" sortKey="logged" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 <TableHead>Logged By</TableHead>
                 <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
@@ -209,7 +222,7 @@ export function MaintenanceListTable() {
               {!loading && filtered.length === 0 && (
                 <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">No maintenance requests found.</TableCell></TableRow>
               )}
-              {!loading && filtered.map((r) => (
+              {!loading && paged.map((r) => (
                 <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/dashboard/maintenance/${r.id}`)}>
                   <TableCell className="pl-6 font-medium">{r.title}</TableCell>
@@ -238,6 +251,12 @@ export function MaintenanceListTable() {
             </TableBody>
           </Table>
         </CardContent>
+        <div className="px-6 pb-4">
+          <DataTablePagination
+            page={page} pageCount={pageCount} pageSize={pageSize} totalCount={totalCount}
+            onPageChange={setPage} onPageSizeChange={setPageSize} itemLabel="requests"
+          />
+        </div>
       </Card>
 
       <LogMaintenanceDialog open={showLog} onOpenChange={setShowLog} onCreated={() => { setShowLog(false); load(); }} />

@@ -26,6 +26,11 @@ interface PaymentResult {
   collectionLink: string | null;
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
 export default function RecordPaymentPage() {
   const router = useRouter();
   const { createPayment, loading: submitting } = usePayments();
@@ -45,7 +50,7 @@ export default function RecordPaymentPage() {
 
   const [formData, setFormData] = useState<Partial<CreatePaymentDto>>({
     currency: "USD",
-    method: "bank_transfer",
+    method: "cash",
     periodMonth: new Date().getMonth() + 1,
     periodYear: new Date().getFullYear(),
     paymentDate: format(new Date(), "yyyy-MM-dd"),
@@ -226,9 +231,15 @@ export default function RecordPaymentPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Period Month</Label>
-                <Input type="number" min={1} max={12} value={formData.periodMonth}
-                  onChange={(e) => setFormData({ ...formData, periodMonth: Number(e.target.value) })} required />
+                <Label>Month</Label>
+                <Select value={String(formData.periodMonth ?? "")} onValueChange={(v) => setFormData({ ...formData, periodMonth: Number(v) })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((name, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Period Year</Label>

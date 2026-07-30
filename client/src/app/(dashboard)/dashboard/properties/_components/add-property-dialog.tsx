@@ -48,7 +48,6 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "Property name is required.";
     if (!form.address.trim()) errs.address = "Street address is required.";
-    if (!form.ownerId) errs.ownerId = "You must select an owner before saving a property.";
     if (form.tenantId && !form.rentAmount) {
       errs.rentAmount = "Rent Amount is required when assigning a tenant.";
     }
@@ -109,14 +108,14 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
         <DialogHeader>
           <DialogTitle>Add Property</DialogTitle>
           <DialogDescription>
-            Enter the property details. An owner must be selected - add owners first if none appear.
+            Enter the property details. No owner yet? Leave it blank and assign one later from Edit Property.
           </DialogDescription>
         </DialogHeader>
 
         {noOwners && (
           <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>No owners on record. <strong>Go to Owners → Add Owner</strong> before adding a property.</span>
+            <span>No owners on record yet. You can still save this property and add the owner later from Owners → Add Owner.</span>
           </div>
         )}
 
@@ -150,12 +149,12 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
                 </NativeSelect>
               </FormField>
 
-              <FormField label="Owner" required error={fieldErrors.ownerId}>
+              <FormField label="Owner (Optional)">
                 <NativeSelect name="ownerId" value={form.ownerId} onChange={change}
-                  className={`w-full ${fieldErrors.ownerId ? "border-destructive" : ""}`}
+                  className="w-full"
                   disabled={loadingOwners || noOwners}>
                   <NativeSelectOption value="">
-                    {loadingOwners ? "Loading owners…" : noOwners ? "No owners - add one first" : "- Select owner -"}
+                    {loadingOwners ? "Loading owners…" : noOwners ? "No owners yet - add later" : "- Select owner -"}
                   </NativeSelectOption>
                   {owners.map((o) => (
                     <NativeSelectOption key={o.id} value={o.id}>{o.full_name}</NativeSelectOption>
@@ -193,7 +192,7 @@ export function AddPropertyDialog({ onSuccess }: AddPropertyDialogProps) {
           </div>
           <DialogFooter className="mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading || noOwners}>
+            <Button type="submit" disabled={loading}>
               {loading ? "Saving…" : "Save Property"}
             </Button>
           </DialogFooter>
