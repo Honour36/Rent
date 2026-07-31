@@ -81,6 +81,10 @@ export default function LeasesPage() {
     setViewingLeaseId(null);
   };
 
+  // Generate Lease dialog
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [generateTenancyId, setGenerateTenancyId] = useState("");
+
   // Renewal dialog
   const [renewOpen, setRenewOpen] = useState(false);
   const [renewTenancyId, setRenewTenancyId] = useState("");
@@ -97,6 +101,16 @@ export default function LeasesPage() {
   const [vacateBy, setVacateBy] = useState("");
   const [noticeNotes, setNoticeNotes] = useState("");
   const [issuingNotice, setIssuingNotice] = useState(false);
+
+  const handleGenerateFromDialog = async () => {
+    if (!generateTenancyId) {
+      toast.warning("Choose a tenant first.");
+      return;
+    }
+    setGenerateOpen(false);
+    await handleGenerateLease(generateTenancyId);
+    setGenerateTenancyId("");
+  };
 
   const handleRenew = async () => {
     if (!renewTenancyId || !newLeaseEnd) {
@@ -147,10 +161,11 @@ export default function LeasesPage() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-muted-foreground">Active Leases</h2>
-          <p className="text-xs text-muted-foreground">
-            Generate a lease document for any active tenancy, any time.
-          </p>
+          <Button size="sm" variant="outline" onClick={() => setGenerateOpen(true)}><Plus className="h-3.5 w-3.5 mr-1.5" />Generate Lease</Button>
         </div>
+        <p className="text-xs text-muted-foreground mb-2">
+          Generate a lease document for any active tenancy, any time.
+        </p>
         {tenantsLoading && <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
         {tenantsError && <p className="text-sm text-destructive">{tenantsError}</p>}
         {!tenantsLoading && !tenantsError && (
@@ -255,6 +270,40 @@ export default function LeasesPage() {
           </div>
         </>
       )}
+
+      {/* Generate Lease dialog */}
+      <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Generate Lease</DialogTitle></DialogHeader>
+          {activeTenancies.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              You don't have any active tenants yet. Activate a tenancy from Applications &gt; Move-In Activation first, then come back here to generate its lease.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tenant</Label>
+                <SearchableSelect
+                  options={activeTenancies.map(t => ({ value: t.tenancyId, label: `${t.tenantName} - ${t.propertyName} (${t.unitNumber})` }))}
+                  value={generateTenancyId}
+                  onChange={setGenerateTenancyId}
+                  placeholder="Select a tenant…"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setGenerateOpen(false); setGenerateTenancyId(""); }}>
+              {activeTenancies.length === 0 ? "Close" : "Cancel"}
+            </Button>
+            {activeTenancies.length > 0 && (
+              <Button onClick={handleGenerateFromDialog} disabled={viewingLeaseId !== null}>
+                {viewingLeaseId !== null ? "Generating…" : "Generate"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Renew dialog */}
       <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
