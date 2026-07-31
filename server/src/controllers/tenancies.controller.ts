@@ -34,6 +34,15 @@ export class TenanciesController {
       res.status(error.statusCode || 500).json({ success: false, error: error.message });
     }
   };
+
+  generateLease = async (req: AuthRequest, res: Response) => {
+    try {
+      const data = await tenanciesService.generateLease(req.params.id, req.user!);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+  };
 }
 
 export const tenanciesController = new TenanciesController();

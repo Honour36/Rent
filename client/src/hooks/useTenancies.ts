@@ -46,5 +46,11 @@ export function useTenancies() {
     return { success: true as const, url: res.data.url };
   }, []);
 
-  return { getPendingByUnitId, activateTenancy, getLeaseSignedUrl, loading, error };
+  const generateLease = useCallback(async (tenancyId: string) => {
+    const res = await apiClient<{ generated: boolean }>(`/tenancies/${tenancyId}/lease/generate`, { method: "POST" });
+    if (!res.success) return { success: false as const, error: res.error };
+    return { success: true as const };
+  }, []);
+
+  return { getPendingByUnitId, activateTenancy, getLeaseSignedUrl, generateLease, loading, error };
 }

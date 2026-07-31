@@ -55,9 +55,9 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
       <Card className="border-green-500/50 bg-green-500/5">
         <CardContent className="flex flex-col items-center justify-center p-6 text-center">
           <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
-          <p className="font-medium">Lease Activated!</p>
+          <p className="font-medium">Tenancy Activated!</p>
           <p className="text-sm text-muted-foreground mt-1">
-            The tenancy is now active and the unit is occupied.
+            The tenancy is now active and the unit is occupied. Generate the lease document from the tenant's profile whenever you're ready.
           </p>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
           Move-In Activation
         </CardTitle>
         <CardDescription>
-          Finalize lease details and generate the lease agreement.
+          Finalize lease terms and activate the tenancy. You can generate the lease document separately, at any time.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -140,7 +140,7 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
           disabled={loading || !tenancyId || !leaseEndDate}
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Generate Lease & Activate
+          Activate Tenancy
         </Button>
       </CardContent>
     </Card>

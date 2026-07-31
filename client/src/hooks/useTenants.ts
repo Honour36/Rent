@@ -18,6 +18,7 @@ export interface TenantListItem {
     currency: string;
     lease_start: string;
     lease_end: string | null;
+    lease_pdf_url: string | null;
     unit: {
       unit_number: string;
       property: { name: string; address: string | null; city: string | null };
@@ -55,6 +56,7 @@ export interface TenantDetail {
     deposit_amount: number | null;
     lease_start: string;
     lease_end: string | null;
+    lease_pdf_url: string | null;
     rent_due_day: number | null;
     unit: {
       unit_number: string;

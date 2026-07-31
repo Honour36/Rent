@@ -27,10 +27,14 @@ export class TenanciesService {
   /**
    * Activates a pending tenancy.
    * - Validates lease details
-   * - Generates the real lease agreement PDF and uploads it to storage
    * - Updates Tenancy status to 'active'
    * - Updates Unit status to 'occupied'
    * - Creates TrustTransaction for deposit received
+   *
+   * Does NOT generate the lease document - that's a separate, explicit
+   * action (generateLease(), below) the agent triggers whenever they're
+   * actually ready to issue it, not something that happens automatically
+   * the moment a tenancy is activated.
    */
   async activate(id: string, data: ActivateTenancyDto, user: TokenPayload) {
     // 1. Fetch existing pending tenancy
@@ -50,32 +54,8 @@ export class TenanciesService {
     if (Number.isNaN(leaseEnd.getTime())) throw new AppError('Please choose a valid lease end date.', 400);
     if (leaseEnd <= leaseStart) throw new AppError('Lease end date must be after the lease start date.', 400);
 
-    const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, city: true } });
-
     return await prisma.$transaction(async (tx) => {
-      // 2. Generate the real lease agreement PDF and upload to Supabase Storage
-      const pdfBuffer = await generateLeasePdf({
-        accountName: account?.name || 'the Agent',
-        ownerName: tenancy.unit.property.owner.full_name,
-        tenantName: tenancy.tenant.full_name,
-        tenantDob: tenancy.tenant.date_of_birth,
-        tenantIdNumber: tenancy.tenant.id_number,
-        tenantEmail: tenancy.tenant.email,
-        tenantPhone: tenancy.tenant.phone,
-        propertyAddress: tenancy.unit.property.address || tenancy.unit.property.name,
-        propertyType: tenancy.unit.property.type,
-        leaseStart,
-        leaseEnd,
-        rentAmount: data.rentAmount,
-        currency: tenancy.currency,
-        depositAmount: data.depositAmount ?? null,
-        signingCity: account?.city || undefined,
-      });
-      const storagePath = `leases/${user.accountId}/${id}.pdf`;
-      await uploadFile(BUCKETS.leases, storagePath, pdfBuffer, 'application/pdf');
-      const leasePdfUrl = storagePath;
-
-      // 3. Update Tenancy to active
+      // 2. Update Tenancy to active
       const updatedTenancy = await tx.tenancy.update({
         where: { id },
         data: {
@@ -85,17 +65,16 @@ export class TenanciesService {
           rent_due_day: data.rentDueDay,
           lease_start: leaseStart,
           lease_end: leaseEnd,
-          lease_pdf_url: leasePdfUrl,
         }
       });
 
-      // 4. Update Unit status to occupied
+      // 3. Update Unit status to occupied
       await tx.unit.update({
         where: { id: tenancy.unit_id },
         data: { status: 'occupied' }
       });
 
-      // 5. Create Trust Transaction if deposit provided
+      // 4. Create Trust Transaction if deposit provided
       if (data.depositAmount && data.depositAmount > 0) {
         await tx.trustTransaction.create({
           data: {
@@ -112,6 +91,54 @@ export class TenanciesService {
 
       return updatedTenancy;
     });
+  }
+
+  /**
+   * Generates the lease agreement PDF for an active tenancy, using
+   * whatever its current terms are at the moment this is called (rent,
+   * deposit, lease dates) - so it also works to reissue a lease after a
+   * renewal changes the lease end date, without a second code path.
+   * Overwrites any previous document at the same storage path.
+   */
+  async generateLease(id: string, user: TokenPayload) {
+    const tenancy = await prisma.tenancy.findFirst({
+      where: { id, account_id: user.accountId },
+      include: {
+        unit: { include: { property: { include: { owner: true } } } },
+        tenant: true,
+      }
+    });
+    if (!tenancy) throw new AppError('Tenancy not found', 404);
+    if (tenancy.status !== 'active') throw new AppError('Only an active tenancy has a lease to generate.', 400);
+    if (!tenancy.lease_start || !tenancy.lease_end) {
+      throw new AppError('This tenancy is missing lease start/end dates - cannot generate a lease.', 400);
+    }
+
+    const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, city: true } });
+
+    const pdfBuffer = await generateLeasePdf({
+      accountName: account?.name || 'the Agent',
+      ownerName: tenancy.unit.property.owner.full_name,
+      tenantName: tenancy.tenant.full_name,
+      tenantDob: tenancy.tenant.date_of_birth,
+      tenantIdNumber: tenancy.tenant.id_number,
+      tenantEmail: tenancy.tenant.email,
+      tenantPhone: tenancy.tenant.phone,
+      propertyAddress: tenancy.unit.property.address || tenancy.unit.property.name,
+      propertyType: tenancy.unit.property.type,
+      leaseStart: tenancy.lease_start,
+      leaseEnd: tenancy.lease_end,
+      rentAmount: Number(tenancy.rent_amount),
+      currency: tenancy.currency,
+      depositAmount: tenancy.deposit_amount != null ? Number(tenancy.deposit_amount) : null,
+      signingCity: account?.city || undefined,
+    });
+    const storagePath = `leases/${user.accountId}/${id}.pdf`;
+    await uploadFile(BUCKETS.leases, storagePath, pdfBuffer, 'application/pdf');
+
+    await prisma.tenancy.update({ where: { id }, data: { lease_pdf_url: storagePath } });
+
+    return { generated: true };
   }
 
   /**

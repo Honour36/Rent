@@ -38,8 +38,8 @@ const NOTICE_STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" 
 
 export default function LeasesPage() {
   const { renewals, notices, loading, error, createRenewal, createNotice, withdrawNotice } = useLeaseLifecycle();
-  const { tenants } = useTenants();
-  const { getLeaseSignedUrl } = useTenancies();
+  const { tenants, refetch: refetchTenants } = useTenants();
+  const { getLeaseSignedUrl, generateLease } = useTenancies();
 
   const activeTenancies = tenants
     .filter((t) => t.activeTenancy)
@@ -52,6 +52,7 @@ export default function LeasesPage() {
       currency: t.activeTenancy!.currency,
       leaseStart: t.activeTenancy!.lease_start,
       leaseEnd: t.activeTenancy!.lease_end,
+      leasePdfUrl: t.activeTenancy!.lease_pdf_url,
     }));
 
   const [viewingLeaseId, setViewingLeaseId] = useState<string | null>(null);
@@ -64,6 +65,20 @@ export default function LeasesPage() {
     } else {
       toast.error("Could not open the lease document", { description: res.error });
     }
+  };
+
+  const handleGenerateLease = async (tenancyId: string) => {
+    setViewingLeaseId(tenancyId);
+    const res = await generateLease(tenancyId);
+    if (res.success) {
+      await refetchTenants();
+      const opened = await getLeaseSignedUrl(tenancyId);
+      if (opened.success) window.open(opened.url, "_blank");
+      toast.success("Lease generated");
+    } else {
+      toast.error("Could not generate the lease", { description: res.error });
+    }
+    setViewingLeaseId(null);
   };
 
   // Renewal dialog
@@ -138,7 +153,7 @@ export default function LeasesPage() {
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground">Active Leases</h2>
               <p className="text-xs text-muted-foreground">
-                Issued from Applications &gt; Move-In Activation, or reissued on renewal below.
+                Generate a lease document for any active tenancy, any time.
               </p>
             </div>
             {activeTenancies.length === 0 ? (
@@ -157,9 +172,16 @@ export default function LeasesPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <p className="text-sm font-medium">{formatCurrency(t.rentAmount, t.currency)}<span className="ml-1 text-xs font-normal text-muted-foreground">/mo</span></p>
-                        <Button size="sm" variant="outline" onClick={() => handleViewLease(t.tenancyId)} disabled={viewingLeaseId === t.tenancyId}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => (t.leasePdfUrl ? handleViewLease(t.tenancyId) : handleGenerateLease(t.tenancyId))}
+                          disabled={viewingLeaseId === t.tenancyId}
+                        >
                           <FileText className="h-3.5 w-3.5 mr-1.5" />
-                          {viewingLeaseId === t.tenancyId ? "Opening..." : "View Lease"}
+                          {viewingLeaseId === t.tenancyId
+                            ? (t.leasePdfUrl ? "Opening..." : "Generating...")
+                            : (t.leasePdfUrl ? "View Lease" : "Generate Lease")}
                         </Button>
                       </div>
                     </CardContent>

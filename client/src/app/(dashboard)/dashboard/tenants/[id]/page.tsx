@@ -85,8 +85,8 @@ function tenancyStatusBadge(status: string) {
 export default function TenantDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
-  const { tenant, loading, error } = useTenant(id);
-  const { getLeaseSignedUrl } = useTenancies();
+  const { tenant, loading, error, refetch } = useTenant(id);
+  const { getLeaseSignedUrl, generateLease } = useTenancies();
   const [leaseLoading, setLeaseLoading] = useState(false);
 
   if (loading) {
@@ -120,6 +120,21 @@ export default function TenantDetailPage({ params }: PageProps) {
     } else {
       toast.error("Could not open the lease document", { description: res.error });
     }
+  };
+
+  const handleGenerateLease = async () => {
+    if (!activeTenancy) return;
+    setLeaseLoading(true);
+    const res = await generateLease(activeTenancy.id);
+    if (res.success) {
+      await refetch();
+      const opened = await getLeaseSignedUrl(activeTenancy.id);
+      if (opened.success) window.open(opened.url, "_blank");
+      toast.success("Lease generated");
+    } else {
+      toast.error("Could not generate the lease", { description: res.error });
+    }
+    setLeaseLoading(false);
   };
 
   const allPayments = tenant.tenancies.flatMap((t) =>
@@ -226,9 +241,16 @@ export default function TenantDetailPage({ params }: PageProps) {
             </CardDescription>
           </div>
           {activeTenancy && (
-            <Button variant="outline" size="sm" onClick={handleViewLease} disabled={leaseLoading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={activeTenancy.lease_pdf_url ? handleViewLease : handleGenerateLease}
+              disabled={leaseLoading}
+            >
               <FileText className="mr-2 h-4 w-4" />
-              {leaseLoading ? "Opening..." : "View Lease"}
+              {leaseLoading
+                ? (activeTenancy.lease_pdf_url ? "Opening..." : "Generating...")
+                : (activeTenancy.lease_pdf_url ? "View Lease" : "Generate Lease")}
             </Button>
           )}
         </CardHeader>
