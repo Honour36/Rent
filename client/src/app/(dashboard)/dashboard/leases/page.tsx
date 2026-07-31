@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { FileCheck, Loader2, Plus, AlertTriangle } from "@/components/icons";
+import { FileCheck, FileText, Loader2, Plus, AlertTriangle } from "@/components/icons";
 
 import { useLeaseLifecycle } from "@/hooks/useLeaseLifecycle";
 import { useTenants } from "@/hooks/useTenants";
+import { useTenancies } from "@/hooks/useTenancies";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+function formatCurrency(amount: number | string, currency: string) {
+  return `${currency} ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+function formatDate(d: string | null) {
+  return d ? new Date(d).toLocaleDateString("en-GB", { dateStyle: "medium" }) : "-";
+}
 
 const REASON_LABEL: Record<string, string> = {
   eviction: "Eviction",
@@ -31,6 +39,7 @@ const NOTICE_STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" 
 export default function LeasesPage() {
   const { renewals, notices, loading, error, createRenewal, createNotice, withdrawNotice } = useLeaseLifecycle();
   const { tenants } = useTenants();
+  const { getLeaseSignedUrl } = useTenancies();
 
   const activeTenancies = tenants
     .filter((t) => t.activeTenancy)
@@ -39,7 +48,23 @@ export default function LeasesPage() {
       tenantName: t.full_name,
       unitNumber: t.activeTenancy!.unit.unit_number,
       propertyName: t.activeTenancy!.unit.property.name,
+      rentAmount: t.activeTenancy!.rent_amount,
+      currency: t.activeTenancy!.currency,
+      leaseStart: t.activeTenancy!.lease_start,
+      leaseEnd: t.activeTenancy!.lease_end,
     }));
+
+  const [viewingLeaseId, setViewingLeaseId] = useState<string | null>(null);
+  const handleViewLease = async (tenancyId: string) => {
+    setViewingLeaseId(tenancyId);
+    const res = await getLeaseSignedUrl(tenancyId);
+    setViewingLeaseId(null);
+    if (res.success) {
+      window.open(res.url, "_blank");
+    } else {
+      toast.error("Could not open the lease document", { description: res.error });
+    }
+  };
 
   // Renewal dialog
   const [renewOpen, setRenewOpen] = useState(false);
@@ -101,7 +126,7 @@ export default function LeasesPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Leases</h1>
-        <p className="text-sm text-muted-foreground">Renewals and notices to vacate.</p>
+        <p className="text-sm text-muted-foreground">Active leases, renewals, and notices to vacate.</p>
       </div>
 
       {loading && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
@@ -109,6 +134,41 @@ export default function LeasesPage() {
 
       {!loading && !error && (
         <>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">Active Leases</h2>
+              <p className="text-xs text-muted-foreground">
+                Issued from Applications &gt; Move-In Activation, or reissued on renewal below.
+              </p>
+            </div>
+            {activeTenancies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No active leases yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {activeTenancies.map((t) => (
+                  <Card key={t.tenancyId}>
+                    <CardContent className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="font-medium text-sm">{t.propertyName} - {t.unitNumber}</p>
+                        <p className="text-xs text-muted-foreground">{t.tenantName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(t.leaseStart)} - {formatDate(t.leaseEnd)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-medium">{formatCurrency(t.rentAmount, t.currency)}<span className="ml-1 text-xs font-normal text-muted-foreground">/mo</span></p>
+                        <Button size="sm" variant="outline" onClick={() => handleViewLease(t.tenancyId)} disabled={viewingLeaseId === t.tenancyId}>
+                          <FileText className="h-3.5 w-3.5 mr-1.5" />
+                          {viewingLeaseId === t.tenancyId ? "Opening..." : "View Lease"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground">Notices to Vacate</h2>
