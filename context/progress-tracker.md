@@ -63,6 +63,7 @@ _(none outstanding)_
 - **2026-07-02** — **PWA / offline mode removed.** System is online-only. next-pwa, idb, offline-queue.ts, and OFFLINE_QUEUED logic all stripped.
 - **2026-07-02** — All generated PDFs (receipts, leases, owner statements) now uploaded to Supabase Storage and served via 1-hour signed URLs.
 - **2026-07-02** — Subscription tiers: Free / Starter / Growth / Professional. Tier limits enforced server-side on POST /properties, POST /owners, POST /agents/invite.
+- **2026-07-30** — Real lease agreement text (Sermony Properties' Memorandum of Agreement of Lease) implemented as a token-substituted, paginated pdf-lib text render (`lease-pdf.helper.ts` + `assets/lease-template.ts`), not an AcroForm-fill on a static template PDF as originally sketched in library-docs.md — see that file for why. Lease duration is agent-chosen per tenancy (`leaseEndDate` required at activation), not a fixed term. Renewals reissue a fresh lease PDF for the new period. `Tenant.date_of_birth` added (optional) to support the D.O.B. field on the document.
 
 ---
 

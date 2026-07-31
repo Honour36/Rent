@@ -1,13 +1,17 @@
 import { z } from 'zod';
-import { PDFDocument, rgb } from 'pdf-lib';
 import { prisma } from '../db/prisma';
 import { TokenPayload } from '../middleware/auth.middleware';
 import { uploadFile, getSignedUrl, BUCKETS } from '../db/storage';
+import { generateLeasePdf } from './lease-pdf.helper';
 
 export const ActivateTenancySchema = z.object({
   depositAmount: z.number().min(0).optional(),
   rentDueDay: z.number().min(1).max(28),
   leaseStartDate: z.string().datetime({ offset: true }).or(z.string()), // Accept ISO string
+  // Lease duration isn't fixed - the agent and tenant agree on it per
+  // tenancy (six months, a year, five years, whatever), so this is a
+  // required field the agent picks, not a computed default.
+  leaseEndDate: z.string().datetime({ offset: true }).or(z.string()),
   rentAmount: z.number().positive(),
 });
 
@@ -21,33 +25,9 @@ class AppError extends Error {
 
 export class TenanciesService {
   /**
-   * Generates a basic lease agreement PDF.
-   * In a real application, this would use a pre-existing template and fill form fields.
-   */
-  private async generateLeasePdf(data: any): Promise<Buffer> {
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
-    
-    page.drawText('LEASE AGREEMENT', { x: 50, y: height - 50, size: 20 });
-    page.drawText(`Property: ${data.property}`, { x: 50, y: height - 90, size: 12 });
-    page.drawText(`Unit: ${data.unit}`, { x: 50, y: height - 110, size: 12 });
-    page.drawText(`Tenant: ${data.tenantName}`, { x: 50, y: height - 130, size: 12 });
-    page.drawText(`Lease Start Date: ${new Date(data.leaseStartDate).toLocaleDateString()}`, { x: 50, y: height - 150, size: 12 });
-    page.drawText(`Rent Amount: ${data.currency} ${data.rentAmount}`, { x: 50, y: height - 170, size: 12 });
-    page.drawText(`Deposit Amount: ${data.currency} ${data.depositAmount || 0}`, { x: 50, y: height - 190, size: 12 });
-    page.drawText(`Rent Due Day: ${data.rentDueDay} of each month`, { x: 50, y: height - 210, size: 12 });
-    
-    page.drawText('This is an auto-generated lease agreement.', { x: 50, y: 100, size: 10, color: rgb(0.5, 0.5, 0.5) });
-
-    const pdfBytes = await pdfDoc.save();
-    return Buffer.from(pdfBytes);
-  }
-
-  /**
    * Activates a pending tenancy.
    * - Validates lease details
-   * - Generates lease PDF (mock uploaded for now)
+   * - Generates the real lease agreement PDF and uploads it to storage
    * - Updates Tenancy status to 'active'
    * - Updates Unit status to 'occupied'
    * - Creates TrustTransaction for deposit received
@@ -57,7 +37,7 @@ export class TenanciesService {
     const tenancy = await prisma.tenancy.findFirst({
       where: { id, account_id: user.accountId },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { owner: true } } } },
         tenant: true,
       }
     });
@@ -65,17 +45,31 @@ export class TenanciesService {
     if (!tenancy) throw new AppError('Tenancy not found', 404);
     if (tenancy.status === 'active') throw new AppError('Tenancy is already active', 400);
 
+    const leaseStart = new Date(data.leaseStartDate);
+    const leaseEnd = new Date(data.leaseEndDate);
+    if (Number.isNaN(leaseEnd.getTime())) throw new AppError('Please choose a valid lease end date.', 400);
+    if (leaseEnd <= leaseStart) throw new AppError('Lease end date must be after the lease start date.', 400);
+
+    const account = await prisma.account.findUnique({ where: { id: user.accountId }, select: { name: true, city: true } });
+
     return await prisma.$transaction(async (tx) => {
-      // 2. Generate Lease PDF and upload to Supabase Storage
-      const pdfBuffer = await this.generateLeasePdf({
-        property: tenancy.unit.property.name,
-        unit: tenancy.unit.unit_number,
+      // 2. Generate the real lease agreement PDF and upload to Supabase Storage
+      const pdfBuffer = await generateLeasePdf({
+        accountName: account?.name || 'the Agent',
+        ownerName: tenancy.unit.property.owner.full_name,
         tenantName: tenancy.tenant.full_name,
-        leaseStartDate: data.leaseStartDate,
+        tenantDob: tenancy.tenant.date_of_birth,
+        tenantIdNumber: tenancy.tenant.id_number,
+        tenantEmail: tenancy.tenant.email,
+        tenantPhone: tenancy.tenant.phone,
+        propertyAddress: tenancy.unit.property.address || tenancy.unit.property.name,
+        propertyType: tenancy.unit.property.type,
+        leaseStart,
+        leaseEnd,
         rentAmount: data.rentAmount,
-        depositAmount: data.depositAmount,
         currency: tenancy.currency,
-        rentDueDay: data.rentDueDay,
+        depositAmount: data.depositAmount ?? null,
+        signingCity: account?.city || undefined,
       });
       const storagePath = `leases/${user.accountId}/${id}.pdf`;
       await uploadFile(BUCKETS.leases, storagePath, pdfBuffer, 'application/pdf');
@@ -89,7 +83,8 @@ export class TenanciesService {
           rent_amount: data.rentAmount,
           deposit_amount: data.depositAmount || null,
           rent_due_day: data.rentDueDay,
-          lease_start: new Date(data.leaseStartDate),
+          lease_start: leaseStart,
+          lease_end: leaseEnd,
           lease_pdf_url: leasePdfUrl,
         }
       });
@@ -151,6 +146,17 @@ export class TenanciesService {
       },
     });
     return tenancy;
+  }
+
+  /** Signed URL for the lease PDF generated at activation (or the latest renewal). */
+  async getLeaseSignedUrl(tenancyId: string, user: TokenPayload): Promise<string> {
+    const tenancy = await prisma.tenancy.findFirst({
+      where: { id: tenancyId, account_id: user.accountId },
+      select: { lease_pdf_url: true },
+    });
+    if (!tenancy) throw new AppError('Tenancy not found', 404);
+    if (!tenancy.lease_pdf_url) throw new AppError('No lease document has been generated for this tenancy yet.', 404);
+    return getSignedUrl(BUCKETS.leases, tenancy.lease_pdf_url);
   }
 }
 

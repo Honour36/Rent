@@ -297,33 +297,49 @@ export async function generateReceipt(data: ReceiptData): Promise<Buffer> {
 
 ## pdf-lib (Lease Agreements)
 
-Used for populating a lease PDF template with tenancy-specific data.
+Used to render the lease agreement PDF from a text template with real
+tenancy data substituted in.
 
-### Template Population Pattern
+> **2026-07-30 decision:** the pattern originally sketched here (load a
+> template PDF, fill named AcroForm fields, `form.flatten()`) was never
+> actually built, and once we had a real template to implement against
+> (Sermony Properties' 35-clause Memorandum of Agreement of Lease) it
+> turned out not to fit well: the blanks sit inline mid-sentence
+> throughout dense paragraphs, so positionally overlaying form fields on
+> a rendered copy would be fragile against any future wording edit - move
+> one word and every field downstream needs re-measuring by hand. Instead,
+> the master legal text lives in `server/src/assets/lease-template.ts` as
+> plain paragraphs with `{{TOKEN}}` placeholders; `lease-pdf.helper.ts`
+> substitutes real values, then paginates and word-wraps the whole
+> document with pdf-lib's text-drawing API (Times-Roman/Times-Bold,
+> greedy word-wrap, automatic page breaks). One source of truth for the
+> legal wording, used by both move-in activation and lease renewal.
+
+### Rendering Pattern
 
 ```typescript
-import { PDFDocument } from 'pdf-lib';
+import { generateLeasePdf } from './lease-pdf.helper';
 
-export async function generateLease(templateBuffer: Buffer, data: LeaseData): Promise<Buffer> {
-  const pdfDoc = await PDFDocument.load(templateBuffer);
-  const form = pdfDoc.getForm();
-
-  // Fill form fields (lease template must have PDF form fields)
-  form.getTextField('tenant_name').setText(data.tenantName);
-  form.getTextField('property_address').setText(data.propertyAddress);
-  form.getTextField('rent_amount').setText(formatCurrency(data.rentAmount, data.currency));
-  form.getTextField('lease_start').setText(format(data.leaseStart, 'dd MMM yyyy'));
-  form.getTextField('lease_end').setText(format(data.leaseEnd, 'dd MMM yyyy'));
-
-  form.flatten(); // lock fields after population
-  return Buffer.from(await pdfDoc.save());
-}
+const pdfBuffer = await generateLeasePdf({
+  accountName, ownerName, tenantName, tenantDob, tenantIdNumber,
+  tenantEmail, tenantPhone, propertyAddress, propertyType,
+  leaseStart, leaseEnd, rentAmount, currency, depositAmount,
+});
+// pdfBuffer is a Buffer - upload directly to leases/{accountId}/{tenancyId}.pdf
 ```
 
 **Rules:**
-- Lease template PDF must be stored in Supabase Storage under `branding/{account_id}/lease-template.pdf`
-- Always call `form.flatten()` before saving — prevents editing after generation
-- Always return Buffer — never write to disk
+- Lease *duration* is never fixed/assumed - the agent picks the lease end
+  date per tenancy (six months, a year, five years...); `leaseEndDate` is
+  a required field on `ActivateTenancySchema`, not computed.
+- Amount blanks in the legal text (`US$xxx.xx (.......... United States
+  Dollars)`) only get the numeral filled in - the parenthetical
+  spelled-out amount is left blank by design (not auto-converted to
+  words).
+- A lease renewal reissues a fresh PDF for the new period (overwrites the
+  same storage path) rather than just recording a renewal row - see
+  `lease-renewals.service.ts`.
+- Always return Buffer — never write to disk.
 
 ---
 

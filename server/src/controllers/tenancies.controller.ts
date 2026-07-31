@@ -25,6 +25,15 @@ export class TenanciesController {
       res.status(error.statusCode || 500).json({ success: false, error: error.message });
     }
   };
+
+  getLeaseSignedUrl = async (req: AuthRequest, res: Response) => {
+    try {
+      const url = await tenanciesService.getLeaseSignedUrl(req.params.id, req.user!);
+      res.json({ success: true, data: { url } });
+    } catch (error: any) {
+      res.status(error.statusCode || 500).json({ success: false, error: error.message });
+    }
+  };
 }
 
 export const tenanciesController = new TenanciesController();

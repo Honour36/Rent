@@ -19,6 +19,7 @@ export function EditTenantDialog({ tenant, onOpenChange, onSuccess }: Props) {
     email: tenant.email ?? "",
     phone: tenant.phone ?? "",
     idNumber: tenant.id_number ?? "",
+    dateOfBirth: tenant.date_of_birth ? tenant.date_of_birth.slice(0, 10) : "",
     employer: tenant.employer ?? "",
     employmentStatus: tenant.employment_status ?? "",
     monthlyIncome: tenant.monthly_income?.toString() ?? "",
@@ -58,6 +59,7 @@ export function EditTenantDialog({ tenant, onOpenChange, onSuccess }: Props) {
             {field("email", "Email", "email")}
             {field("phone", "Phone")}
             {field("idNumber", "ID Number")}
+            {field("dateOfBirth", "Date of Birth", "date")}
             {field("employer", "Employer")}
             {field("employmentStatus", "Emp. Status")}
             {field("monthlyIncome", "Monthly Income", "number")}

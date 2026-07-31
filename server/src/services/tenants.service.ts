@@ -8,6 +8,7 @@ export const CreateTenantSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   idNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(), // ISO date string, e.g. "1990-05-14"
   employer: z.string().optional(),
   employmentStatus: z.string().optional(),
   monthlyIncome: z.number().positive().optional()
@@ -152,6 +153,7 @@ export class TenantsService {
         email: data.email,
         phone: data.phone,
         id_number: data.idNumber,
+        date_of_birth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
         employer: data.employer,
         employment_status: data.employmentStatus,
         monthly_income: data.monthlyIncome,
@@ -181,6 +183,7 @@ export class TenantsService {
         email: data.email,
         phone: data.phone,
         id_number: data.idNumber,
+        date_of_birth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
         employer: data.employer,
         employment_status: data.employmentStatus,
         monthly_income: data.monthlyIncome,

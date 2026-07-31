@@ -1,7 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Users,
@@ -27,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTenant } from "@/hooks/useTenants";
+import { useTenancies } from "@/hooks/useTenancies";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -84,6 +86,8 @@ export default function TenantDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const { tenant, loading, error } = useTenant(id);
+  const { getLeaseSignedUrl } = useTenancies();
+  const [leaseLoading, setLeaseLoading] = useState(false);
 
   if (loading) {
     return (
@@ -105,6 +109,19 @@ export default function TenantDetailPage({ params }: PageProps) {
   }
 
   const activeTenancy = tenant.tenancies.find((t) => t.status === "active") ?? null;
+
+  const handleViewLease = async () => {
+    if (!activeTenancy) return;
+    setLeaseLoading(true);
+    const res = await getLeaseSignedUrl(activeTenancy.id);
+    setLeaseLoading(false);
+    if (res.success) {
+      window.open(res.url, "_blank");
+    } else {
+      toast.error("Could not open the lease document", { description: res.error });
+    }
+  };
+
   const allPayments = tenant.tenancies.flatMap((t) =>
     t.payments.map((p) => ({
       ...p,
@@ -196,16 +213,24 @@ export default function TenantDetailPage({ params }: PageProps) {
 
       {/* Current Lease Summary */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Current Lease
-          </CardTitle>
-          <CardDescription>
-            {activeTenancy
-              ? `Active tenancy at ${activeTenancy.unit.property.name}, Unit ${activeTenancy.unit.unit_number}`
-              : "No active tenancy"}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Current Lease
+            </CardTitle>
+            <CardDescription>
+              {activeTenancy
+                ? `Active tenancy at ${activeTenancy.unit.property.name}, Unit ${activeTenancy.unit.unit_number}`
+                : "No active tenancy"}
+            </CardDescription>
+          </div>
+          {activeTenancy && (
+            <Button variant="outline" size="sm" onClick={handleViewLease} disabled={leaseLoading}>
+              <FileText className="mr-2 h-4 w-4" />
+              {leaseLoading ? "Opening..." : "View Lease"}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {activeTenancy ? (

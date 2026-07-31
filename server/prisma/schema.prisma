@@ -162,6 +162,7 @@ model Tenant {
   email             String?
   phone             String?
   id_number         String?
+  date_of_birth     DateTime? @db.Date
   employer          String?
   employment_status String?
   monthly_income    Decimal?  @db.Decimal

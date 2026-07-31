@@ -26,7 +26,7 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
   const { properties, loading: propsLoading } = useProperties();
 
   const [form, setForm] = useState({
-    fullName: "", email: "", phone: "", idNumber: "",
+    fullName: "", email: "", phone: "", idNumber: "", dateOfBirth: "",
     employer: "", employmentStatus: "", monthlyIncome: "",
     propertyId: "",
   });
@@ -49,7 +49,7 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
     if (res.success) {
       toast.success('Tenant added successfully.');
       setOpen(false);
-      setForm({ fullName: "", email: "", phone: "", idNumber: "", employer: "", employmentStatus: "", monthlyIncome: "", propertyId: "" });
+      setForm({ fullName: "", email: "", phone: "", idNumber: "", dateOfBirth: "", employer: "", employmentStatus: "", monthlyIncome: "", propertyId: "" });
       onSuccess?.();
     } else {
       setError((res as any).error || "Failed to create tenant");
@@ -87,6 +87,7 @@ export function AddTenantDialog({ onSuccess }: AddTenantDialogProps) {
       </div>
     </div>
             {field("idNumber", "ID Number", "text", "63-123456A00")}
+            {field("dateOfBirth", "Date of Birth", "date")}
             {field("employer", "Employer", "text", "Acme Ltd")}
             {field("employmentStatus", "Emp. Status", "text", "Employed / Self-employed")}
             {field("monthlyIncome", "Monthly Income", "number", "500")}

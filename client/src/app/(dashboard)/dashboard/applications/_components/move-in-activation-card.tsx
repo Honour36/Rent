@@ -21,6 +21,7 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
   const [leaseStartDate, setLeaseStartDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [leaseEndDate, setLeaseEndDate] = useState("");
   const [rentDueDay, setRentDueDay] = useState("1");
   const [success, setSuccess] = useState(false);
 
@@ -31,11 +32,12 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
   }, [unitId, getPendingByUnitId]);
 
   const handleActivate = async () => {
-    if (!tenancyId) return;
+    if (!tenancyId || !leaseEndDate) return;
     const res = await activateTenancy(tenancyId, {
       rentAmount: Number(rentAmount),
       depositAmount: depositAmount ? Number(depositAmount) : undefined,
       leaseStartDate: new Date(leaseStartDate).toISOString(),
+      leaseEndDate: new Date(leaseEndDate).toISOString(),
       rentDueDay: Number(rentDueDay),
     });
     if (res.success) {
@@ -109,22 +111,33 @@ export function MoveInActivationCard({ unitId, defaultRent, onActivated }: Props
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rentDueDay">Rent Due Day</Label>
+            <Label htmlFor="leaseEndDate">Lease End Date</Label>
             <Input
-              id="rentDueDay"
-              type="number"
-              min="1"
-              max="28"
-              value={rentDueDay}
-              onChange={(e) => setRentDueDay(e.target.value)}
+              id="leaseEndDate"
+              type="date"
+              min={leaseStartDate}
+              value={leaseEndDate}
+              onChange={(e) => setLeaseEndDate(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rentDueDay">Rent Due Day</Label>
+          <Input
+            id="rentDueDay"
+            type="number"
+            min="1"
+            max="28"
+            value={rentDueDay}
+            onChange={(e) => setRentDueDay(e.target.value)}
+          />
         </div>
 
         <Button
           className="w-full mt-2"
           onClick={handleActivate}
-          disabled={loading || !tenancyId}
+          disabled={loading || !tenancyId || !leaseEndDate}
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Generate Lease & Activate

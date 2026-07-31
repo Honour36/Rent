@@ -7,6 +7,7 @@ export interface TenantListItem {
   email: string | null;
   phone: string | null;
   id_number: string | null;
+  date_of_birth: string | null;
   employer: string | null;
   employment_status: string | null;
   monthly_income: number | null;
@@ -41,6 +42,7 @@ export interface TenantDetail {
   email: string | null;
   phone: string | null;
   id_number: string | null;
+  date_of_birth: string | null;
   employer: string | null;
   employment_status: string | null;
   monthly_income: number | null;

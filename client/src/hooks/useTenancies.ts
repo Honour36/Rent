@@ -5,6 +5,7 @@ export interface ActivateTenancyDto {
   depositAmount?: number;
   rentDueDay: number;
   leaseStartDate: string;
+  leaseEndDate: string;
   rentAmount: number;
 }
 
@@ -39,5 +40,11 @@ export function useTenancies() {
     return { success: true, data: res.data };
   };
 
-  return { getPendingByUnitId, activateTenancy, loading, error };
+  const getLeaseSignedUrl = useCallback(async (tenancyId: string) => {
+    const res = await apiClient<{ url: string }>(`/tenancies/${tenancyId}/lease/signed-url`);
+    if (!res.success) return { success: false as const, error: res.error };
+    return { success: true as const, url: res.data.url };
+  }, []);
+
+  return { getPendingByUnitId, activateTenancy, getLeaseSignedUrl, loading, error };
 }
