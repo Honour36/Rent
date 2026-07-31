@@ -37,8 +37,8 @@ const NOTICE_STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" 
 };
 
 export default function LeasesPage() {
-  const { renewals, notices, loading, error, createRenewal, createNotice, withdrawNotice } = useLeaseLifecycle();
-  const { tenants, refetch: refetchTenants } = useTenants();
+  const { renewals, notices, loading: lifecycleLoading, error: lifecycleError, createRenewal, createNotice, withdrawNotice } = useLeaseLifecycle();
+  const { tenants, loading: tenantsLoading, error: tenantsError, refetch: refetchTenants } = useTenants();
   const { getLeaseSignedUrl, generateLease } = useTenancies();
 
   const activeTenancies = tenants
@@ -144,53 +144,57 @@ export default function LeasesPage() {
         <p className="text-sm text-muted-foreground">Active leases, renewals, and notices to vacate.</p>
       </div>
 
-      {loading && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      {!loading && !error && (
-        <>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-muted-foreground">Active Leases</h2>
-              <p className="text-xs text-muted-foreground">
-                Generate a lease document for any active tenancy, any time.
-              </p>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-muted-foreground">Active Leases</h2>
+          <p className="text-xs text-muted-foreground">
+            Generate a lease document for any active tenancy, any time.
+          </p>
+        </div>
+        {tenantsLoading && <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
+        {tenantsError && <p className="text-sm text-destructive">{tenantsError}</p>}
+        {!tenantsLoading && !tenantsError && (
+          activeTenancies.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active leases yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {activeTenancies.map((t) => (
+                <Card key={t.tenancyId}>
+                  <CardContent className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium text-sm">{t.propertyName} - {t.unitNumber}</p>
+                      <p className="text-xs text-muted-foreground">{t.tenantName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(t.leaseStart)} - {formatDate(t.leaseEnd)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-medium">{formatCurrency(t.rentAmount, t.currency)}<span className="ml-1 text-xs font-normal text-muted-foreground">/mo</span></p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => (t.leasePdfUrl ? handleViewLease(t.tenancyId) : handleGenerateLease(t.tenancyId))}
+                        disabled={viewingLeaseId === t.tenancyId}
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        {viewingLeaseId === t.tenancyId
+                          ? (t.leasePdfUrl ? "Opening..." : "Generating...")
+                          : (t.leasePdfUrl ? "View Lease" : "Generate Lease")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            {activeTenancies.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No active leases yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {activeTenancies.map((t) => (
-                  <Card key={t.tenancyId}>
-                    <CardContent className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="font-medium text-sm">{t.propertyName} - {t.unitNumber}</p>
-                        <p className="text-xs text-muted-foreground">{t.tenantName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(t.leaseStart)} - {formatDate(t.leaseEnd)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-medium">{formatCurrency(t.rentAmount, t.currency)}<span className="ml-1 text-xs font-normal text-muted-foreground">/mo</span></p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => (t.leasePdfUrl ? handleViewLease(t.tenancyId) : handleGenerateLease(t.tenancyId))}
-                          disabled={viewingLeaseId === t.tenancyId}
-                        >
-                          <FileText className="h-3.5 w-3.5 mr-1.5" />
-                          {viewingLeaseId === t.tenancyId
-                            ? (t.leasePdfUrl ? "Opening..." : "Generating...")
-                            : (t.leasePdfUrl ? "View Lease" : "Generate Lease")}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          )
+        )}
+      </div>
 
+      {lifecycleLoading && <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+      {lifecycleError && <p className="text-sm text-destructive">{lifecycleError}</p>}
+
+      {!lifecycleLoading && !lifecycleError && (
+        <>
           <div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground">Notices to Vacate</h2>
