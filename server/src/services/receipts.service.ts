@@ -99,6 +99,19 @@ export class ReceiptsService {
     // Build address string
     const addressParts = [account?.address, account?.suburb, account?.city].filter(Boolean);
 
+    const PAYMENT_TYPE_LABELS: Record<string, string> = {
+      rent: 'Rent', deposit: 'Deposit', lease_fee: 'Lease Fee', levy: 'Levy',
+    };
+    const paymentTypeLabel = PAYMENT_TYPE_LABELS[payment.payment_type] ?? 'Payment';
+
+    // A partial rent payment must say so on the printed copy - otherwise a
+    // tenant paying $300 against $500 rent gets a receipt that just says
+    // "$300", indistinguishable from having paid in full for the period.
+    const isPartial = payment.status === 'partial';
+    const balanceRemaining = isPartial
+      ? Math.max(0, Number(payment.tenancy.rent_amount) - Number(payment.amount_paid))
+      : 0;
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const buffers: Buffer[] = [];
@@ -180,13 +193,20 @@ export class ReceiptsService {
 
       // ── AMOUNT BLOCK ─────────────────────────────────────────────────────
       const amtY = doc.y;
-      doc.rect(50, amtY, W, 46).fill('#f3f4f6');
+      const amtBlockHeight = isPartial ? 68 : 46;
+      doc.rect(50, amtY, W, amtBlockHeight).fill(isPartial ? '#fef3c7' : '#f3f4f6');
       doc.fillColor(GRAY).fontSize(9).font('Helvetica').text('Payment Amount', 60, amtY + 8);
       doc.fillColor(BLUE).fontSize(18).font('Helvetica-Bold')
         .text(`${payment.currency} ${Number(payment.amount_paid).toLocaleString('en-ZW', { minimumFractionDigits: 2 })}`, 60, amtY + 20);
       doc.fillColor(GRAY).fontSize(9).font('Helvetica')
         .text(`Currency: ${payment.currency}`, 60 + W / 2, amtY + 25, { width: W / 2, align: 'right' });
-      doc.y = amtY + 56;
+      if (isPartial) {
+        doc.fillColor('#92400e').fontSize(10).font('Helvetica-Bold')
+          .text('PARTIAL PAYMENT', 60, amtY + 44);
+        doc.fillColor('#92400e').fontSize(10).font('Helvetica-Bold')
+          .text(`Balance Remaining: ${payment.currency} ${balanceRemaining.toLocaleString('en-ZW', { minimumFractionDigits: 2 })}`, 60 + W / 2, amtY + 44, { width: W / 2, align: 'right' });
+      }
+      doc.y = amtY + amtBlockHeight + 10;
       doc.moveDown(0.5);
 
       // ── BEING PAYMENT FOR ────────────────────────────────────────────────
@@ -202,10 +222,11 @@ export class ReceiptsService {
       doc.font('Helvetica').moveDown(0.3);
       hr();
 
-      // Row: Rent
+      // Row: payment type (was hardcoded "Rent" regardless of actual type -
+      // a deposit or levy payment's receipt would misleadingly say "Rent")
       const beingY = doc.y;
       doc.fillColor(DARK).fontSize(10)
-        .text(`Rent - ${property.name}`, col1, beingY, { width: W * 0.6 });
+        .text(`${paymentTypeLabel} - ${property.name}`, col1, beingY, { width: W * 0.6 });
       doc.fontSize(10)
         .text(
           `${payment.currency} ${Number(payment.amount_paid).toLocaleString('en-ZW', { minimumFractionDigits: 2 })}`,
@@ -214,7 +235,7 @@ export class ReceiptsService {
       doc.moveDown(0.5);
       // Period
       doc.fillColor(GRAY).fontSize(9)
-        .text(`Period: ${payment.period_month}/${payment.period_year}`, col1 + 8);
+        .text(`Period: ${payment.period_month}/${payment.period_year}${isPartial ? ' (partial payment)' : ''}`, col1 + 8);
 
       doc.moveDown(1.5);
       hr();

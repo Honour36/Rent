@@ -16,6 +16,9 @@ export const CreatePaymentSchema = z.object({
   method: z.string().min(1),
   reference: z.string().optional(),
   paymentDate: z.string().or(z.date()).transform(val => new Date(val)),
+  // Lets the digital receipt match an existing physical receipt book -
+  // left blank, the system keeps auto-numbering as REC-0001, REC-0002...
+  receiptNumber: z.string().trim().min(1).optional(),
 });
 
 export type CreatePaymentDto = z.infer<typeof CreatePaymentSchema>;
@@ -105,9 +108,17 @@ export class PaymentsService {
         },
       });
 
-      const count = await tx.receipt.count({ where: { account_id: user.accountId } });
-      const receiptNumber = `REC-${String(count + 1).padStart(4, '0')}`;
-      
+      let receiptNumber = data.receiptNumber;
+      if (receiptNumber) {
+        const taken = await tx.receipt.findFirst({
+          where: { account_id: user.accountId, receipt_number: receiptNumber },
+          select: { id: true },
+        });
+        if (taken) throw new AppError(`Receipt number "${receiptNumber}" is already in use.`, 409);
+      } else {
+        const count = await tx.receipt.count({ where: { account_id: user.accountId } });
+        receiptNumber = `REC-${String(count + 1).padStart(4, '0')}`;
+      }
       const receipt = await tx.receipt.create({
         data: {
           account_id: user.accountId,
