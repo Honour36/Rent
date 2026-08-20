@@ -39,6 +39,9 @@ export interface CreatePaymentDto {
   method: string;
   reference?: string;
   paymentDate: string;
+  /** Optional - matches an existing physical receipt book number. Left
+   * blank, the backend keeps auto-numbering as REC-0001, REC-0002... */
+  receiptNumber?: string;
 }
 
 export function usePayments() {

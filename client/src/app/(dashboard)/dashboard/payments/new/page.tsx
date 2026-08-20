@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2 } from "@/components/icons";
+import { ArrowLeft, MessageCircle, FileText, ExternalLink, CheckCircle2, Printer } from "@/components/icons";
 
 import { usePayments, CreatePaymentDto } from "@/hooks/usePayments";
 import { useTenants } from "@/hooks/useTenants";
+import { useReceipts } from "../../receipts/_hooks/useReceipts";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,16 +57,61 @@ export default function RecordPaymentPage() {
     paymentDate: format(new Date(), "yyyy-MM-dd"),
   });
   const [selectedTenancy, setSelectedTenancy] = useState<(typeof activeTenancies)[0] | null>(null);
+  const { getSignedUrl } = useReceipts();
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifying, setNotifying] = useState(false);
   const [depositInfo, setDepositInfo] = useState<{ required_amount: number; paid_amount: number; balance: number; currency: string } | null>(null);
   const [depositError, setDepositError] = useState("");
+  const [printAfterSave, setPrintAfterSave] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const printFrameRef = useRef<HTMLIFrameElement>(null);
 
   // Synchronous guard against double-submit - see note in
   // add-property-dialog.tsx for why the `submitting` state alone isn't
   // enough to stop a very fast double-click.
   const isSubmittingRef = useRef(false);
+
+  /**
+   * Signed receipt URLs point at Supabase Storage - a different origin
+   * than this app. An iframe pointed straight at a cross-origin URL can't
+   * be scripted (contentWindow.print() is blocked by the browser's
+   * same-origin policy), which is why this fetches the PDF as a blob and
+   * prints from a blob: URL instead - blob URLs created in this document
+   * are same-origin, so the print call actually works. Falls back to
+   * simply opening the PDF in a new tab (today's existing behavior) if
+   * anything about that goes wrong, so this can never block recording the
+   * payment itself.
+   */
+  const printReceipt = async (paymentId: string) => {
+    setPrinting(true);
+    try {
+      const signedUrl = await getSignedUrl(paymentId);
+      if (!signedUrl) throw new Error("No signed URL");
+      const res = await fetch(signedUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const iframe = printFrameRef.current;
+      if (!iframe) throw new Error("No print frame");
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch {
+          window.open(signedUrl, "_blank");
+        }
+        setPrinting(false);
+      };
+      iframe.src = blobUrl;
+    } catch {
+      // Whatever went wrong, the payment is already safely recorded -
+      // just fall back to the same "open the PDF" behavior the Receipts
+      // page already uses.
+      const fallbackUrl = await getSignedUrl(paymentId);
+      if (fallbackUrl) window.open(fallbackUrl, "_blank");
+      setPrinting(false);
+    }
+  };
 
   const fetchDepositInfo = async (tenancyId: string) => {
     setDepositError("");
@@ -102,20 +148,23 @@ export default function RecordPaymentPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitPayment = async (print: boolean) => {
     if (isSubmittingRef.current) return;
     if (!formData.tenancyId || !formData.amountPaid) {
       toast.warning("Please select a tenant and enter the amount paid.");
       return;
     }
     isSubmittingRef.current = true;
+    setPrintAfterSave(print);
     try {
       const result = await createPayment(formData as CreatePaymentDto);
       if (result.success) {
         const data = (result as any).data as PaymentResult;
         setPaymentResult(data);
         toast.success("Payment recorded.", { description: `Receipt ${data.receipt?.receipt_number} generated.` });
+        if (print && data.payment?.id) {
+          printReceipt(data.payment.id);
+        }
         // Show owner notification popup
         setNotifyOpen(true);
       } else {
@@ -124,6 +173,11 @@ export default function RecordPaymentPage() {
     } finally {
       isSubmittingRef.current = false;
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitPayment(false);
   };
 
   const handleNotify = async () => {
@@ -297,19 +351,39 @@ export default function RecordPaymentPage() {
             </div>
 
             <div className="space-y-2">
+              <Label>Receipt No.</Label>
+              <Input value={formData.receiptNumber ?? ""}
+                onChange={(e) => setFormData({ ...formData, receiptNumber: e.target.value })}
+                placeholder="Leave blank to auto-number (REC-0001, REC-0002...)" />
+              <p className="text-xs text-muted-foreground">Only fill this in if you need the digital receipt to match a number already written in a physical receipt book.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label>Payment Date <span className="text-destructive">*</span></Label>
               <Input type="date" value={formData.paymentDate ?? ""}
                 onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} required />
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" disabled={submitting || !formData.tenancyId}>
-                {submitting ? "Saving…" : "Record Payment & Generate Receipt"}
+            <div className="pt-4 flex justify-end gap-2">
+              <Button type="submit" variant="outline" disabled={submitting || !formData.tenancyId}>
+                {submitting && !printAfterSave ? "Saving…" : "Record Payment"}
+              </Button>
+              <Button type="button" disabled={submitting || printing || !formData.tenancyId}
+                onClick={() => submitPayment(true)} className="gap-1.5">
+                <Printer className="h-4 w-4" />
+                {submitting && printAfterSave ? "Saving…" : printing ? "Printing…" : "Record & Print"}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {/* Hidden iframe used to print the receipt PDF without opening a new
+          tab - see printReceipt() for why this loads a blob: URL rather
+          than the signed URL directly. Positioned off-screen instead of
+          display:none, since some browsers refuse to print a display:none
+          iframe's contents. */}
+      <iframe ref={printFrameRef} title="Receipt print" className="fixed -left-[9999px] -top-[9999px] h-px w-px opacity-0" />
 
       {/* Owner notification popup */}
       <Dialog open={notifyOpen} onOpenChange={(v) => { if (!v) skipNotify(); }}>
