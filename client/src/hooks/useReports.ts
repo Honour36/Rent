@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 
 export interface OwnerStatementDto {
@@ -180,11 +180,13 @@ export function useReports() {
     return { success: true as const, data: res.data };
   };
 
+  const arrearsLoadedOnce = useRef(false);
   const getArrearsReport = useCallback(async (includeAll: boolean = false) => {
-    setLoading(true);
+    if (!arrearsLoadedOnce.current) setLoading(true);
     setError("");
     const res = await apiClient<ArrearsReportItem[]>(`/reports/arrears${includeAll ? "?all=true" : ""}`);
     setLoading(false);
+    arrearsLoadedOnce.current = true;
     if (!res.success) {
       setError(res.error);
       return [];

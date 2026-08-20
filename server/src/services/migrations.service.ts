@@ -492,6 +492,10 @@ export class MigrationsService {
                   account_id: user.accountId, unit_id: property.unitId, tenant_id: tenant.id,
                   lease_start: leaseStart, lease_end: leaseEnd, rent_amount: rentAmount, currency,
                   deposit_amount: depositAmount, status: 'active',
+                  // Automatic arrears counting starts today, not at the real
+                  // (often historical, incompletely-tracked) lease_start -
+                  // see the field's comment in schema.prisma for why.
+                  arrears_tracking_start: now,
                 },
               });
               await tx.unit.update({ where: { id: property.unitId }, data: { status: 'occupied' } });

@@ -411,19 +411,31 @@ export class ReportsService {
     });
   }
 
-  /** The automatic month-by-month calculation (unchanged) - months since
-   * lease start x rent, minus rent payments received. This stays running in
-   * the background regardless of any manual arrears entries on top of it. */
-  private computeMonthlyBalance(t: { lease_start: Date; rent_due_day: number | null; rent_amount: any; payments: Array<{ payment_type: string; amount_paid: any }> }) {
+  /** The automatic month-by-month calculation - months since the arrears
+   * tracking baseline x rent, minus rent payments received on/after that
+   * same baseline. This stays running in the background regardless of any
+   * manual arrears entries on top of it.
+   *
+   * The baseline is arrears_tracking_start when set (migrated tenancies -
+   * see the field's comment in schema.prisma for why), otherwise
+   * lease_start (every tenancy created directly in the app). Payments are
+   * filtered to the same baseline so a migrated tenancy's imported
+   * historical payments don't push the balance negative - the whole point
+   * of the tracking-start baseline is that both sides of the equation
+   * start counting from the same day. */
+  private computeMonthlyBalance(t: {
+    lease_start: Date; arrears_tracking_start: Date | null; rent_due_day: number | null; rent_amount: any;
+    payments: Array<{ payment_type: string; amount_paid: any; payment_date: Date }>;
+  }) {
     const now = new Date();
-    const start = new Date(t.lease_start);
+    const start = new Date(t.arrears_tracking_start ?? t.lease_start);
     let monthsActive = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
     if (now.getDate() < (t.rent_due_day || 1)) monthsActive--;
     if (monthsActive < 0) monthsActive = 0;
 
     const totalDue = monthsActive * Number(t.rent_amount);
     const totalPaid = t.payments
-      .filter((p) => p.payment_type === 'rent')
+      .filter((p) => p.payment_type === 'rent' && new Date(p.payment_date) >= start)
       .reduce((sum, p) => sum + Number(p.amount_paid), 0);
     return { monthsActive, computedBalance: totalDue - totalPaid };
   }
@@ -442,7 +454,7 @@ export class ReportsService {
     const now = new Date();
 
     for (const t of tenancies) {
-      const start = new Date(t.lease_start);
+      const start = new Date(t.arrears_tracking_start ?? t.lease_start);
       const { monthsActive, computedBalance } = this.computeMonthlyBalance(t);
       const adjustment = Number(t.arrears_adjustment);
       const balance = computedBalance + adjustment;

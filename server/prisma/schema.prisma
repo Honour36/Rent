@@ -221,6 +221,18 @@ model Tenancy {
   // was never actually owed, without fabricating a payment record. A
   // positive value adds to the balance; negative reduces or clears it.
   arrears_adjustment Decimal @default(0) @db.Decimal
+  // When set, the automatic arrears calculation counts months/payments
+  // from THIS date instead of lease_start. Only ever set by the migration
+  // importer, to the date of import - a migrated tenancy's real
+  // lease_start can be years in the past with incomplete payment history,
+  // so counting from lease_start would compute a large false balance the
+  // day it's imported. Counting from the import date instead starts every
+  // migrated tenancy at zero; any real back-rent gets applied once via
+  // arrears_adjustment above, and the automatic calculation then organically
+  // starts detecting real missed months from that point forward, same as
+  // it always has for tenancies created directly in the app (which leave
+  // this null and fall back to lease_start).
+  arrears_tracking_start DateTime? @db.Date
 
   account         Account   @relation(fields: [account_id], references: [id])
   unit            Unit      @relation(fields: [unit_id], references: [id])
