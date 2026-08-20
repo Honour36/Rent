@@ -278,22 +278,17 @@ export class MigrationsService {
     };
   }
 
-  // ─── Find-or-create helpers - same matching rules as the duplicate-prevention
-  // in owners/properties/tenants.service.ts, but reusing a match instead of
-  // rejecting it, since re-running an import (or importing an overlapping
-  // sheet from a different year) should link up, not duplicate.
-  //
-  // Property matching in particular needs all three of name, owner, AND a
-  // named tenant to agree before two rows are treated as the same
-  // property/unit. Address alone isn't enough - a generic address like
-  // "Stand 245" or "Flat 3" recurs across different owners' portfolios in
-  // real spreadsheets, and two different owners' rows landing on the same
-  // property would silently move one owner's rent and tenant history onto
-  // the other's. A matching name + owner but a *different* (or absent)
-  // tenant isn't a duplicate either - it's a second unit at the same
-  // multi-unit property (e.g. one owner's 5 apartments in one complex, or
-  // several shops under one landlord), so it gets its own unit under the
-  // existing property rather than overwriting the first tenant's unit. ────
+  // ─── Find-or-create helpers - owner and tenant still match/reuse existing
+  // records (that's a real relationship: the same person legitimately owns
+  // or rents more than one property in this data). Properties do NOT -
+  // every spreadsheet row is imported as its own independent Property +
+  // Unit, even when the address text is identical to another row (e.g. 4
+  // separate rows for "21568 Budiriro Cabs 1/2/3/4", or 6 rows for
+  // different flats at "Prospect"). Matching properties by address used to
+  // fold rows like that into one Property with multiple Units, which
+  // undercounts what the spreadsheet actually says exists - the source
+  // file is the source of truth, imported as-is, not de-duplicated by a
+  // guess at which addresses "sound the same". ───────────────────────────
 
   private async findOrCreateOwner(
     tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
@@ -321,68 +316,18 @@ export class MigrationsService {
     accountId: string,
     ownerId: string,
     address: string,
-    tenantName: string,
     suburb: string | undefined,
     city: string | undefined,
-    type: 'residential' | 'commercial'
-  ): Promise<{ id: string; unitId: string; created: boolean }> {
-    const existing = await tx.property.findFirst({
-      where: {
-        account_id: accountId,
-        owner_id: ownerId,
-        name: { equals: address, mode: 'insensitive' },
-        address: { equals: address, mode: 'insensitive' },
-      },
-      include: {
-        units: {
-          include: { tenancies: { where: { status: 'active' }, include: { tenant: true }, take: 1 } },
-          orderBy: { created_at: 'asc' },
-        },
-      },
-    });
-
-    if (existing) {
-      // Name + owner alone only narrows it to "same building" - it's a
-      // duplicate row (created: false) only if this row names a tenant AND
-      // that tenant matches an existing unit's active tenant. A row with
-      // no tenant name never counts as a match, even against another
-      // vacant unit - two blank apartments in the same building (e.g. two
-      // empty shops for the same landlord) are still two different units,
-      // not the same one re-imported twice.
-      const normalizedTenant = tenantName ? normalizeHeader(tenantName) : '';
-      const tenantMatch = normalizedTenant
-        ? existing.units.find(u => u.tenancies[0] && normalizeHeader(u.tenancies[0].tenant.full_name) === normalizedTenant)
-        : undefined;
-
-      if (tenantMatch) {
-        return { id: existing.id, unitId: tenantMatch.id, created: false };
-      }
-
-      // Tenant differs from every unit already on this property - this is
-      // a different unit at the same multi-unit property, not a
-      // duplicate. Reuse a vacant unit if one exists rather than creating
-      // an unnecessary extra empty unit, but still report it as created -
-      // never attach to a unit that already belongs to someone else.
-      let unitId = existing.units.find(u => !u.tenancies[0])?.id;
-      if (!unitId) {
-        const newUnit = await tx.unit.create({
-          data: {
-            account_id: accountId, property_id: existing.id,
-            unit_number: `Unit ${existing.units.length + 1}`, currency: 'USD', status: 'vacant',
-          },
-        });
-        unitId = newUnit.id;
-      }
-      return { id: existing.id, unitId, created: true };
-    }
-
+    type: 'residential' | 'commercial',
+    notes: string | undefined
+  ): Promise<{ id: string; unitId: string }> {
     const property = await tx.property.create({
-      data: { account_id: accountId, owner_id: ownerId, name: address, address, suburb, city, type },
+      data: { account_id: accountId, owner_id: ownerId, name: address, address, suburb, city, type, notes },
     });
     const unit = await tx.unit.create({
       data: { account_id: accountId, property_id: property.id, unit_number: 'Main Unit', currency: 'USD', status: 'vacant' },
     });
-    return { id: property.id, unitId: unit.id, created: true };
+    return { id: property.id, unitId: unit.id };
   }
 
   private async findOrCreateTenant(
@@ -473,12 +418,13 @@ export class MigrationsService {
           if (!parsePhone(cellRaw(row, mapping, 'owner_phone')) && !cellText(row, mapping, 'owner_email')) needsReview = true;
 
           const property = await this.findOrCreateProperty(
-            tx, user.accountId, owner.id, address, tenantName,
+            tx, user.accountId, owner.id, address,
             cellText(row, mapping, 'property_suburb') || undefined,
             cellText(row, mapping, 'property_city') || undefined,
-            parsePropertyType(cellRaw(row, mapping, 'property_type'))
+            parsePropertyType(cellRaw(row, mapping, 'property_type')),
+            cellText(row, mapping, 'property_notes') || undefined
           );
-          property.created ? summary.propertiesCreated++ : summary.propertiesMatched++;
+          summary.propertiesCreated++;
 
           const rentAmount = parseMoney(cellRaw(row, mapping, 'rent_amount'));
           const currency = parseCurrency(cellRaw(row, mapping, 'currency'));
@@ -496,8 +442,23 @@ export class MigrationsService {
             .filter(p => p.year < now.getFullYear() || (p.year === now.getFullYear() && p.month <= now.getMonth() + 1))
             .map(p => ({ ...p, status: classifyMonthCell(row[p.colIndex], rentAmount) }));
 
+          // A blank cell before any real activity means "not yet a tenant /
+          // not yet under management" - not an arrear. The first month
+          // that actually shows a payment is the closest thing to a real
+          // lease start date this data has.
+          const firstPaymentSignal = monthStatuses.find(m => m.status.kind === 'paid' || m.status.kind === 'partial');
           const lastNonBlank = [...monthStatuses].reverse().find(m => m.status.kind !== 'unpaid');
-          const currentlyVacant = tenantNameIsVacancyMarker || (!tenantName && !lastNonBlank) || lastNonBlank?.status.kind === 'vacant';
+
+          // Trailing blanks mean the opposite - the tenant has since moved
+          // out. Only fully-elapsed months count toward that signal; the
+          // current, still in-progress month legitimately has nothing
+          // recorded yet and isn't itself a vacancy signal.
+          const completedMonths = monthStatuses.filter(m => m.year < now.getFullYear() || (m.year === now.getFullYear() && m.month < now.getMonth() + 1));
+          const blanksAfterLastCompletedSignal = [...completedMonths].reverse().findIndex(m => m.status.kind !== 'unpaid');
+          const trailingBlankAfterActivity = blanksAfterLastCompletedSignal > 0;
+
+          const currentlyVacant = tenantNameIsVacancyMarker || (!tenantName && !lastNonBlank)
+            || lastNonBlank?.status.kind === 'vacant' || trailingBlankAfterActivity;
 
           let tenancyCreated = 0;
           let paymentsForRow = 0;
@@ -514,7 +475,11 @@ export class MigrationsService {
 
             if (!activeTenancy && rentAmount) {
               let leaseStart = parseDate(cellRaw(row, mapping, 'lease_start'));
-              if (!leaseStart) {
+              if (!leaseStart && firstPaymentSignal) {
+                leaseStart = new Date(firstPaymentSignal.year, firstPaymentSignal.month - 1, 1);
+                warnings.push(`No lease start date in the spreadsheet - inferred ${leaseStart.toLocaleDateString('en-GB')} from the first month with a recorded payment. Confirm this against the tenant's actual lease.`);
+                needsReview = true;
+              } else if (!leaseStart) {
                 leaseStart = new Date();
                 warnings.push("No lease start date in the spreadsheet - defaulted to today. Update it from the tenant's lease.");
                 needsReview = true;
@@ -553,8 +518,12 @@ export class MigrationsService {
             }
 
             // Import a Payment for every month actually paid (in full or in
-            // part). Blank months intentionally get no row - that absence
-            // is what your arrears report already sums as owed.
+            // part). Blank months intentionally get no row - an internal
+            // gap (between two real months) is what your arrears report
+            // sums as owed; leading/trailing blanks don't count against
+            // arrears at all, since lease_start and currentlyVacant above
+            // already exclude those periods from the tenancy's active
+            // window.
             if (tenancyId) {
               for (const m of monthStatuses) {
                 if (m.status.kind !== 'paid' && m.status.kind !== 'partial') continue;
@@ -590,7 +559,7 @@ export class MigrationsService {
 
           summary.results.push({
             row: rowNum,
-            status: property.created || owner.created ? 'created' : 'matched',
+            status: 'created',
             detail: `${address} - ${owner.created ? 'owner created' : 'owner matched'}` +
               (tenancyCreated ? ', tenancy created' : '') +
               (paymentsForRow > 0 ? `, ${paymentsForRow} payment${paymentsForRow === 1 ? '' : 's'} imported` : '') +
