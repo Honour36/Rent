@@ -6,15 +6,12 @@
  * alias-based, not a strict 1:1 header name requirement, because no two
  * agencies' spreadsheets use identical headers.
  *
- * Deliberately NOT included: monthly paid/unpaid grids (JAN..DEC) and
- * commission (COMM) - the former has no date or amount, just the word
- * "paid", so there's nothing reliable to reconstruct into a Payment
- * record; the latter isn't modelled per-owner in this schema (it's a
- * single account-wide rate in Settings), so an imported value would have
- * nowhere real to live.
+ * Deliberately NOT included: monthly paid/unpaid grids (JAN..DEC), handled
+ * separately below via matchMonthColumn - each cell carries a payment
+ * status, not a plain field value like everything in this list.
  */
 export type MigrationField =
-  | 'property_address' | 'property_suburb' | 'property_city' | 'property_type'
+  | 'property_address' | 'property_suburb' | 'property_city' | 'property_type' | 'property_notes'
   | 'owner_name' | 'owner_phone' | 'owner_email'
   | 'tenant_name' | 'tenant_phone' | 'tenant_email'
   | 'rent_amount' | 'currency'
@@ -40,6 +37,9 @@ export const MIGRATION_FIELDS: FieldDef[] = [
   { field: 'property_type', label: 'Property Type', required: false,
     aliases: ['TYPE', 'PROPERTY TYPE'],
     hint: '"residential" or "commercial" - defaults to residential if blank or unrecognized.' },
+  { field: 'property_notes', label: 'Notes', required: false,
+    aliases: ['COMM', 'COMMISSION', 'NOTES', 'PROPERTY NOTES'],
+    hint: 'Stored as-is on the property (e.g. a commission figure/rate that has no dedicated field of its own).' },
   { field: 'owner_phone', label: 'Owner Phone', required: false,
     aliases: ['OWNER CONTACT', 'LESSOR CONTACT', 'OWNER PHONE', 'OWNER TEL'], hint: '' },
   { field: 'owner_email', label: 'Owner Email', required: false, aliases: ['OWNER EMAIL'], hint: '' },
@@ -98,7 +98,7 @@ export function matchHeaderToField(rawHeader: string): MigrationField | null {
 /** One example row for the downloadable template. */
 export const TEMPLATE_HEADERS = [...MIGRATION_FIELDS.map(f => f.aliases[0]), 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const TEMPLATE_EXAMPLE_ROW = [
-  '12 Example Street, Borrowdale', 'Mr J. Moyo', 'Harare', 'Harare', 'residential',
+  '12 Example Street, Borrowdale', 'Mr J. Moyo', 'Harare', 'Harare', 'residential', '10%',
   '0772000000', 'jmoyo@example.com', 'Mrs T. Banda', '0771000000', 'tbanda@example.com',
   '650', 'USD', '2025-01-01', '2026-01-01', '650',
   'paid', 'paid', '400', '', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid', 'paid',
