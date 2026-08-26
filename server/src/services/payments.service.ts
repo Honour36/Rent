@@ -7,7 +7,7 @@ import { depositsService } from './deposits.service';
 
 export const CreatePaymentSchema = z.object({
   tenancyId: z.string().uuid(),
-  paymentType: z.enum(['rent', 'deposit', 'lease_fee', 'levy']).default('rent'),
+  paymentType: z.enum(['rent', 'deposit', 'lease_fee', 'levy', 'penalty', 'application_fee']).default('rent'),
   periodMonth: z.number().min(1).max(12),
   periodYear: z.number().min(2000).max(2100),
   amountPaid: z.number().positive(),
@@ -64,7 +64,8 @@ export class PaymentsService {
     if (!tenancy) throw new AppError('Tenancy not found', 404);
 
     let status = 'partial';
-    if (data.paymentType === 'deposit' || data.paymentType === 'lease_fee' || data.paymentType === 'levy') {
+    if (data.paymentType === 'deposit' || data.paymentType === 'lease_fee' || data.paymentType === 'levy'
+      || data.paymentType === 'penalty' || data.paymentType === 'application_fee') {
       // None of these are "late" against a rent due date.
       status = 'paid';
     } else if (data.amountPaid >= Number(tenancy.rent_amount)) {
@@ -172,6 +173,12 @@ export class PaymentsService {
       }
 
       if (data.paymentType === 'levy') {
+        return { ...result, collectionLink: null };
+      }
+
+      if (data.paymentType === 'penalty' || data.paymentType === 'application_fee') {
+        // Same reasoning as levy/lease_fee/deposit - not "rent collected",
+        // so no owner collection-timing prompt.
         return { ...result, collectionLink: null };
       }
 

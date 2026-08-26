@@ -130,7 +130,7 @@ export default function RecordPaymentPage() {
     }
   };
 
-  const handlePaymentTypeChange = (type: "rent" | "deposit" | "lease_fee" | "levy") => {
+  const handlePaymentTypeChange = (type: "rent" | "deposit" | "lease_fee" | "levy" | "penalty" | "application_fee") => {
     if (type === "deposit" && formData.tenancyId) {
       fetchDepositInfo(formData.tenancyId);
       setFormData({ ...formData, paymentType: type, amountPaid: undefined });
@@ -139,12 +139,12 @@ export default function RecordPaymentPage() {
       setDepositError("");
       setFormData({ ...formData, paymentType: type, amountPaid: Number(selectedTenancy.rentAmount) });
     } else {
-      // lease_fee (or deposit/rent without a tenancy selected yet) - amount
-      // varies per property/tenant, so there's nothing to look up; the
-      // agent just enters it.
+      // lease_fee/levy/penalty/application_fee (or deposit/rent without a
+      // tenancy selected yet) - amount varies per property/tenant, so
+      // there's nothing to look up; the agent just enters it.
       setDepositInfo(null);
       setDepositError("");
-      setFormData({ ...formData, paymentType: type, amountPaid: (type === "lease_fee" || type === "levy") ? undefined : formData.amountPaid });
+      setFormData({ ...formData, paymentType: type, amountPaid: (type === "lease_fee" || type === "levy" || type === "penalty" || type === "application_fee") ? undefined : formData.amountPaid });
     }
   };
 
@@ -263,6 +263,14 @@ export default function RecordPaymentPage() {
                 <Button type="button" variant={formData.paymentType === "levy" ? "default" : "outline"} size="sm"
                   onClick={() => handlePaymentTypeChange("levy")}>
                   Levy
+                </Button>
+                <Button type="button" variant={formData.paymentType === "penalty" ? "default" : "outline"} size="sm"
+                  onClick={() => handlePaymentTypeChange("penalty")}>
+                  Penalty
+                </Button>
+                <Button type="button" variant={formData.paymentType === "application_fee" ? "default" : "outline"} size="sm"
+                  onClick={() => handlePaymentTypeChange("application_fee")}>
+                  Application Fee
                 </Button>
               </div>
             </div>

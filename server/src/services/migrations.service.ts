@@ -449,16 +449,19 @@ export class MigrationsService {
           const firstPaymentSignal = monthStatuses.find(m => m.status.kind === 'paid' || m.status.kind === 'partial');
           const lastNonBlank = [...monthStatuses].reverse().find(m => m.status.kind !== 'unpaid');
 
-          // Trailing blanks mean the opposite - the tenant has since moved
-          // out. Only fully-elapsed months count toward that signal; the
-          // current, still in-progress month legitimately has nothing
-          // recorded yet and isn't itself a vacancy signal.
-          const completedMonths = monthStatuses.filter(m => m.year < now.getFullYear() || (m.year === now.getFullYear() && m.month < now.getMonth() + 1));
-          const blanksAfterLastCompletedSignal = [...completedMonths].reverse().findIndex(m => m.status.kind !== 'unpaid');
-          const trailingBlankAfterActivity = blanksAfterLastCompletedSignal > 0;
-
+          // NOTE: a trailing run of blank months used to also mark a unit
+          // vacant here, on the theory that "blank after paid means the
+          // tenant has since moved out." Cross-checked against a real
+          // receipt book, that produced far more false positives than
+          // correct calls - properties with a single blank month (just
+          // this month's entry not typed in yet) and even one with 4
+          // straight blank months were still actively paying tenants,
+          // confirmed by dated receipts. A blank month almost always just
+          // means the spreadsheet hasn't been updated yet, not that the
+          // tenant left - so only an *explicit* vacant/out marker (or no
+          // tenant name and no activity at all) means vacant now.
           const currentlyVacant = tenantNameIsVacancyMarker || (!tenantName && !lastNonBlank)
-            || lastNonBlank?.status.kind === 'vacant' || trailingBlankAfterActivity;
+            || lastNonBlank?.status.kind === 'vacant';
 
           let tenancyCreated = 0;
           let paymentsForRow = 0;
