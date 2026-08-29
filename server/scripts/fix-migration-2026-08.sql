@@ -16,6 +16,13 @@
 --
 -- Every INSERT here is guarded with "WHERE NOT EXISTS" so this is safe to
 -- run more than once - it will not create duplicates on a second run.
+--
+-- POSTMORTEM (2026-08-25): "Assumes a single account" (below) was WRONG -
+-- this database has 14 accounts, not 1. `(SELECT id FROM accounts LIMIT 1)`
+-- resolved to an unrelated account, silently placing every backfilled
+-- tenancy/payment there instead of Sermony Properties. See the same note
+-- in fix-migration-2026-08-batch2.sql for the full lesson and the recovery
+-- query used to move the data to the right account after the fact.
 -- Assumes a single account in this database (true for this project so far).
 -- ============================================================================
 

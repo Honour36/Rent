@@ -2,6 +2,20 @@
 -- BATCH 2 - additional confirmed receipts (2026-08 migration cleanup)
 -- Run AFTER fix-migration-2026-08.sql. Same rules: wrapped in one
 -- transaction, every insert guarded so it's safe to re-run.
+--
+-- POSTMORTEM (2026-08-25): every account_id in this file below was written
+-- as `(SELECT id FROM accounts LIMIT 1)`, assuming a single-account
+-- database. This database actually has 14 accounts. LIMIT 1 with no
+-- ORDER BY resolved to the oldest account ("Honour", unrelated to this
+-- project) every time, so all 184 payments this file (and batch 1) created
+-- were invisible in Sermony Properties' dashboard until manually corrected
+-- with:
+--   UPDATE payments p SET account_id = t.account_id FROM tenancies t
+--   WHERE p.tenancy_id = t.id AND p.account_id <> t.account_id;
+-- LESSON: never assume single-tenancy in a script that touches a shared
+-- database - check `SELECT count(*) FROM accounts` first, and derive
+-- account_id from an already-correct joined row (e.g. t.account_id) rather
+-- than a fresh unscoped lookup, for every entity a script creates.
 -- ============================================================================
 
 BEGIN;
